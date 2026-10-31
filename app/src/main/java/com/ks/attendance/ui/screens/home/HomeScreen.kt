@@ -225,7 +225,7 @@ fun HomeScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
@@ -264,7 +264,7 @@ private fun HeroClockCard(
     )
 
     Card(
-        shape = RoundedCornerShape(26.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -275,8 +275,8 @@ private fun HeroClockCard(
                 color = if (isClockedIn)
                     ColorWorked.copy(alpha = 0.6f)
                 else
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                shape = RoundedCornerShape(26.dp)
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(20.dp)
             )
     ) {
         Column(
@@ -332,7 +332,7 @@ private fun HeroClockCard(
                     letterSpacing = 2.sp
                 ),
                 fontWeight = FontWeight.Black,
-                color = if (isClockedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                color = if (isClockedIn) ColorWorked else MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             if (isClockedIn && checkInTime != null) {
@@ -410,7 +410,7 @@ private fun CompactRecordCard(
     val isOpen = !isOffDay && record.checkOutTime == null
 
     Card(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -419,7 +419,7 @@ private fun CompactRecordCard(
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(14.dp)
             ),
         onClick = onClick
     ) {
@@ -433,7 +433,7 @@ private fun CompactRecordCard(
             Surface(
                 shape = CircleShape,
                 color = if (isOffDay) ColorOffDay.copy(alpha = 0.15f)
-                else ColorFingerprint.copy(alpha = 0.12f),
+                else ColorFingerprint.copy(alpha = 0.15f),
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -454,7 +454,7 @@ private fun CompactRecordCard(
                         text = "يوم إجازة (OFF)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = ColorOffDay
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -462,7 +462,7 @@ private fun CompactRecordCard(
                             text = PayrollUtil.formatTime(record.checkInTime, is24Hour),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = " ← ",
@@ -498,7 +498,7 @@ private fun CompactRecordCard(
                                     text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "",
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -544,13 +544,13 @@ private fun CompactRecordCard(
             if (isOffDay) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                    color = ColorOffDay.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = "OFF",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.tertiary,
+                        color = ColorOffDay,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -580,7 +580,7 @@ private fun CompactRecordCard(
                     Icons.Default.DeleteOutline,
                     contentDescription = "حذف هذا السجل",
                     modifier = Modifier.size(17.dp),
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                    tint = ColorDelete
                 )
             }
         }

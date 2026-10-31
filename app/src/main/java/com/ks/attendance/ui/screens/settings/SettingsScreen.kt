@@ -103,8 +103,8 @@ fun SettingsScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(ColorWorked.copy(alpha = 0.12f))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(ColorWorked.copy(alpha = 0.15f))
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -303,8 +303,8 @@ fun SettingsScreen(
             ) {
                 // Active period indicator banner
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -477,7 +477,7 @@ fun SettingsScreen(
                                     text = "المظهر",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = currentThemeTitle,
@@ -497,7 +497,7 @@ fun SettingsScreen(
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                    color = MaterialTheme.colorScheme.outlineVariant
                 )
 
                 // 24-Hour Switch (Only Title + Switch)
@@ -644,9 +644,7 @@ fun SettingsScreen(
                     TextButton(onClick = { showThemeDialog = false }) {
                         Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
-                },
-                shape = RoundedCornerShape(22.dp),
-                containerColor = MaterialTheme.colorScheme.surface
+                }
             )
         }
     }
@@ -661,7 +659,7 @@ private fun SlateCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -670,7 +668,7 @@ private fun SlateCard(
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(18.dp)
+                shape = RoundedCornerShape(20.dp)
             )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -686,7 +684,7 @@ private fun SlateCard(
                     text = title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Spacer(modifier = Modifier.height(14.dp))
@@ -703,13 +701,13 @@ private fun SlateOptionRow(
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(10.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isSelected) 1.dp else 0.5.dp,
+            width = 1.dp,
             color = if (isSelected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -728,7 +726,7 @@ private fun SlateOptionRow(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
@@ -749,7 +747,7 @@ private fun SlateCleanToggleRow(
             text = title,
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onSurface
         )
         Switch(
             checked = checked,
@@ -768,12 +766,12 @@ private fun ThemeOptionItem(
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isSelected) 1.dp else 0.5.dp,
+            width = 1.dp,
             color = if (isSelected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -799,7 +797,7 @@ private fun ThemeOptionItem(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                color = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }

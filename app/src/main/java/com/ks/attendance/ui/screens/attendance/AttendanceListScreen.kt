@@ -81,7 +81,12 @@ fun AttendanceListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { onNavigate("record/-1") }) {
+            FloatingActionButton(
+                onClick = { onNavigate("record/-1") },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+                shape = RoundedCornerShape(16.dp)
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "إضافة سجل")
             }
         }
@@ -95,17 +100,17 @@ fun AttendanceListScreen(
             // ─── ملخص النفخ Card ──────────────────────────────────────────────
             item(key = "nafkha_summary") {
                 Card(
-                    shape = RoundedCornerShape(22.dp),
+                    shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        containerColor = MaterialTheme.colorScheme.surface
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 10.dp)
                         .border(
                             width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                            shape = RoundedCornerShape(22.dp)
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(20.dp)
                         )
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
@@ -123,7 +128,7 @@ fun AttendanceListScreen(
                             if (homeState.periodStart.isNotBlank()) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surface
+                                    color = MaterialTheme.colorScheme.surfaceVariant
                                 ) {
                                     Text(
                                         text = "من ${homeState.periodStart} إلى ${homeState.periodEnd}",
@@ -162,7 +167,7 @@ fun AttendanceListScreen(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .height(36.dp)
-                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
                             )
 
                             // Worked days
@@ -185,7 +190,7 @@ fun AttendanceListScreen(
                                 modifier = Modifier
                                     .width(1.dp)
                                     .height(36.dp)
-                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                                    .background(MaterialTheme.colorScheme.outlineVariant)
                             )
 
                             // Estimated Salary
@@ -220,6 +225,11 @@ fun AttendanceListScreen(
                         FilterChip(
                             selected = filterByPeriod,
                             onClick = { filterByPeriod = !filterByPeriod },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
                             label = {
                                 Text(
                                     if (filterByPeriod) "سجلات الفترة الحالية (${displayRecords.size})"
@@ -344,7 +354,7 @@ fun AttendanceListScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(16.dp),
                                 strokeWidth = 2.dp,
-                                color = MaterialTheme.colorScheme.onPrimary
+                                color = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
@@ -428,13 +438,13 @@ private fun DateGroupHeader(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Surface(
-                    shape = RoundedCornerShape(50.dp),
+                    shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = PayrollUtil.formatHours(totalHours),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
@@ -479,13 +489,13 @@ private fun RecordRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 4.dp)
             .pointerInput(record.id) {
                 detectTapGestures(onLongPress = { onEdit() })
             },
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
     ) {
         Column(
             modifier = Modifier
@@ -506,7 +516,7 @@ private fun RecordRow(
                         Icon(
                             imageVector = Icons.Filled.BeachAccess,
                             contentDescription = "إجازة",
-                            tint = MaterialTheme.colorScheme.tertiary,
+                            tint = ColorOffDay,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
@@ -518,7 +528,7 @@ private fun RecordRow(
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(50.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = ColorOffDay.copy(alpha = 0.15f)
                     ) {
                         Text(
@@ -570,7 +580,7 @@ private fun RecordRow(
                             Icon(
                                 imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
                                 contentDescription = "انصراف",
-                                tint = ColorLogout,
+                                tint = if (isOpen) MaterialTheme.colorScheme.error else ColorLogout,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
@@ -587,14 +597,14 @@ private fun RecordRow(
                     // Hours duration chip
                     if (!isOpen) {
                         Surface(
-                            shape = RoundedCornerShape(50.dp),
+                            shape = RoundedCornerShape(8.dp),
                             color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = PayrollUtil.formatHours(record.hoursWorked),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
                                 maxLines = 1,
                                 softWrap = false
@@ -619,7 +629,7 @@ private fun RecordRow(
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(6.dp),
+                        shape = RoundedCornerShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(

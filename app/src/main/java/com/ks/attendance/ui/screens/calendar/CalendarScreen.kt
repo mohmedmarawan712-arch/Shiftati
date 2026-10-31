@@ -334,7 +334,7 @@ private fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) Color.White else ColorFingerprint)
+                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else ColorFingerprint)
                 )
             }
             if (hasNote) {
@@ -342,7 +342,7 @@ private fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) Color.White else MaterialTheme.colorScheme.primary)
+                        .background(if (isSelected) MaterialTheme.colorScheme.onPrimary else ColorNote)
                 )
             }
         }
@@ -389,7 +389,7 @@ private fun DayBottomSheet(
                     Icon(
                         imageVector = Icons.Default.DeleteSweep,
                         contentDescription = "حذف اليوم",
-                        tint = MaterialTheme.colorScheme.error
+                        tint = ColorDelete
                     )
                 }
             }
@@ -417,8 +417,9 @@ private fun DayBottomSheet(
                     MaterialTheme.colorScheme.onSurfaceVariant
 
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
@@ -478,8 +479,8 @@ private fun DayBottomSheet(
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
-                            color = sourceColor.copy(alpha = 0.15f)
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = sourceLabel,
@@ -512,6 +513,7 @@ private fun DayBottomSheet(
         ) {
             Button(
                 onClick = onNavigateAddRecord,
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.weight(1f)
             ) {
                 Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -575,14 +577,14 @@ private fun DayBottomSheet(
             notes.forEach { note ->
                 Surface(
                     color = ColorNote.copy(alpha = 0.15f),
-                    shape = MaterialTheme.shapes.small,
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 3.dp)
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.StickyNote2, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                            tint = ColorNote, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(note.noteText, modifier = Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyMedium)
