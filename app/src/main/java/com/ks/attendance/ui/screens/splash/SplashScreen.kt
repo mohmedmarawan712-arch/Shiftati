@@ -75,47 +75,12 @@ fun SplashScreen(
                 .padding(24.dp)
         ) {
             // App Icon Container
-            Surface(
-                shape = RoundedCornerShape(32.dp),
-                color = if (isDark) Color(0xFF072018) else Color(0xFFE4F7EE),
+            Image(
+                painter = painterResource(id = R.drawable.app_icon),
+                contentDescription = "شفتاتي",
                 modifier = Modifier
-                    .size(108.dp)
-                    .border(
-                        width = 1.5.dp,
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                ColorWorked.copy(alpha = 0.8f),
-                                ColorWorked.copy(alpha = 0.2f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(32.dp)
-                    ),
-                shadowElevation = if (isDark) 0.dp else 6.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Schedule,
-                        contentDescription = null,
-                        tint = ColorWorked,
-                        modifier = Modifier.size(52.dp)
-                    )
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .padding(14.dp)
-                            .size(24.dp)
-                            .background(ColorWorked, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Fingerprint,
-                            contentDescription = null,
-                            tint = if (isDark) Color.Black else Color.White,
-                            modifier = Modifier.size(15.dp)
-                        )
-                    }
-                }
-            }
+                    .size(112.dp)
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

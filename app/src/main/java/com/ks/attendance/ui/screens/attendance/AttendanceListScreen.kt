@@ -45,9 +45,21 @@ fun AttendanceListScreen(
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
 
+    var filterByPeriod by remember { mutableStateOf(true) }
+    val hasActivePeriod = homeState.periodStart.isNotBlank() && homeState.periodEnd.isNotBlank()
+
+    // Filter by active payroll period by default; user can toggle to show all records
+    val displayRecords = remember(allRecords, homeState.periodStart, homeState.periodEnd, filterByPeriod, hasActivePeriod) {
+        if (!filterByPeriod || !hasActivePeriod) {
+            allRecords
+        } else {
+            allRecords.filter { it.workDate >= homeState.periodStart && it.workDate <= homeState.periodEnd }
+        }
+    }
+
     // Group by date descending
-    val grouped = remember(allRecords) {
-        allRecords
+    val grouped = remember(displayRecords) {
+        displayRecords
             .sortedByDescending { it.workDate }
             .groupBy { it.workDate }
     }
@@ -58,7 +70,7 @@ fun AttendanceListScreen(
                 title = "سجل الحضور",
                 onBack = null,
                 actions = {
-                    IconButton(onClick = { viewModel.exportExcel() }) {
+                    IconButton(onClick = { viewModel.exportExcel(onlyCurrentPeriod = filterByPeriod) }) {
                         Icon(
                             Icons.Filled.FileDownload,
                             contentDescription = "تصدير كملف Excel (.xls)",
@@ -195,7 +207,45 @@ fun AttendanceListScreen(
                 }
             }
 
-            if (allRecords.isEmpty()) {
+            // ─── Filter Bar ───────────────────────────────────────────────────
+            if (hasActivePeriod) {
+                item(key = "period_filter_bar") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilterChip(
+                            selected = filterByPeriod,
+                            onClick = { filterByPeriod = !filterByPeriod },
+                            label = {
+                                Text(
+                                    if (filterByPeriod) "سجلات الفترة الحالية (${displayRecords.size})"
+                                    else "عرض جميع السجلات (${allRecords.size})",
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    if (filterByPeriod) Icons.Filled.DateRange else Icons.Filled.List,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        )
+
+                        Text(
+                            text = if (filterByPeriod) "${homeState.periodStart} ~ ${homeState.periodEnd}" else "الكل",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (displayRecords.isEmpty()) {
                 item(key = "empty_state") {
                     Box(
                         modifier = Modifier
@@ -204,7 +254,9 @@ fun AttendanceListScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         EmptyState(
-                            message = "لا توجد سجلات حضور بعد\nاضغط + لإضافة سجل يدوي",
+                            message = if (filterByPeriod && allRecords.isNotEmpty())
+                                "لا توجد سجلات في هذه الفترة المحددة\nاضغط على 'عرض جميع السجلات' أو +"
+                            else "لا توجد سجلات حضور بعد\nاضغط + لإضافة سجل يدوي",
                             icon = Icons.Default.EventNote
                         )
                     }

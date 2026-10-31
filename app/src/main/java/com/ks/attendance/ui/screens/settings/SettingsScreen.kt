@@ -342,6 +342,7 @@ fun SettingsScreen(
                             val end = customEndDate.ifBlank { homeState.periodEnd }
                             customStartDate = start
                             customEndDate = end
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE)
                             viewModel.setCustomPeriodRange(start, end)
                         }
                     )

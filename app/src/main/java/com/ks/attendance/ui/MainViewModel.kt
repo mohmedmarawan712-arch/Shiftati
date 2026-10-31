@@ -371,14 +371,9 @@ class MainViewModel(
         }
     }
 
-    fun exportExcel() {
+    fun exportExcel(onlyCurrentPeriod: Boolean = true) {
         viewModelScope.launch {
             try {
-                val records = repo.getAllRecordsDirect()
-                if (records.isEmpty()) {
-                    showHomeMessage("لا توجد سجلات لتصديرها بعد", isError = true)
-                    return@launch
-                }
                 val rate = prefs.hourlyRate.first()
                 val startDay = prefs.payrollStartDay.first()
                 val cycleType = prefs.payrollCycleType.first()
@@ -391,6 +386,17 @@ class MainViewModel(
                     customEnd = customEnd,
                     referenceDate = Date()
                 )
+
+                val records = if (onlyCurrentPeriod && ps.isNotBlank() && pe.isNotBlank()) {
+                    repo.getRecordsInRangeDirect(ps, pe)
+                } else {
+                    repo.getAllRecordsDirect()
+                }
+
+                if (records.isEmpty()) {
+                    showHomeMessage("لا توجد سجلات في هذه الفترة لتصديرها", isError = true)
+                    return@launch
+                }
 
                 _reportState.value = _reportState.value.copy(isExporting = true)
                 val result = ExportUtil.exportExcel(
@@ -494,6 +500,7 @@ class MainViewModel(
     fun setCustomPeriodRange(start: String, end: String) {
         viewModelScope.launch {
             prefs.setCustomPeriodRange(start, end)
+            prefs.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE)
             refreshHome()
             loadReport()
         }
@@ -678,22 +685,36 @@ class MainViewModel(
                 _settingsState.value = _settingsState.value.copy(isEssLoggedIn = true)
             }
 
-            // Sync broad window: from start of previous month through end of next month
-            val cal = Calendar.getInstance()
-            cal.add(Calendar.MONTH, -1)
-            cal.set(Calendar.DAY_OF_MONTH, 1)
-            cal.set(Calendar.HOUR_OF_DAY, 0)
-            cal.set(Calendar.MINUTE, 0)
-            cal.set(Calendar.SECOND, 0)
-            val syncStart = cal.time
+            val cycleType = prefs.payrollCycleType.first()
+            val customStart = prefs.customStartDate.first()
+            val customEnd = prefs.customEndDate.first()
 
-            val calEnd = Calendar.getInstance()
-            calEnd.add(Calendar.MONTH, 1)
-            calEnd.set(Calendar.DAY_OF_MONTH, calEnd.getActualMaximum(Calendar.DAY_OF_MONTH))
-            calEnd.set(Calendar.HOUR_OF_DAY, 23)
-            calEnd.set(Calendar.MINUTE, 59)
-            calEnd.set(Calendar.SECOND, 59)
-            val syncEnd = calEnd.time
+            val (syncStart, syncEnd) = if (cycleType == PayrollUtil.CYCLE_CUSTOM_RANGE && customStart.isNotBlank() && customEnd.isNotBlank()) {
+                val s = PayrollUtil.parseDate(customStart)
+                val eCal = Calendar.getInstance()
+                eCal.time = PayrollUtil.parseDate(customEnd)
+                eCal.set(Calendar.HOUR_OF_DAY, 23)
+                eCal.set(Calendar.MINUTE, 59)
+                eCal.set(Calendar.SECOND, 59)
+                s to eCal.time
+            } else {
+                // Sync broad window: from start of previous month through end of next month
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.MONTH, -1)
+                cal.set(Calendar.DAY_OF_MONTH, 1)
+                cal.set(Calendar.HOUR_OF_DAY, 0)
+                cal.set(Calendar.MINUTE, 0)
+                cal.set(Calendar.SECOND, 0)
+                val s = cal.time
+
+                val calEnd = Calendar.getInstance()
+                calEnd.add(Calendar.MONTH, 1)
+                calEnd.set(Calendar.DAY_OF_MONTH, calEnd.getActualMaximum(Calendar.DAY_OF_MONTH))
+                calEnd.set(Calendar.HOUR_OF_DAY, 23)
+                calEnd.set(Calendar.MINUTE, 59)
+                calEnd.set(Calendar.SECOND, 59)
+                s to calEnd.time
+            }
 
             val result = repo.syncFromEss(syncStart, syncEnd)
             _homeState.value = _homeState.value.copy(isLoading = false)

@@ -93,14 +93,21 @@ fun AddEditRecordScreen(
         }
     }
 
+    // Overnight shift: when check-out is earlier than check-in (e.g. 7 PM to 5 AM next day)
+    val isOvernight = remember(checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute) {
+        hasCheckOut && (checkOutHour < checkInHour || (checkOutHour == checkInHour && checkOutMinute < checkInMinute))
+    }
+
     // Computed hours
     val computedHours: Double? = remember(
-        workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute
+        workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute, isOvernight
     ) {
         if (!hasCheckOut) null
+        else if (checkInHour == checkOutHour && checkInMinute == checkOutMinute) null
         else {
             val inMillis = dateTimeToMillis(workDate, checkInHour, checkInMinute)
-            val outMillis = dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
+            val rawOut = dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
+            val outMillis = if (isOvernight) rawOut + 86_400_000L else rawOut
             if (outMillis > inMillis) (outMillis - inMillis).toDouble() / 3_600_000.0
             else null
         }
@@ -178,10 +185,15 @@ fun AddEditRecordScreen(
         } else if (isEdit && !timeOrDateModifiedByUser && existing != null) {
             existing.checkOutTime
         } else {
-            dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
+            val rawOut = dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
+            if (isOvernight) rawOut + 86_400_000L else rawOut
         }
 
-        if (outMillis != null && outMillis <= inMillis) {
+        if (outMillis != null && outMillis == inMillis) {
+            errorMsg = "وقت الانصراف لا يمكن أن يكون نفس وقت الدخول"
+            return false
+        }
+        if (outMillis != null && outMillis < inMillis) {
             errorMsg = "وقت الانصراف يجب أن يكون بعد وقت الدخول"
             return false
         }
@@ -416,17 +428,37 @@ fun AddEditRecordScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(Icons.Filled.Timer, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "الساعات المحسوبة: ${PayrollUtil.formatHours(hours)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f, fill = false)
+                            ) {
+                                Icon(Icons.Filled.Timer, contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "الساعات المحسوبة: ${PayrollUtil.formatHours(hours)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            if (isOvernight) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.secondaryContainer
+                                ) {
+                                    Text(
+                                        text = "شفت ليلي (ينتهي غداً)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
