@@ -1,5 +1,6 @@
 package com.ks.attendance.ui.screens.record
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -101,11 +102,119 @@ fun AddEditRecordScreen(
         }
     }
 
+    // Unsaved changes state & dialog
+    var showUnsavedDialog by remember { mutableStateOf(false) }
+
+    val hasUnsavedChanges by remember(
+        workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute, noteText,
+        initialWorkDate, initialCheckInHour, initialCheckInMinute, initialHasCheckOut, initialCheckOutHour, initialCheckOutMinute
+    ) {
+        derivedStateOf {
+            if (!isEdit) {
+                noteText.isNotBlank() || workDate != today || checkInHour != 9 || checkInMinute != 0 || hasCheckOut
+            } else {
+                val existing = viewModel.allRecords.value.find { it.id == recordId }
+                (initialWorkDate != null && workDate != initialWorkDate) ||
+                (initialCheckInHour != -1 && checkInHour != initialCheckInHour) ||
+                (initialCheckInMinute != -1 && checkInMinute != initialCheckInMinute) ||
+                (hasCheckOut != initialHasCheckOut) ||
+                (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute)) ||
+                (noteText.trim() != (existing?.note?.trim() ?: ""))
+            }
+        }
+    }
+
+    fun performSave(): Boolean {
+        val timeOrDateModifiedByUser = (workDate != initialWorkDate) ||
+            (checkInHour != initialCheckInHour) ||
+            (checkInMinute != initialCheckInMinute) ||
+            (hasCheckOut != initialHasCheckOut) ||
+            (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute))
+
+        val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
+
+        val inMillis = if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+            existing.checkInTime
+        } else {
+            dateTimeToMillis(workDate, checkInHour, checkInMinute)
+        }
+
+        val outMillis = if (!hasCheckOut) {
+            null
+        } else if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+            existing.checkOutTime
+        } else {
+            dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
+        }
+
+        if (outMillis != null && outMillis <= inMillis) {
+            errorMsg = "وقت الانصراف يجب أن يكون بعد وقت الدخول"
+            return false
+        }
+        errorMsg = null
+
+        val hours = if (outMillis != null) {
+            if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+                existing.hoursWorked
+            } else {
+                (outMillis - inMillis).toDouble() / 3_600_000.0
+            }
+        } else 0.0
+
+        val record = if (isEdit && existing != null) {
+            existing.copy(
+                workDate = workDate,
+                checkInTime = inMillis,
+                checkOutTime = outMillis,
+                hoursWorked = hours,
+                note = noteText.trim(),
+                isFromServer = if (timeOrDateModifiedByUser) false else existing.isFromServer
+            )
+        } else {
+            AttendanceRecord(
+                workDate = workDate,
+                checkInTime = inMillis,
+                checkOutTime = outMillis,
+                hoursWorked = hours,
+                note = noteText.trim(),
+                source = "manual"
+            )
+        }
+        if (isEdit) viewModel.updateRecord(record) else viewModel.addRecord(record)
+        return true
+    }
+
+    val handleBack = {
+        if (hasUnsavedChanges) {
+            showUnsavedDialog = true
+        } else {
+            onBack()
+        }
+    }
+
+    BackHandler(enabled = hasUnsavedChanges) {
+        showUnsavedDialog = true
+    }
+
     Scaffold(
         topBar = {
             KSTopBar(
                 title = if (isEdit) "تعديل السجل" else "إضافة سجل",
-                onBack = onBack
+                onBack = handleBack,
+                actions = {
+                    FilledTonalButton(
+                        onClick = {
+                            if (performSave()) onBack()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Icon(Icons.Filled.Check, contentDescription = "حفظ", modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("حفظ", fontWeight = FontWeight.Bold)
+                    }
+                }
             )
         }
     ) { padding ->
@@ -266,79 +375,63 @@ fun AddEditRecordScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ─── Save button ──────────────────────────────────────────────────
-            Button(
-                onClick = {
-                    val timeOrDateModifiedByUser = (workDate != initialWorkDate) ||
-                        (checkInHour != initialCheckInHour) ||
-                        (checkInMinute != initialCheckInMinute) ||
-                        (hasCheckOut != initialHasCheckOut) ||
-                        (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute))
-
-                    val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
-
-                    val inMillis = if (isEdit && !timeOrDateModifiedByUser && existing != null) {
-                        existing.checkInTime
-                    } else {
-                        dateTimeToMillis(workDate, checkInHour, checkInMinute)
-                    }
-
-                    val outMillis = if (!hasCheckOut) {
-                        null
-                    } else if (isEdit && !timeOrDateModifiedByUser && existing != null) {
-                        existing.checkOutTime
-                    } else {
-                        dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
-                    }
-
-                    if (outMillis != null && outMillis <= inMillis) {
-                        errorMsg = "وقت الانصراف يجب أن يكون بعد وقت الدخول"
-                        return@Button
-                    }
-                    errorMsg = null
-
-                    val hours = if (outMillis != null) {
-                        if (isEdit && !timeOrDateModifiedByUser && existing != null) {
-                            existing.hoursWorked
-                        } else {
-                            (outMillis - inMillis).toDouble() / 3_600_000.0
-                        }
-                    } else 0.0
-
-                    val record = if (isEdit && existing != null) {
-                        existing.copy(
-                            workDate = workDate,
-                            checkInTime = inMillis,
-                            checkOutTime = outMillis,
-                            hoursWorked = hours,
-                            note = noteText.trim(),
-                            isFromServer = if (timeOrDateModifiedByUser) false else existing.isFromServer
-                        )
-                    } else {
-                        AttendanceRecord(
-                            workDate = workDate,
-                            checkInTime = inMillis,
-                            checkOutTime = outMillis,
-                            hoursWorked = hours,
-                            note = noteText.trim(),
-                            source = "manual"
-                        )
-                    }
-                    if (isEdit) viewModel.updateRecord(record) else viewModel.addRecord(record)
-                    onBack()
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Icon(Icons.Filled.Save, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("حفظ", style = MaterialTheme.typography.titleMedium)
-            }
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    // ─── Unsaved Changes Dialog ───────────────────────────────────────────────
+    if (showUnsavedDialog) {
+        AlertDialog(
+            onDismissRequest = { showUnsavedDialog = false },
+            icon = {
+                Icon(
+                    Icons.Filled.WarningAmber,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(28.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "تغييرات غير محفوظة",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "هل تريد حفظ التعديلات قبل الخروج أم تجاهلها؟",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showUnsavedDialog = false
+                        if (performSave()) onBack()
+                    }
+                ) {
+                    Text("حفظ التغييرات")
+                }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(
+                        onClick = {
+                            showUnsavedDialog = false
+                            onBack()
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("تجاهل")
+                    }
+                    Spacer(modifier = Modifier.width(4.dp))
+                    TextButton(onClick = { showUnsavedDialog = false }) {
+                        Text("إلغاء")
+                    }
+                }
+            }
+        )
     }
 
     // ─── Dialogs ──────────────────────────────────────────────────────────────

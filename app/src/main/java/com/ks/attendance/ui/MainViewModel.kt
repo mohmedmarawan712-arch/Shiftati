@@ -561,6 +561,13 @@ class MainViewModel(
                         prefs.setEmployeeName(detected)
                     }
                 }
+                val instances = result.getOrDefault(emptyList())
+                if (instances.size == 1) {
+                    repo.essSelectInstance(instances.first())
+                    syncFromEss { count ->
+                        if (count > 0) showHomeMessage("تم تسجيل الدخول ومزامنة $count وردية بنجاح ✓")
+                    }
+                }
             }
             _settingsState.value = _settingsState.value.copy(
                 essInstances = result.getOrDefault(emptyList()),
@@ -577,6 +584,10 @@ class MainViewModel(
                 if (detected.isNotBlank()) {
                     prefs.setEmployeeName(detected)
                 }
+            }
+            // Auto-sync immediately upon selecting instance
+            syncFromEss { count ->
+                if (count > 0) showHomeMessage("تم اختيار الفرع ومزامنة $count وردية بنجاح ✓")
             }
         }
     }
@@ -613,21 +624,24 @@ class MainViewModel(
                 }
             }
 
-            val startDay = prefs.payrollStartDay.first()
-            val cycleType = prefs.payrollCycleType.first()
-            val customStart = prefs.customStartDate.first()
-            val customEnd = prefs.customEndDate.first()
-            val (ps, pe) = PayrollUtil.resolvePeriod(
-                cycleType = cycleType,
-                startDay = startDay,
-                customStart = customStart,
-                customEnd = customEnd,
-                referenceDate = Date()
-            )
-            val result = repo.syncFromEss(
-                PayrollUtil.parseDate(ps),
-                PayrollUtil.parseDate(pe)
-            )
+            // Sync broad window: from start of previous month through end of next month
+            val cal = Calendar.getInstance()
+            cal.add(Calendar.MONTH, -1)
+            cal.set(Calendar.DAY_OF_MONTH, 1)
+            cal.set(Calendar.HOUR_OF_DAY, 0)
+            cal.set(Calendar.MINUTE, 0)
+            cal.set(Calendar.SECOND, 0)
+            val syncStart = cal.time
+
+            val calEnd = Calendar.getInstance()
+            calEnd.add(Calendar.MONTH, 1)
+            calEnd.set(Calendar.DAY_OF_MONTH, calEnd.getActualMaximum(Calendar.DAY_OF_MONTH))
+            calEnd.set(Calendar.HOUR_OF_DAY, 23)
+            calEnd.set(Calendar.MINUTE, 59)
+            calEnd.set(Calendar.SECOND, 59)
+            val syncEnd = calEnd.time
+
+            val result = repo.syncFromEss(syncStart, syncEnd)
             _homeState.value = _homeState.value.copy(isLoading = false)
             if (result.isSuccess) {
                 refreshHome()
