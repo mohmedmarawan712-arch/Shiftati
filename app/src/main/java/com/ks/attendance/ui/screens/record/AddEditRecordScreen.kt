@@ -52,22 +52,36 @@ fun AddEditRecordScreen(
     var showCheckInPicker by remember { mutableStateOf(false) }
     var showCheckOutPicker by remember { mutableStateOf(false) }
 
+    // Initial values to check if time/date was actually edited by the user
+    var initialWorkDate by remember { mutableStateOf<String?>(null) }
+    var initialCheckInHour by remember { mutableIntStateOf(-1) }
+    var initialCheckInMinute by remember { mutableIntStateOf(-1) }
+    var initialHasCheckOut by remember { mutableStateOf(false) }
+    var initialCheckOutHour by remember { mutableIntStateOf(-1) }
+    var initialCheckOutMinute by remember { mutableIntStateOf(-1) }
+
     // Load existing record if editing
     LaunchedEffect(recordId) {
         if (isEdit) {
             val record = viewModel.allRecords.value.find { it.id == recordId }
             record?.let { r ->
                 workDate = r.workDate
+                initialWorkDate = r.workDate
                 isOnlineRecord = (r.source == "ess_online")
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = r.checkInTime
                 checkInHour = cal.get(Calendar.HOUR_OF_DAY)
                 checkInMinute = cal.get(Calendar.MINUTE)
+                initialCheckInHour = checkInHour
+                initialCheckInMinute = checkInMinute
                 r.checkOutTime?.let { out ->
                     hasCheckOut = true
+                    initialHasCheckOut = true
                     cal.timeInMillis = out
                     checkOutHour = cal.get(Calendar.HOUR_OF_DAY)
                     checkOutMinute = cal.get(Calendar.MINUTE)
+                    initialCheckOutHour = checkOutHour
+                    initialCheckOutMinute = checkOutMinute
                 }
                 noteText = r.note
             }
@@ -257,25 +271,50 @@ fun AddEditRecordScreen(
             // ─── Save button ──────────────────────────────────────────────────
             Button(
                 onClick = {
-                    val inMillis = dateTimeToMillis(workDate, checkInHour, checkInMinute)
-                    val outMillis = if (hasCheckOut)
+                    val timeOrDateModifiedByUser = (workDate != initialWorkDate) ||
+                        (checkInHour != initialCheckInHour) ||
+                        (checkInMinute != initialCheckInMinute) ||
+                        (hasCheckOut != initialHasCheckOut) ||
+                        (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute))
+
+                    val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
+
+                    val inMillis = if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+                        existing.checkInTime
+                    } else {
+                        dateTimeToMillis(workDate, checkInHour, checkInMinute)
+                    }
+
+                    val outMillis = if (!hasCheckOut) {
+                        null
+                    } else if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+                        existing.checkOutTime
+                    } else {
                         dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
-                    else null
+                    }
 
                     if (outMillis != null && outMillis <= inMillis) {
                         errorMsg = "وقت الانصراف يجب أن يكون بعد وقت الدخول"
                         return@Button
                     }
                     errorMsg = null
-                    val hours = if (outMillis != null) (outMillis - inMillis).toDouble() / 3_600_000.0 else 0.0
-                    val record = if (isEdit) {
-                        val existing = viewModel.allRecords.value.find { it.id == recordId }!!
+
+                    val hours = if (outMillis != null) {
+                        if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+                            existing.hoursWorked
+                        } else {
+                            (outMillis - inMillis).toDouble() / 3_600_000.0
+                        }
+                    } else 0.0
+
+                    val record = if (isEdit && existing != null) {
                         existing.copy(
                             workDate = workDate,
                             checkInTime = inMillis,
                             checkOutTime = outMillis,
                             hoursWorked = hours,
-                            note = noteText.trim()
+                            note = noteText.trim(),
+                            isFromServer = if (timeOrDateModifiedByUser) false else existing.isFromServer
                         )
                     } else {
                         AttendanceRecord(

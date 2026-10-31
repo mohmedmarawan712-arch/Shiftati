@@ -282,21 +282,31 @@ class MainViewModel(
 
     fun updateRecord(record: AttendanceRecord) {
         viewModelScope.launch {
-            // Only mark isFromServer = false ("معدل") if the actual work hours or date changed!
-            // If the user only added or edited a note, keep isFromServer = true so it is not marked as "معدل".
             val existing = repo.getRecordById(record.id)
-            val timeOrDateChanged = existing == null ||
-                existing.workDate != record.workDate ||
-                existing.checkInTime != record.checkInTime ||
-                existing.checkOutTime != record.checkOutTime
-
-            val userEditedRecord = if (record.isFromServer && timeOrDateChanged) {
-                record.copy(isFromServer = false)
-            } else if (existing != null) {
-                record.copy(isFromServer = existing.isFromServer)
+            val checkInDiffMinutes = if (existing != null) kotlin.math.abs(existing.checkInTime - record.checkInTime) / 60000 else 999
+            val checkOutDiffMinutes = if (existing != null && existing.checkOutTime != null && record.checkOutTime != null) {
+                kotlin.math.abs(existing.checkOutTime - record.checkOutTime) / 60000
+            } else if (existing?.checkOutTime == null && record.checkOutTime == null) {
+                0L
             } else {
-                record
+                999L
             }
+            val timeOrDateChanged = existing != null && (
+                existing.workDate != record.workDate ||
+                checkInDiffMinutes >= 1L ||
+                checkOutDiffMinutes >= 1L
+            )
+
+            // If time/date was NOT changed, preserve the original isFromServer flag!
+            val finalIsFromServer = if (timeOrDateChanged) {
+                false
+            } else if (existing != null) {
+                existing.isFromServer
+            } else {
+                record.isFromServer
+            }
+
+            val userEditedRecord = record.copy(isFromServer = finalIsFromServer)
             repo.updateRecord(userEditedRecord)
             refreshHome()
         }
