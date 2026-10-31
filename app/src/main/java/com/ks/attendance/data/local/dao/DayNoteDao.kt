@@ -10,6 +10,9 @@ interface DayNoteDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(note: DayNote): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(notes: List<DayNote>)
+
     @Update
     suspend fun update(note: DayNote)
 
@@ -27,4 +30,7 @@ interface DayNoteDao {
 
     @Query("SELECT * FROM day_notes WHERE id = :id")
     suspend fun getById(id: Long): DayNote?
+
+    @Query("SELECT * FROM day_notes")
+    suspend fun getAllNotesDirect(): List<DayNote>
 }

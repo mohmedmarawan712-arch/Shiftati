@@ -1,5 +1,7 @@
 package com.ks.attendance.ui.screens.settings
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -63,8 +65,13 @@ fun SettingsScreen(
     var saveCreds by remember(state.essSaveCredentials) { mutableStateOf(state.essSaveCredentials) }
     var showPassword by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
-    var isSyncing by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf<String?>(null) }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { viewModel.restoreBackupFromUri(it) }
+    }
 
     Scaffold(
         topBar = {
@@ -432,19 +439,41 @@ fun SettingsScreen(
                 )
             }
 
-            // ─── 5. Data & Backup Card ────────────────────────────────────────
+            // ─── 5. Data & Backup Card (JSON Full Backup & Restore) ───────────
             SlateCard(
                 title = "إدارة البيانات والنسخ الاحتياطي",
                 icon = Icons.Filled.Storage
             ) {
-                OutlinedButton(
-                    onClick = { viewModel.exportCsv() },
+                Text(
+                    text = "نسخ احتياطي شامل لجميع السجلات والورديات والملاحظات وبيانات تسجيل الدخول والإعدادات في ملف JSON آمن ومستقل.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // Create Backup Button
+                Button(
+                    onClick = { viewModel.createBackup() },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Filled.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Backup, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("تصدير السجلات كملف Excel (.csv)")
+                    Text("إنشاء نسخة احتياطية كاملة (JSON)", fontWeight = FontWeight.Bold)
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Restore Backup Button
+                OutlinedButton(
+                    onClick = { restoreLauncher.launch("*/*") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Filled.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("استعادة نسخة احتياطية (JSON)", fontWeight = FontWeight.Bold)
                 }
             }
 

@@ -95,12 +95,14 @@ fun AddEditRecordScreen(
             )
         }
     ) { padding ->
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .padding(padding)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .imePadding()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
@@ -296,6 +298,7 @@ fun AddEditRecordScreen(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("حفظ", style = MaterialTheme.typography.titleMedium)
             }
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 

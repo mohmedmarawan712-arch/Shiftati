@@ -103,11 +103,11 @@ fun HomeScreen(
                 .padding(padding)
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 96.dp)
+            contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)
         ) {
             // ─── Header ───────────────────────────────────────────────────────
             item {
-                Column(modifier = Modifier.padding(top = 4.dp)) {
+                Column {
                     val greeting = if (homeState.employeeName.isNotBlank())
                         "أهلاً، ${homeState.employeeName}"
                     else

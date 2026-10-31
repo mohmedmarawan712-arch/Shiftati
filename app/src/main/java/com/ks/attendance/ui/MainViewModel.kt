@@ -14,6 +14,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import android.content.Context
+import android.net.Uri
+import com.ks.attendance.utils.BackupUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -280,9 +282,21 @@ class MainViewModel(
 
     fun updateRecord(record: AttendanceRecord) {
         viewModelScope.launch {
-            // If the user modified a record synced from server, mark isFromServer = false
-            // so subsequent server syncs will never overwrite the user's manual adjustments!
-            val userEditedRecord = if (record.isFromServer) record.copy(isFromServer = false) else record
+            // Only mark isFromServer = false ("معدل") if the actual work hours or date changed!
+            // If the user only added or edited a note, keep isFromServer = true so it is not marked as "معدل".
+            val existing = repo.getRecordById(record.id)
+            val timeOrDateChanged = existing == null ||
+                existing.workDate != record.workDate ||
+                existing.checkInTime != record.checkInTime ||
+                existing.checkOutTime != record.checkOutTime
+
+            val userEditedRecord = if (record.isFromServer && timeOrDateChanged) {
+                record.copy(isFromServer = false)
+            } else if (existing != null) {
+                record.copy(isFromServer = existing.isFromServer)
+            } else {
+                record
+            }
             repo.updateRecord(userEditedRecord)
             refreshHome()
         }
@@ -421,6 +435,59 @@ class MainViewModel(
         exportExcel()
     }
 
+    // ─── JSON Backup & Restore ────────────────────────────────────────────────
+
+    fun createBackup() {
+        viewModelScope.launch {
+            try {
+                val records = repo.getAllRecordsDirect()
+                val notes = repo.getAllNotesDirect()
+                val prefsMap = prefs.getAllPrefsMap()
+
+                val json = BackupUtil.buildBackupJson(records, notes, prefsMap)
+                val saveRes = BackupUtil.saveBackupToFile(context, json)
+                if (saveRes.isSuccess) {
+                    val path = saveRes.getOrThrow()
+                    showHomeMessage("تم إنشاء النسخة الاحتياطية بنجاح ✓\nتم الحفظ في: $path")
+                    BackupUtil.shareBackupFile(context, path)
+                } else {
+                    showHomeMessage("فشل حفظ النسخة الاحتياطية: ${saveRes.exceptionOrNull()?.message}", isError = true)
+                }
+            } catch (e: Exception) {
+                showHomeMessage("خطأ أثناء إنشاء النسخة الاحتياطية: ${e.message}", isError = true)
+            }
+        }
+    }
+
+    fun restoreBackupFromUri(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                if (inputStream == null) {
+                    showHomeMessage("تعذر فتح ملف النسخة الاحتياطية", isError = true)
+                    return@launch
+                }
+                val jsonString = inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+                val parsedRes = BackupUtil.parseBackupJson(jsonString)
+                if (parsedRes.isFailure) {
+                    showHomeMessage("فشل قراءة النسخة الاحتياطية: ${parsedRes.exceptionOrNull()?.message}", isError = true)
+                    return@launch
+                }
+                val backup = parsedRes.getOrThrow()
+                // Restore Room entities
+                repo.restoreData(backup.records, backup.notes)
+                // Restore preferences & credentials
+                if (backup.preferences.isNotEmpty()) {
+                    prefs.restorePrefsFromMap(backup.preferences)
+                }
+                refreshHome()
+                showHomeMessage("تمت استعادة النسخة الاحتياطية بنجاح ✓\nتم استرجاع ${backup.records.size} وردية و ${backup.notes.size} ملاحظة")
+            } catch (e: Exception) {
+                showHomeMessage("خطأ أثناء الاستعادة: ${e.message}", isError = true)
+            }
+        }
+    }
+
     // ─── Settings ─────────────────────────────────────────────────────────────
 
     fun setHourlyRate(rate: Double) {
@@ -517,6 +584,25 @@ class MainViewModel(
     fun syncFromEss(onResult: (Int) -> Unit) {
         viewModelScope.launch {
             _homeState.value = _homeState.value.copy(isLoading = true)
+
+            // Auto-relogin silently if session expired but credentials exist
+            if (!repo.isEssLoggedIn) {
+                val saveCreds = prefs.essSaveCredentials.first()
+                val email = prefs.essEmail.first()
+                val pass = prefs.essPassword.first()
+                if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
+                    try {
+                        val loginRes = repo.essLogin(email.trim(), pass)
+                        if (loginRes.isSuccess) {
+                            val instances = loginRes.getOrDefault(emptyList())
+                            if (instances.isNotEmpty()) {
+                                repo.essSelectInstance(instances.first())
+                            }
+                        }
+                    } catch (_: Exception) {}
+                }
+            }
+
             val startDay = prefs.payrollStartDay.first()
             val cycleType = prefs.payrollCycleType.first()
             val customStart = prefs.customStartDate.first()

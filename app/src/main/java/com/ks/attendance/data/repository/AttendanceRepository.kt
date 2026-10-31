@@ -46,8 +46,17 @@ class AttendanceRepository(
 
     suspend fun getAllRecordsDirect(): List<AttendanceRecord> = attendanceDao.getAllRecordsDirect()
 
+    suspend fun getRecordById(id: Long): AttendanceRecord? = attendanceDao.getById(id)
+
     suspend fun getRecordsInRangeDirect(start: String, end: String): List<AttendanceRecord> =
         attendanceDao.getRecordsInRangeDirect(start, end)
+
+    suspend fun getAllNotesDirect(): List<DayNote> = dayNoteDao.getAllNotesDirect()
+
+    suspend fun restoreData(records: List<AttendanceRecord>, notes: List<DayNote>) {
+        if (records.isNotEmpty()) attendanceDao.insertAll(records)
+        if (notes.isNotEmpty()) dayNoteDao.insertAll(notes)
+    }
 
     // ─── Clock-in / Clock-out shortcuts ──────────────────────────────────────
 

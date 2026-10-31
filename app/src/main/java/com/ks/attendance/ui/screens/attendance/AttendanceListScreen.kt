@@ -61,10 +61,10 @@ fun AttendanceListScreen(
                 title = "سجل الحضور",
                 onBack = null,
                 actions = {
-                    IconButton(onClick = { viewModel.exportCsv() }) {
+                    IconButton(onClick = { viewModel.exportExcel() }) {
                         Icon(
                             Icons.Filled.FileDownload,
-                            contentDescription = "تصدير كملف Excel",
+                            contentDescription = "تصدير كملف Excel (.xls)",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }

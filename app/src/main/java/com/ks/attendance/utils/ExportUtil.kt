@@ -150,46 +150,7 @@ object ExportUtil {
             }
         }
 
-        // Also export a clean CSV alongside it for maximum compatibility
-        val csvFileName = "Shiftati_${periodStart}_${periodEnd}_$timeStamp.csv"
-        val csvFile = File(dir, csvFileName)
-        exportCsvFile(csvFile, records, notes, hourlyRate)
-
         file.absolutePath
-    }
-
-    private fun exportCsvFile(
-        file: File,
-        records: List<AttendanceRecord>,
-        notes: List<DayNote>,
-        hourlyRate: Double
-    ) {
-        val notesByDate = notes.groupBy { it.date }
-        FileOutputStream(file).use { fos ->
-            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                writer.write("\uFEFF") // UTF-8 BOM
-                writer.write("اليوم,التاريخ,الحضور,الانصراف,عدد الساعات,الساعات العشرية,المصدر,الملاحظات\n")
-                for (rec in records.sortedBy { it.checkInTime }) {
-                    val date = runCatching { sdfDate.parse(rec.workDate) }.getOrNull() ?: Date(rec.checkInTime)
-                    val dayName = arabicDayName(date)
-                    val checkIn = PayrollUtil.formatTime(rec.checkInTime, false).replace(",", " ")
-                    val checkOut = (rec.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح").replace(",", " ")
-                    val hours = PayrollUtil.formatHours(rec.hoursWorked).replace(",", " ")
-                    val hoursDec = "%.2f".format(rec.hoursWorked)
-                    val source = when {
-                        rec.source == "ess_online" && !rec.isFromServer -> "معدل"
-                        rec.source == "ess_online" -> "ESS"
-                        else -> "يدوي"
-                    }
-                    val note = (notesByDate[rec.workDate]?.joinToString(" | ") { it.noteText } ?: rec.note).replace(",", " - ").replace("\n", " ")
-                    writer.write("\"$dayName\",\"${rec.workDate}\",\"$checkIn\",\"$checkOut\",\"$hours\",\"$hoursDec\",\"$source\",\"$note\"\n")
-                }
-                val totalHours = records.sumOf { it.hoursWorked }
-                val totalSalary = totalHours * hourlyRate
-                writer.write("\n\"إجمالي الساعات\",\"${"%.2f".format(totalHours)}\",\"إجمالي الراتب\",\"${"%,.0f".format(totalSalary)} ج.م\"\n")
-                writer.flush()
-            }
-        }
     }
 
     private fun getExportDir(context: Context): File {

@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ks_prefs")
@@ -131,5 +132,40 @@ class PrefsUtil(private val context: Context) {
 
     suspend fun setTimeFormat(format: String) {
         context.dataStore.edit { it[KEY_TIME_FORMAT] = format }
+    }
+
+    suspend fun getAllPrefsMap(): Map<String, Any?> {
+        val prefs = context.dataStore.data.first()
+        return mapOf(
+            "hourly_rate" to (prefs[KEY_HOURLY_RATE] ?: DEFAULT_HOURLY_RATE),
+            "payroll_start_day" to (prefs[KEY_PAYROLL_START] ?: DEFAULT_PAYROLL_START),
+            "payroll_cycle_type" to (prefs[KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_29_TO_28),
+            "time_format" to (prefs[KEY_TIME_FORMAT] ?: DEFAULT_TIME_FORMAT),
+            "language" to (prefs[KEY_LANGUAGE] ?: DEFAULT_LANGUAGE),
+            "ess_email" to (prefs[KEY_ESS_EMAIL] ?: ""),
+            "ess_password" to (prefs[KEY_ESS_PASSWORD] ?: ""),
+            "ess_save_creds" to (prefs[KEY_ESS_SAVE_CREDS] ?: false),
+            "dark_mode" to (prefs[KEY_DARK_MODE] ?: true),
+            "employee_name" to (prefs[KEY_EMPLOYEE_NAME] ?: ""),
+            "custom_start_date" to (prefs[KEY_CUSTOM_START_DATE] ?: ""),
+            "custom_end_date" to (prefs[KEY_CUSTOM_END_DATE] ?: "")
+        )
+    }
+
+    suspend fun restorePrefsFromMap(map: Map<String, Any?>) {
+        context.dataStore.edit { p ->
+            (map["hourly_rate"] as? Number)?.toDouble()?.let { p[KEY_HOURLY_RATE] = it }
+            (map["payroll_start_day"] as? Number)?.toInt()?.let { p[KEY_PAYROLL_START] = it }
+            (map["payroll_cycle_type"] as? String)?.let { p[KEY_PAYROLL_CYCLE] = it }
+            (map["time_format"] as? String)?.let { p[KEY_TIME_FORMAT] = it }
+            (map["language"] as? String)?.let { p[KEY_LANGUAGE] = it }
+            (map["ess_email"] as? String)?.let { p[KEY_ESS_EMAIL] = it }
+            (map["ess_password"] as? String)?.let { p[KEY_ESS_PASSWORD] = it }
+            (map["ess_save_creds"] as? Boolean)?.let { p[KEY_ESS_SAVE_CREDS] = it }
+            (map["dark_mode"] as? Boolean)?.let { p[KEY_DARK_MODE] = it }
+            (map["employee_name"] as? String)?.let { p[KEY_EMPLOYEE_NAME] = it }
+            (map["custom_start_date"] as? String)?.let { p[KEY_CUSTOM_START_DATE] = it }
+            (map["custom_end_date"] as? String)?.let { p[KEY_CUSTOM_END_DATE] = it }
+        }
     }
 }
