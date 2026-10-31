@@ -65,6 +65,7 @@ fun SettingsScreen(
     var saveCreds by remember(state.essSaveCredentials) { mutableStateOf(state.essSaveCredentials) }
     var showPassword by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
+    var isSyncing by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf<String?>(null) }
 
     val restoreLauncher = rememberLauncherForActivityResult(
