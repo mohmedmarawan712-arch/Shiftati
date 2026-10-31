@@ -26,6 +26,7 @@ data class HomeState(
     val monthSalary: Double = 0.0,
     val periodStart: String = "",
     val periodEnd: String = "",
+    val employeeName: String = "",
     val isLoading: Boolean = false,
     val message: UiMessage? = null
 )
@@ -46,9 +47,12 @@ data class ReportState(
 data class SettingsState(
     val hourlyRate: Double = 30.0,
     val payrollStartDay: Int = 1,
+    val payrollCycleType: String = PayrollUtil.CYCLE_CURRENT_MONTH,
     val language: String = "ar",
-    val darkMode: Boolean = false,
+    val darkMode: Boolean = true,
     val essEmail: String = "",
+    val essPassword: String = "",
+    val essSaveCredentials: Boolean = false,
     val employeeName: String = "",
     val isEssLoggedIn: Boolean = false,
     val essInstances: List<EssInstance> = emptyList()
@@ -71,7 +75,7 @@ class MainViewModel(
     private val _settingsState = MutableStateFlow(SettingsState())
     val settingsState: StateFlow<SettingsState> = _settingsState.asStateFlow()
 
-    // ─── Records & Notes (exposed for list screens) ───────────────────────────
+    // ─── Records & Notes ──────────────────────────────────────────────────────
 
     val allRecords: StateFlow<List<AttendanceRecord>> = repo.getAllRecords()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -103,26 +107,34 @@ class MainViewModel(
             combine(
                 prefs.hourlyRate,
                 prefs.payrollStartDay,
+                prefs.payrollCycleType,
                 prefs.language,
                 prefs.darkMode,
-                prefs.essEmail
-            ) { rate, startDay, lang, dark, email ->
+                prefs.essEmail,
+                prefs.essPassword,
+                prefs.essSaveCredentials
+            ) { rate, startDay, cycleType, lang, dark, email, pass, saveCreds ->
                 SettingsState(
                     hourlyRate = rate,
                     payrollStartDay = startDay,
+                    payrollCycleType = cycleType,
                     language = lang,
                     darkMode = dark,
                     essEmail = email,
+                    essPassword = pass,
+                    essSaveCredentials = saveCreds,
                     isEssLoggedIn = repo.isEssLoggedIn
                 )
             }.collect { state ->
-                _settingsState.value = state
+                val currentName = _settingsState.value.employeeName
+                _settingsState.value = state.copy(employeeName = currentName)
                 refreshHome()
             }
         }
         viewModelScope.launch {
             prefs.employeeName.collect { name ->
                 _settingsState.value = _settingsState.value.copy(employeeName = name)
+                _homeState.value = _homeState.value.copy(employeeName = name)
             }
         }
     }
@@ -139,7 +151,8 @@ class MainViewModel(
         viewModelScope.launch {
             val rate = prefs.hourlyRate.first()
             val startDay = prefs.payrollStartDay.first()
-            val (periodStart, periodEnd) = PayrollUtil.payrollPeriod(Date(), startDay)
+            val cycleType = prefs.payrollCycleType.first()
+            val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(cycleType, startDay, Date())
 
             val openSession = repo.getOpenSession()
             val todayHours = repo.getTotalHoursInRange(today, today)
@@ -205,7 +218,10 @@ class MainViewModel(
 
     fun updateRecord(record: AttendanceRecord) {
         viewModelScope.launch {
-            repo.updateRecord(record)
+            // If the user modified a record synced from server, mark isFromServer = false
+            // so subsequent server syncs will never overwrite the user's manual adjustments!
+            val userEditedRecord = if (record.isFromServer) record.copy(isFromServer = false) else record
+            repo.updateRecord(userEditedRecord)
             refreshHome()
         }
     }
@@ -241,8 +257,9 @@ class MainViewModel(
         viewModelScope.launch {
             val rate = prefs.hourlyRate.first()
             val startDay = prefs.payrollStartDay.first()
+            val cycleType = prefs.payrollCycleType.first()
             val (ps, pe) = if (start != null && end != null) start to end
-                           else PayrollUtil.payrollPeriod(Date(), startDay)
+                           else PayrollUtil.resolvePeriod(cycleType, startDay, Date())
 
             repo.getRecordsInRange(ps, pe).collect { records ->
                 val totalHours = records.sumOf { it.hoursWorked }
@@ -260,8 +277,9 @@ class MainViewModel(
         }
         viewModelScope.launch {
             val startDay = prefs.payrollStartDay.first()
+            val cycleType = prefs.payrollCycleType.first()
             val (ps, pe) = if (start != null && end != null) start to end
-                           else PayrollUtil.payrollPeriod(Date(), startDay)
+                           else PayrollUtil.resolvePeriod(cycleType, startDay, Date())
             repo.getNotesInRange(ps, pe).collect { notes ->
                 _reportState.value = _reportState.value.copy(notes = notes)
             }
@@ -297,6 +315,13 @@ class MainViewModel(
         viewModelScope.launch { prefs.setPayrollStartDay(day) }
     }
 
+    fun setPayrollCycleType(type: String) {
+        viewModelScope.launch {
+            prefs.setPayrollCycleType(type)
+            refreshHome()
+        }
+    }
+
     fun setLanguage(lang: String) {
         viewModelScope.launch { prefs.setLanguage(lang) }
     }
@@ -311,11 +336,22 @@ class MainViewModel(
 
     // ─── ESS ──────────────────────────────────────────────────────────────────
 
-    fun essLogin(email: String, password: String, onResult: (Result<List<EssInstance>>) -> Unit) {
+    fun essLogin(
+        email: String,
+        pass: String,
+        saveCredentials: Boolean,
+        onResult: (Result<List<EssInstance>>) -> Unit
+    ) {
         viewModelScope.launch {
-            val result = repo.essLogin(email, password)
+            val result = repo.essLogin(email, pass)
             if (result.isSuccess) {
-                prefs.setEssEmail(email)
+                prefs.setEssCredentials(email, pass, saveCredentials)
+                // If a name was detected from the account, update automatically
+                repo.detectedEmployeeName?.let { detected ->
+                    if (detected.isNotBlank()) {
+                        prefs.setEmployeeName(detected)
+                    }
+                }
             }
             _settingsState.value = _settingsState.value.copy(
                 essInstances = result.getOrDefault(emptyList()),
@@ -326,14 +362,22 @@ class MainViewModel(
     }
 
     fun essSelectInstance(instance: EssInstance) {
-        viewModelScope.launch { repo.essSelectInstance(instance) }
+        viewModelScope.launch {
+            repo.essSelectInstance(instance)
+            repo.detectedEmployeeName?.let { detected ->
+                if (detected.isNotBlank()) {
+                    prefs.setEmployeeName(detected)
+                }
+            }
+        }
     }
 
     fun syncFromEss(onResult: (Int) -> Unit) {
         viewModelScope.launch {
             _homeState.value = _homeState.value.copy(isLoading = true)
             val startDay = prefs.payrollStartDay.first()
-            val (ps, pe) = PayrollUtil.payrollPeriod(Date(), startDay)
+            val cycleType = prefs.payrollCycleType.first()
+            val (ps, pe) = PayrollUtil.resolvePeriod(cycleType, startDay, Date())
             val result = repo.syncFromEss(
                 PayrollUtil.parseDate(ps),
                 PayrollUtil.parseDate(pe)

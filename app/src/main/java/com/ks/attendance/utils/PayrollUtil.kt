@@ -4,86 +4,128 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * PayrollUtil — calculates the payroll period boundaries.
- * Direct Kotlin port of payroll_period() from 1.py.
- *
- * Default: cycle starts on day [startDay] of each month through day [startDay]-1 of the next.
- * Example: startDay=29 → 29 Oct – 28 Nov.
+ * PayrollUtil — calculates dynamic, calendar-accurate payroll periods.
+ * Supports:
+ * - Current calendar month (1st to actual last day: 28, 29, 30, or 31).
+ * - Previous calendar month (1st to actual last day of previous month).
+ * - Both months (1st of previous month to end of current month).
+ * - Custom cutoff day (e.g. from day 26 to 25, or 29 to 28, dynamically bounded).
  */
 object PayrollUtil {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
+    const val CYCLE_CURRENT_MONTH  = "CURRENT_MONTH"
+    const val CYCLE_PREVIOUS_MONTH = "PREVIOUS_MONTH"
+    const val CYCLE_BOTH_MONTHS    = "BOTH_MONTHS"
+    const val CYCLE_CUSTOM_DAY     = "CUSTOM_DAY"
+
     /**
-     * Returns (periodStart, periodEnd) as "yyyy-MM-dd" strings
-     * for the payroll period that contains [referenceDate].
+     * Resolves the period according to [cycleType] and [startDay].
      */
-    fun payrollPeriod(
-        referenceDate: Date = Date(),
-        startDay: Int = 29
+    fun resolvePeriod(
+        cycleType: String = CYCLE_CURRENT_MONTH,
+        startDay: Int = 1,
+        referenceDate: Date = Date()
     ): Pair<String, String> {
-        require(startDay in 1..31) { "startDay must be 1..31" }
-
-        val cal = Calendar.getInstance()
-
-        fun monthAnchor(year: Int, month: Int): Calendar {
-            val c = Calendar.getInstance()
-            c.set(year, month, 1)
-            val lastDay = c.getActualMaximum(Calendar.DAY_OF_MONTH)
-            c.set(Calendar.DAY_OF_MONTH, minOf(startDay, lastDay))
-            return c
+        return when (cycleType) {
+            CYCLE_PREVIOUS_MONTH -> getPreviousMonthPeriod(referenceDate)
+            CYCLE_BOTH_MONTHS    -> getBothMonthsPeriod(referenceDate)
+            CYCLE_CUSTOM_DAY     -> getCustomDayPeriod(startDay, referenceDate)
+            else                 -> getCurrentMonthPeriod(referenceDate)
         }
-
-        cal.time = referenceDate
-        val refYear = cal.get(Calendar.YEAR)
-        val refMonth = cal.get(Calendar.MONTH)   // 0-indexed
-
-        var anchor = monthAnchor(refYear, refMonth)
-
-        // If reference day < anchor day, step back one month
-        if (referenceDate.before(anchor.time)) {
-            val prevMonth = if (refMonth == 0) 11 else refMonth - 1
-            val prevYear = if (refMonth == 0) refYear - 1 else refYear
-            anchor = monthAnchor(prevYear, prevMonth)
-        }
-
-        // Next anchor = anchor.month + 1
-        val nextMonth = if (anchor.get(Calendar.MONTH) == 11) 0
-                        else anchor.get(Calendar.MONTH) + 1
-        val nextYear = if (anchor.get(Calendar.MONTH) == 11) anchor.get(Calendar.YEAR) + 1
-                       else anchor.get(Calendar.YEAR)
-        val nextAnchor = monthAnchor(nextYear, nextMonth)
-
-        // Period end = day before next anchor
-        nextAnchor.add(Calendar.DAY_OF_YEAR, -1)
-        val periodEnd = nextAnchor
-
-        return sdf.format(anchor.time) to sdf.format(periodEnd.time)
     }
 
-    /** Parse a "yyyy-MM-dd" string to Date */
-    fun parseDate(s: String): Date = sdf.parse(s)!!
+    /** 1st to last calendar day of the month containing [referenceDate] */
+    fun getCurrentMonthPeriod(referenceDate: Date = Date()): Pair<String, String> {
+        val cal = Calendar.getInstance().apply { time = referenceDate }
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        val start = sdf.format(cal.time)
 
-    /** Format epoch millis to "yyyy-MM-dd" */
+        val maxDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        cal.set(Calendar.DAY_OF_MONTH, maxDay)
+        val end = sdf.format(cal.time)
+
+        return start to end
+    }
+
+    /** 1st to last calendar day of the month prior to [referenceDate] */
+    fun getPreviousMonthPeriod(referenceDate: Date = Date()): Pair<String, String> {
+        val cal = Calendar.getInstance().apply {
+            time = referenceDate
+            add(Calendar.MONTH, -1)
+        }
+        cal.set(Calendar.DAY_OF_MONTH, 1)
+        val start = sdf.format(cal.time)
+
+        val maxDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        cal.set(Calendar.DAY_OF_MONTH, maxDay)
+        val end = sdf.format(cal.time)
+
+        return start to end
+    }
+
+    /** From 1st of previous month to last day of current month */
+    fun getBothMonthsPeriod(referenceDate: Date = Date()): Pair<String, String> {
+        val prevStart = getPreviousMonthPeriod(referenceDate).first
+        val currEnd   = getCurrentMonthPeriod(referenceDate).second
+        return prevStart to currEnd
+    }
+
+    /**
+     * Custom cycle starting on day [startDay] (e.g. 26).
+     * Bounded dynamically by each month's actual length.
+     */
+    fun getCustomDayPeriod(
+        startDay: Int,
+        referenceDate: Date = Date()
+    ): Pair<String, String> {
+        val day = startDay.coerceIn(1, 31)
+        if (day == 1) return getCurrentMonthPeriod(referenceDate)
+
+        val cal = Calendar.getInstance().apply { time = referenceDate }
+        val currentDay = cal.get(Calendar.DAY_OF_MONTH)
+
+        // If today is before the startDay, period started in previous month
+        if (currentDay < day) {
+            cal.add(Calendar.MONTH, -1)
+        }
+
+        // Anchor start date
+        val startMax = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        cal.set(Calendar.DAY_OF_MONTH, minOf(day, startMax))
+        val start = sdf.format(cal.time)
+
+        // End is in next month, day before next startDay
+        cal.add(Calendar.MONTH, 1)
+        val endMax = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+        cal.set(Calendar.DAY_OF_MONTH, minOf(day, endMax))
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val end = sdf.format(cal.time)
+
+        return start to end
+    }
+
+    /** Backward-compatible helper */
+    fun payrollPeriod(
+        referenceDate: Date = Date(),
+        startDay: Int = 1
+    ): Pair<String, String> = resolvePeriod(
+        if (startDay == 1) CYCLE_CURRENT_MONTH else CYCLE_CUSTOM_DAY,
+        startDay,
+        referenceDate
+    )
+
+    fun parseDate(s: String): Date = sdf.parse(s) ?: Date()
     fun formatDate(millis: Long): String = sdf.format(Date(millis))
-
-    /** Format epoch millis to "HH:mm" */
     fun formatTime(millis: Long): String =
         SimpleDateFormat("HH:mm", Locale.US).format(Date(millis))
-
-    /** Format epoch millis to "HH:mm:ss" */
     fun formatTimeFull(millis: Long): String =
         SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(millis))
 
-    /** Format epoch millis to "dd MMM yyyy, HH:mm" */
-    fun formatDateTime(millis: Long): String =
-        SimpleDateFormat("dd MMM yyyy, HH:mm", Locale("ar")).format(Date(millis))
-
-    /** Calculate hours between two epoch-millis values */
     fun hoursWorked(checkIn: Long, checkOut: Long): Double =
         (checkOut - checkIn).toDouble() / 3_600_000.0
 
-    /** Format hours as "X ساعة Y دقيقة" */
     fun formatHours(hours: Double): String {
         val totalMinutes = (hours * 60).toLong()
         val h = totalMinutes / 60
@@ -91,11 +133,10 @@ object PayrollUtil {
         return when {
             h == 0L -> "$m دقيقة"
             m == 0L -> "$h ساعة"
-            else -> "$h ساعة $m دقيقة"
+            else -> "$h س $m د"
         }
     }
 
-    /** Format hours as "X.XX hrs" for English mode */
     fun formatHoursEn(hours: Double): String {
         val totalMinutes = (hours * 60).toLong()
         val h = totalMinutes / 60

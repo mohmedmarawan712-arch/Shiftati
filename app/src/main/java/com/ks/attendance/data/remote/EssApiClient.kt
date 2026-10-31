@@ -52,6 +52,7 @@ class EssApiClient {
     var instanceId: String? = null
     var staffId: String? = null
     var schedulingUnitId: String? = null
+    var detectedEmployeeName: String? = null
 
     val isLoggedIn get() = sessionId != null
 
@@ -91,12 +92,19 @@ class EssApiClient {
         sessionId = result["sessionId"]?.toString()
             ?: throw Exception("لم يُرجع الخادم sessionId")
 
+        // Try extracting user name directly from login response
+        detectedEmployeeName = (result["userName"] ?: result["displayName"] ?: result["fullName"] ?: result["name"])?.toString()
+
         // Fetch customer server list
         val customer = post(mapOf(
             "external" to "html",
             "command" to "GetCustomerServer",
             "SessionId" to sessionId!!
         ))
+        if (detectedEmployeeName.isNullOrBlank()) {
+            detectedEmployeeName = (customer["userName"] ?: customer["displayName"] ?: customer["fullName"])?.toString()
+        }
+
         val serverList = customer["serverList"] as? Map<*, *>
         val instances = (serverList?.get("instances") as? List<*>)?.mapNotNull { item ->
             (item as? Map<*, *>)?.let {
@@ -115,8 +123,8 @@ class EssApiClient {
         instanceId = instance.instanceId
         staffId = instance.staffId
 
-        // Get attachments to find schedulingUnitId
-        val patternJson = """{"applicationId":"PeopleScheduler","containers":[{"type":"Static","container":"Staff","facets":[{"facet":"Attachments","parameters":{"ids":[{"objectId":"$staffId"}]}}]}]}"""
+        // Query both Attachments (for schedulingUnit) and Demographics (for employee name)
+        val patternJson = """{"applicationId":"PeopleScheduler","containers":[{"type":"Static","container":"Staff","facets":[{"facet":"Attachments","parameters":{"ids":[{"objectId":"$staffId"}]}},{"facet":"Demographics","parameters":{"ids":[{"objectId":"$staffId"}]}}]}]}"""
         val result = post(mapOf(
             "external" to "html",
             "command" to "GetFacet",
@@ -127,23 +135,34 @@ class EssApiClient {
         ))
 
         val responseValues = result["responseValues"] as? List<*>
-        schedulingUnitId = responseValues?.firstNotNullOfOrNull { value ->
-            (value as? Map<*, *>)?.let { v ->
-                (v["containers"] as? List<*>)?.firstNotNullOfOrNull { container ->
-                    (container as? Map<*, *>)?.let { c ->
-                        (c["containerData"] as? List<*>)?.firstNotNullOfOrNull { row ->
-                            (row as? Map<*, *>)?.let { r ->
-                                (r["facets"] as? List<*>)?.firstNotNullOfOrNull { facet ->
-                                    (facet as? Map<*, *>)?.takeIf { it["facet"] == "Attachments" }
-                                        ?.let { f ->
-                                            val fd = f["facetData"] as? Map<*, *>
-                                            val atts = fd?.get("attachments") as? List<*>
-                                            (atts?.sortedByDescending {
-                                                ((it as? Map<*, *>)?.get("start") as? String) ?: ""
-                                            }?.firstOrNull() as? Map<*, *>)
-                                                ?.let { att -> (att["suId"] as? Map<*, *>)?.get("objectId")?.toString() }
-                                        }
-                                }
+        responseValues?.forEach { value ->
+            val v = value as? Map<*, *> ?: return@forEach
+            val containers = v["containers"] as? List<*> ?: return@forEach
+            containers.forEach { container ->
+                val c = container as? Map<*, *> ?: return@forEach
+                val containerData = c["containerData"] as? List<*> ?: return@forEach
+                containerData.forEach { row ->
+                    val r = row as? Map<*, *> ?: return@forEach
+                    val facets = r["facets"] as? List<*> ?: return@forEach
+                    facets.forEach { facet ->
+                        val f = facet as? Map<*, *> ?: return@forEach
+                        val facetName = f["facet"]?.toString()
+                        val fd = f["facetData"] as? Map<*, *>
+
+                        if (facetName == "Attachments") {
+                            val atts = fd?.get("attachments") as? List<*>
+                            val sorted = atts?.sortedByDescending { ((it as? Map<*, *>)?.get("start") as? String) ?: "" }
+                            val suIdObj = (sorted?.firstOrNull() as? Map<*, *>)?.get("suId") as? Map<*, *>
+                            schedulingUnitId = suIdObj?.get("objectId")?.toString()
+                        } else if (facetName == "Demographics") {
+                            val demo = fd?.get("demographics") as? Map<*, *> ?: fd
+                            val first = demo?.get("firstName")?.toString() ?: ""
+                            val last = demo?.get("lastName")?.toString() ?: ""
+                            val preferred = demo?.get("preferredName")?.toString() ?: ""
+                            val name = if (preferred.isNotBlank()) preferred
+                                       else listOf(first, last).filter { it.isNotBlank() }.joinToString(" ")
+                            if (name.isNotBlank()) {
+                                detectedEmployeeName = name
                             }
                         }
                     }

@@ -2,37 +2,44 @@ package com.ks.attendance.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ─── Brand palette ────────────────────────────────────────────────────────────
-// Primary: Deep Teal / corporate feel
-val Primary80         = Color(0xFF4DD9AC)   // Light teal (dark theme)
-val Primary40         = Color(0xFF006B54)   // Deep teal (light theme)
-val PrimaryContainer80 = Color(0xFF00513F)
-val PrimaryContainer40 = Color(0xFF9EF5D3)
+// ─── AMOLED Pure Black Palette ───────────────────────────────────────────────
+val AmoledBackground      = Color(0xFF000000)
+val AmoledSurface         = Color(0xFF0A0A0A)
+val AmoledSurfaceVariant  = Color(0xFF141414)
+val AmoledCardBorder      = Color(0xFF262626)
+val AmoledPrimary         = Color(0xFF10B981) // Vibrant Emerald
+val AmoledOnPrimary       = Color(0xFF000000)
+val AmoledPrimaryContainer= Color(0xFF064E3B)
+val AmoledOnPrimaryContainer = Color(0xFF6EE7B7)
+val AmoledSecondary       = Color(0xFF38BDF8) // Crisp Sky Blue
+val AmoledOnSecondary     = Color(0xFF000000)
+val AmoledSecondaryContainer = Color(0xFF0C4A6E)
+val AmoledOnSecondaryContainer = Color(0xFFBAE6FD)
+val AmoledTextPrimary     = Color(0xFFF8FAFC)
+val AmoledTextSecondary   = Color(0xFF94A3B8)
+val AmoledOutline         = Color(0xFF27272A)
 
-val Secondary80       = Color(0xFFB3CCBF)
-val Secondary40       = Color(0xFF4B6357)
-val SecondaryContainer80 = Color(0xFF324B42)
-val SecondaryContainer40 = Color(0xFFCDE8D9)
+// ─── Crisp Clean Light Palette ───────────────────────────────────────────────
+val LightBackground       = Color(0xFFF8FAFC)
+val LightSurface          = Color(0xFFFFFFFF)
+val LightSurfaceVariant   = Color(0xFFF1F5F9)
+val LightCardBorder       = Color(0xFFE2E8F0)
+val LightPrimary          = Color(0xFF059669) // Deep Emerald
+val LightOnPrimary        = Color(0xFFFFFFFF)
+val LightPrimaryContainer = Color(0xFFD1FAE5)
+val LightOnPrimaryContainer = Color(0xFF065F46)
+val LightSecondary        = Color(0xFF0284C7)
+val LightOnSecondary      = Color(0xFFFFFFFF)
+val LightSecondaryContainer = Color(0xFFE0F2FE)
+val LightOnSecondaryContainer = Color(0xFF0369A1)
+val LightTextPrimary      = Color(0xFF0F172A)
+val LightTextSecondary    = Color(0xFF64748B)
+val LightOutline          = Color(0xFFE2E8F0)
 
-val Tertiary80        = Color(0xFFA7C8E7)
-val Tertiary40        = Color(0xFF1D6586)
-
-val Error80           = Color(0xFFFFB4AB)
-val Error40           = Color(0xFFBA1A1A)
-
-// Neutral
-val NeutralLight      = Color(0xFFF5FAF7)
-val NeutralDark       = Color(0xFF191C1B)
-
-// Status colors
-val ColorWorked       = Color(0xFF4DD9AC)   // green-ish teal — worked day
-val ColorAbsent       = Color(0xFFFF6B6B)   // red — absent / no record
-val ColorToday        = Color(0xFFFFD166)   // amber — today's highlight
-val ColorNote         = Color(0xFFA7C8E7)   // blue — has notes
-val ColorManual       = Color(0xFFCDE8D9)   // soft green — manual entry
-val ColorOnline       = Color(0xFF9EF5D3)   // bright mint — ESS online
-
-// Chip / badge colors
-val ChipClockIn       = Color(0xFFE8F5E9)
-val ChipClockOut      = Color(0xFFFFEBEE)
-val ChipManual        = Color(0xFFF3F8F5)
+// ─── Semantic Status Colors ──────────────────────────────────────────────────
+val ColorWorked           = Color(0xFF10B981) // Emerald Green
+val ColorAbsent           = Color(0xFFEF4444) // Rose Red
+val ColorToday            = Color(0xFFF59E0B) // Amber
+val ColorNote             = Color(0xFF6366F1) // Indigo
+val ColorManual           = Color(0xFF14B8A6) // Teal
+val ColorOnline           = Color(0xFF3B82F6) // Blue

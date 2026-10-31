@@ -1,5 +1,7 @@
 package com.ks.attendance.ui.screens.settings
 
+import androidx.compose.animation.*
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,10 +19,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ks.attendance.data.remote.EssInstance
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.KSTopBar
+import com.ks.attendance.ui.theme.ColorWorked
+import com.ks.attendance.utils.PayrollUtil
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,16 +36,19 @@ fun SettingsScreen(
     val state by viewModel.settingsState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Local form state
+    // Form states
     var employeeName by remember(state.employeeName) { mutableStateOf(state.employeeName) }
-    var hourlyRate by remember(state.hourlyRate) { mutableStateOf(state.hourlyRate.toString()) }
-    var payrollStartDay by remember(state.payrollStartDay) { mutableStateOf(state.payrollStartDay) }
-    var essEmail by remember { mutableStateOf("") }
-    var essPassword by remember { mutableStateOf("") }
+    var hourlyRate by remember(state.hourlyRate) { mutableStateOf(state.hourlyRate.toInt().toString()) }
+    var payrollStartDay by remember(state.payrollStartDay) { mutableIntStateOf(state.payrollStartDay) }
+    var selectedCycle by remember(state.payrollCycleType) { mutableStateOf(state.payrollCycleType) }
+
+    // ESS form states
+    var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
+    var essPassword by remember(state.essPassword) { mutableStateOf(state.essPassword) }
+    var saveCreds by remember(state.essSaveCredentials) { mutableStateOf(state.essSaveCredentials) }
     var showPassword by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
-    var loginError by remember { mutableStateOf<String?>(null) }
-    var showConfirmClear by remember { mutableStateOf(false) }
+    var loginMessage by remember { mutableStateOf<String?>(null) }
     var showInstanceSelector by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -54,377 +62,361 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
         ) {
 
-            // ─── الملف الشخصي ───────────────────────────────────────────────
-            SectionHeader(icon = Icons.Default.Person, title = "الملف الشخصي")
-            OutlinedTextField(
-                value = employeeName,
-                onValueChange = { employeeName = it },
-                label = { Text("الاسم") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                trailingIcon = {
-                    if (employeeName != state.employeeName) {
-                        IconButton(onClick = { viewModel.setEmployeeName(employeeName) }) {
-                            Icon(Icons.Default.Check, contentDescription = "حفظ")
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            // ─── إعدادات الراتب ─────────────────────────────────────────────
-            SectionHeader(icon = Icons.Default.Payments, title = "إعدادات الراتب")
-            OutlinedTextField(
-                value = hourlyRate,
-                onValueChange = { hourlyRate = it },
-                label = { Text("سعر الساعة (ج.م)") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                trailingIcon = {
-                    val rateDouble = hourlyRate.toDoubleOrNull()
-                    if (rateDouble != null && rateDouble != state.hourlyRate) {
-                        IconButton(onClick = { viewModel.setHourlyRate(rateDouble) }) {
-                            Icon(Icons.Default.Check, contentDescription = "حفظ")
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(12.dp)
-            )
-
-            Spacer(Modifier.height(4.dp))
-            Text(
-                text = "يوم بداية دورة الرواتب: $payrollStartDay",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Medium
-            )
-            Slider(
-                value = payrollStartDay.toFloat(),
-                onValueChange = { payrollStartDay = it.toInt() },
-                onValueChangeFinished = { viewModel.setPayrollStartDay(payrollStartDay) },
-                valueRange = 1f..28f,
-                steps = 26
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("1", style = MaterialTheme.typography.labelSmall)
-                Text("28", style = MaterialTheme.typography.labelSmall)
+            // ─── Profile Section ──────────────────────────────────────────────
+            SettingsSectionCard(title = "الملف الشخصي", icon = Icons.Filled.Person) {
+                OutlinedTextField(
+                    value = employeeName,
+                    onValueChange = {
+                        employeeName = it
+                        viewModel.setEmployeeName(it)
+                    },
+                    label = { Text("اسم الموظف") },
+                    placeholder = { Text("اكتب اسمك أو سيتم جلبه من ESS") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
             }
 
-            Spacer(Modifier.height(8.dp))
+            // ─── Salary & Payroll Cycle Section ───────────────────────────────
+            SettingsSectionCard(title = "إعدادات الراتب والدورة", icon = Icons.Filled.AccountBalanceWallet) {
+                // Hourly Rate
+                OutlinedTextField(
+                    value = hourlyRate,
+                    onValueChange = {
+                        hourlyRate = it
+                        it.toDoubleOrNull()?.let { rate -> viewModel.setHourlyRate(rate) }
+                    },
+                    label = { Text("سعر الساعة (جنيه)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(14.dp),
+                    trailingIcon = { Text("ج.م  ", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    singleLine = true
+                )
 
-            // ─── المظهر ──────────────────────────────────────────────────────
-            SectionHeader(icon = Icons.Default.Palette, title = "المظهر")
-            PreferenceItem(
-                title = "اللغة",
-                subtitle = if (state.language == "ar") "العربية" else "English",
-                icon = Icons.Default.Language,
-                trailing = {
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        FilterChip(
-                            selected = state.language == "ar",
-                            onClick = { viewModel.setLanguage("ar") },
-                            label = { Text("عربي") }
-                        )
-                        FilterChip(
-                            selected = state.language == "en",
-                            onClick = { viewModel.setLanguage("en") },
-                            label = { Text("EN") }
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Text(
+                    text = "طريقة احتساب دورة الشهر:",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Cycle selector chips
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CycleOptionChip(
+                        title = "الشهر الحالي (من 1 حتى آخر يوم)",
+                        subtitle = "يحسب الأيام الفعلية تلقائياً (30 أو 31 أو 28/29 في فبراير)",
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_CURRENT_MONTH,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_CURRENT_MONTH
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CURRENT_MONTH)
+                        }
+                    )
+
+                    CycleOptionChip(
+                        title = "الشهر السابق كاملاً",
+                        subtitle = "لعرض وحساب ساعات ورواتب الشهر المنقضي",
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_PREVIOUS_MONTH,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_PREVIOUS_MONTH
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_PREVIOUS_MONTH)
+                        }
+                    )
+
+                    CycleOptionChip(
+                        title = "الشهرين معاً (السابق + الحالي)",
+                        subtitle = "لحساب كامل الفترتين معاً",
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_BOTH_MONTHS,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_BOTH_MONTHS
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_BOTH_MONTHS)
+                        }
+                    )
+
+                    CycleOptionChip(
+                        title = "دورة مخصصة تبدأ بيوم محدد",
+                        subtitle = "مثلاً: من يوم 26 حتى 25 من الشهر التالي",
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_CUSTOM_DAY,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_CUSTOM_DAY
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_DAY)
+                        }
+                    )
+                }
+
+                // If custom day is selected, show day number picker
+                AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_DAY) {
+                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("يوم بداية الدورة:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "يوم $payrollStartDay في الشهر",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Slider(
+                            value = payrollStartDay.toFloat(),
+                            onValueChange = {
+                                payrollStartDay = it.toInt()
+                                viewModel.setPayrollStartDay(it.toInt())
+                            },
+                            valueRange = 1f..31f,
+                            steps = 29
                         )
                     }
                 }
-            )
-            PreferenceItem(
-                title = "الوضع الداكن",
-                subtitle = if (state.darkMode) "مفعّل" else "مُعطَّل",
-                icon = Icons.Default.DarkMode,
-                trailing = {
+            }
+
+            // ─── Display & Theme ──────────────────────────────────────────────
+            SettingsSectionCard(title = "المظهر والعرض", icon = Icons.Filled.DarkMode) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "وضع AMOLED الداكن",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "خلفية سوداء بالكامل 100% لتوفير طاقة الشاشة ومظهر فخم",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     Switch(
                         checked = state.darkMode,
                         onCheckedChange = { viewModel.setDarkMode(it) }
                     )
                 }
-            )
+            }
 
-            Spacer(Modifier.height(8.dp))
-
-            // ─── الاتصال بـ ESS ──────────────────────────────────────────────
-            SectionHeader(icon = Icons.Default.Cloud, title = "الاتصال بـ ESS (اختياري)")
-
-            if (state.isEssLoggedIn) {
-                // Logged in status
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // ─── ESS Integration ──────────────────────────────────────────────
+            SettingsSectionCard(title = "الربط مع نظام ESS (أونلاين)", icon = Icons.Filled.CloudSync) {
+                if (state.isEssLoggedIn) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = ColorWorked.copy(alpha = 0.15f),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(
-                            Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "متصل بـ ESS",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            if (state.essEmail.isNotBlank()) {
-                                Text(
-                                    text = state.essEmail,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ColorWorked)
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("متصل بنظام ESS", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(state.essEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Button(
+                                onClick = {
+                                    viewModel.syncFromEss { count ->
+                                        loginMessage = "تمت المزامنة بنجاح: $count وردية"
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text("مزامنة الآن")
+                            }
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = essEmail,
+                        onValueChange = { essEmail = it },
+                        label = { Text("البريد الإلكتروني") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    OutlinedTextField(
+                        value = essPassword,
+                        onValueChange = { essPassword = it },
+                        label = { Text("كلمة المرور") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showPassword = !showPassword }) {
+                                Icon(
+                                    imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                    contentDescription = null
                                 )
                             }
-                        }
-                    }
-                }
-            } else {
-                // Login form
-                OutlinedTextField(
-                    value = essEmail,
-                    onValueChange = { essEmail = it },
-                    label = { Text("البريد الإلكتروني") },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    singleLine = true,
-                    leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = essPassword,
-                    onValueChange = { essPassword = it },
-                    label = { Text("كلمة المرور") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    visualTransformation = if (showPassword) VisualTransformation.None
-                                           else PasswordVisualTransformation(),
-                    leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                    trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(
-                                if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = null
-                            )
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp)
-                )
-
-                loginError?.let { err ->
-                    Text(
-                        text = err,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+                        },
+                        singleLine = true
                     )
-                }
 
-                Button(
-                    onClick = {
-                        loginError = null
-                        isLoggingIn = true
-                        viewModel.essLogin(essEmail, essPassword) { result ->
-                            isLoggingIn = false
-                            if (result.isSuccess) {
-                                val instances = result.getOrDefault(emptyList())
-                                if (instances.size == 1) {
-                                    viewModel.essSelectInstance(instances.first())
-                                } else if (instances.size > 1) {
-                                    showInstanceSelector = true
-                                }
-                            } else {
-                                loginError = "فشل تسجيل الدخول: ${result.exceptionOrNull()?.message}"
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
-                ) {
-                    if (isLoggingIn) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Remember credentials checkbox
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = saveCreds,
+                            onCheckedChange = { saveCreds = it }
                         )
-                        Spacer(Modifier.width(8.dp))
-                    } else {
-                        Icon(Icons.Default.Login, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "حفظ البريد وكلمة المرور للدخول التلقائي",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Text("تسجيل الدخول إلى ESS")
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = {
+                            if (essEmail.isNotBlank() && essPassword.isNotBlank()) {
+                                isLoggingIn = true
+                                viewModel.essLogin(essEmail.trim(), essPassword, saveCreds) { res ->
+                                    isLoggingIn = false
+                                    if (res.isSuccess) {
+                                        val instances = res.getOrDefault(emptyList())
+                                        if (instances.isNotEmpty()) {
+                                            viewModel.essSelectInstance(instances.first())
+                                        }
+                                        loginMessage = "تم تسجيل الدخول بنجاح"
+                                    } else {
+                                        loginMessage = "فشل: ${res.exceptionOrNull()?.message}"
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp),
+                        shape = RoundedCornerShape(14.dp),
+                        enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
+                    ) {
+                        if (isLoggingIn) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else {
+                            Icon(Icons.Filled.Login, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("تسجيل الدخول ومزامنة الورديات")
+                        }
+                    }
+                }
+
+                loginMessage?.let {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
 
-            // Instance selector
-            if (showInstanceSelector && state.essInstances.isNotEmpty()) {
-                EssInstanceSelector(
-                    instances = state.essInstances,
-                    onSelect = { instance ->
-                        viewModel.essSelectInstance(instance)
-                        showInstanceSelector = false
-                    },
-                    onDismiss = { showInstanceSelector = false }
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // ─── تصدير وعن التطبيق ──────────────────────────────────────────
-            SectionHeader(icon = Icons.Default.Info, title = "تصدير وعن التطبيق")
-            PreferenceItem(
-                title = "إصدار التطبيق",
-                subtitle = "1.0.0",
-                icon = Icons.Default.AppSettingsAlt
-            )
-
-            OutlinedButton(
-                onClick = { showConfirmClear = true },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Icon(Icons.Default.DeleteForever, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("مسح جميع البيانات")
-            }
-
-            Spacer(Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(30.dp))
         }
     }
-
-    if (showConfirmClear) {
-        ConfirmDeleteDialog(
-            message = "سيتم حذف جميع سجلات الحضور والملاحظات نهائياً. هل أنت متأكد؟",
-            onConfirm = {
-                // Clear all data — viewModel can expose this; for now dismiss
-                showConfirmClear = false
-            },
-            onDismiss = { showConfirmClear = false }
-        )
-    }
 }
 
-// ─── Section Header ─────────────────────────────────────────────────────────
-
 @Composable
-private fun SectionHeader(icon: ImageVector, title: String) {
-    Row(
-        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(18.dp)
-        )
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    Spacer(Modifier.height(4.dp))
-}
-
-// ─── Preference Item ─────────────────────────────────────────────────────────
-
-@Composable
-fun PreferenceItem(
+private fun SettingsSectionCard(
     title: String,
-    subtitle: String? = null,
-    icon: ImageVector? = null,
-    trailing: @Composable (() -> Unit)? = null,
-    onClick: (() -> Unit)? = null
+    icon: ImageVector,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        onClick = onClick ?: {},
-        enabled = onClick != null
+    Card(
+        shape = RoundedCornerShape(22.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
+                shape = RoundedCornerShape(22.dp)
+            )
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            if (icon != null) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
-            }
-            Column(modifier = Modifier.weight(1f)) {
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                }
             }
-            if (trailing != null) {
-                trailing()
-            }
+            Spacer(modifier = Modifier.height(14.dp))
+            content()
         }
     }
 }
 
-// ─── ESS Instance Selector Dialog ────────────────────────────────────────────
-
 @Composable
-private fun EssInstanceSelector(
-    instances: List<EssInstance>,
-    onSelect: (EssInstance) -> Unit,
-    onDismiss: () -> Unit
+private fun CycleOptionChip(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("اختر الحساب") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                instances.forEach { instance ->
-                    OutlinedButton(
-                        onClick = { onSelect(instance) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
-                    ) {
-                        Text(instance.instanceName.ifEmpty { instance.instanceId })
-                    }
-                }
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isSelected) 1.5.dp else 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
         }
-    )
+    }
 }

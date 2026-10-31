@@ -211,11 +211,16 @@ private fun RecordRow(
     val checkIn = PayrollUtil.formatTime(record.checkInTime)
     val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it) } ?: "مفتوح"
     val isOpen = record.checkOutTime == null
-    val sourceBadge = if (record.source == "ess_online") "ESS" else "يدوي"
-    val sourceBadgeColor = if (record.source == "ess_online")
-        MaterialTheme.colorScheme.primaryContainer
-    else
-        MaterialTheme.colorScheme.secondaryContainer
+    val sourceBadge = when {
+        record.source == "ess_online" && !record.isFromServer -> "ESS (معدل)"
+        record.source == "ess_online" -> "ESS"
+        else -> "يدوي"
+    }
+    val sourceBadgeColor = when {
+        record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiaryContainer
+        record.source == "ess_online" -> MaterialTheme.colorScheme.primaryContainer
+        else -> MaterialTheme.colorScheme.secondaryContainer
+    }
 
     Surface(
         modifier = Modifier

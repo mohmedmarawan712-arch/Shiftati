@@ -357,7 +357,7 @@ private fun HoursBarChart(records: List<AttendanceRecord>) {
                         left + (right - left) / 2,
                         top - 4.dp.toPx(),
                         android.graphics.Paint().apply {
-                            color = android.graphics.Color.parseColor("#006B54")
+                            color = android.graphics.Color.parseColor("#10B981")
                             textSize = 22f
                             textAlign = android.graphics.Paint.Align.CENTER
                             isFakeBoldText = true
@@ -372,7 +372,7 @@ private fun HoursBarChart(records: List<AttendanceRecord>) {
                     left + (right - left) / 2,
                     size.height - 2.dp.toPx(),
                     android.graphics.Paint().apply {
-                        color = android.graphics.Color.GRAY
+                        color = android.graphics.Color.LTGRAY
                         textSize = 18f
                         textAlign = android.graphics.Paint.Align.CENTER
                     }

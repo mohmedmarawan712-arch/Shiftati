@@ -15,12 +15,15 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class PrefsUtil(private val context: Context) {
 
     companion object {
-        val KEY_HOURLY_RATE     = doublePreferencesKey("hourly_rate")
-        val KEY_PAYROLL_START   = intPreferencesKey("payroll_start_day")
-        val KEY_LANGUAGE        = stringPreferencesKey("language")   // "ar" | "en"
-        val KEY_ESS_EMAIL       = stringPreferencesKey("ess_email")
-        val KEY_DARK_MODE       = booleanPreferencesKey("dark_mode")
-        val KEY_EMPLOYEE_NAME   = stringPreferencesKey("employee_name")
+        val KEY_HOURLY_RATE       = doublePreferencesKey("hourly_rate")
+        val KEY_PAYROLL_START     = intPreferencesKey("payroll_start_day")
+        val KEY_PAYROLL_CYCLE     = stringPreferencesKey("payroll_cycle_type")
+        val KEY_LANGUAGE          = stringPreferencesKey("language")   // "ar" | "en"
+        val KEY_ESS_EMAIL         = stringPreferencesKey("ess_email")
+        val KEY_ESS_PASSWORD      = stringPreferencesKey("ess_password")
+        val KEY_ESS_SAVE_CREDS    = booleanPreferencesKey("ess_save_creds")
+        val KEY_DARK_MODE         = booleanPreferencesKey("dark_mode")
+        val KEY_EMPLOYEE_NAME     = stringPreferencesKey("employee_name")
 
         const val DEFAULT_HOURLY_RATE   = 30.0
         const val DEFAULT_PAYROLL_START = 1
@@ -35,6 +38,10 @@ class PrefsUtil(private val context: Context) {
         it[KEY_PAYROLL_START] ?: DEFAULT_PAYROLL_START
     }
 
+    val payrollCycleType: Flow<String> = context.dataStore.data.map {
+        it[KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_CURRENT_MONTH
+    }
+
     val language: Flow<String> = context.dataStore.data.map {
         it[KEY_LANGUAGE] ?: DEFAULT_LANGUAGE
     }
@@ -43,8 +50,16 @@ class PrefsUtil(private val context: Context) {
         it[KEY_ESS_EMAIL] ?: ""
     }
 
+    val essPassword: Flow<String> = context.dataStore.data.map {
+        it[KEY_ESS_PASSWORD] ?: ""
+    }
+
+    val essSaveCredentials: Flow<Boolean> = context.dataStore.data.map {
+        it[KEY_ESS_SAVE_CREDS] ?: false
+    }
+
     val darkMode: Flow<Boolean> = context.dataStore.data.map {
-        it[KEY_DARK_MODE] ?: false
+        it[KEY_DARK_MODE] ?: true // Default to true (AMOLED looks gorgeous)
     }
 
     val employeeName: Flow<String> = context.dataStore.data.map {
@@ -59,12 +74,24 @@ class PrefsUtil(private val context: Context) {
         context.dataStore.edit { it[KEY_PAYROLL_START] = day }
     }
 
+    suspend fun setPayrollCycleType(type: String) {
+        context.dataStore.edit { it[KEY_PAYROLL_CYCLE] = type }
+    }
+
     suspend fun setLanguage(lang: String) {
         context.dataStore.edit { it[KEY_LANGUAGE] = lang }
     }
 
-    suspend fun setEssEmail(email: String) {
-        context.dataStore.edit { it[KEY_ESS_EMAIL] = email }
+    suspend fun setEssCredentials(email: String, pass: String, save: Boolean) {
+        context.dataStore.edit {
+            it[KEY_ESS_SAVE_CREDS] = save
+            if (save) {
+                it[KEY_ESS_EMAIL] = email
+                it[KEY_ESS_PASSWORD] = pass
+            } else {
+                it[KEY_ESS_PASSWORD] = ""
+            }
+        }
     }
 
     suspend fun setDarkMode(enabled: Boolean) {
