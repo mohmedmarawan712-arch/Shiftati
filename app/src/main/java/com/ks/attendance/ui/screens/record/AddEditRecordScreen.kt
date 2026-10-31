@@ -33,6 +33,7 @@ fun AddEditRecordScreen(
 ) {
     val isEdit = recordId != -1L
     val today = DateUtil.today()
+    val settingsState by viewModel.settingsState.collectAsState()
 
     // ─── Local form state ─────────────────────────────────────────────────────
     var workDate by remember { mutableStateOf(initialDate ?: today) }
@@ -42,6 +43,7 @@ fun AddEditRecordScreen(
     var checkOutHour by remember { mutableIntStateOf(17) }
     var checkOutMinute by remember { mutableIntStateOf(0) }
     var noteText by remember { mutableStateOf("") }
+    var isOnlineRecord by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     // Dialogs
@@ -55,6 +57,7 @@ fun AddEditRecordScreen(
             val record = viewModel.allRecords.value.find { it.id == recordId }
             record?.let { r ->
                 workDate = r.workDate
+                isOnlineRecord = (r.source == "ess_online")
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = r.checkInTime
                 checkInHour = cal.get(Calendar.HOUR_OF_DAY)
@@ -100,6 +103,32 @@ fun AddEditRecordScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
+            if (isOnlineRecord) {
+                Surface(
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.Info,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "هذه الوردية مستوردة من نظام ESS. يمكنك تعديل الساعات أو التاريخ بحرية، وسيتم تثبيت تعديلاتك محلياً ولن تتأثر بأي مزامنة لاحقة.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
+                }
+            }
+
             // ─── Date ─────────────────────────────────────────────────────────
             SectionLabel("التاريخ")
             OutlinedCard(
@@ -139,6 +168,7 @@ fun AddEditRecordScreen(
                 minute = checkInMinute,
                 label = "وقت الدخول",
                 icon = Icons.Filled.Login,
+                is24Hour = settingsState.is24Hour,
                 onClick = { showCheckInPicker = true }
             )
 
@@ -161,6 +191,7 @@ fun AddEditRecordScreen(
                     minute = checkOutMinute,
                     label = "وقت الانصراف",
                     icon = Icons.Filled.Logout,
+                    is24Hour = settingsState.is24Hour,
                     onClick = { showCheckOutPicker = true }
                 )
             }
@@ -323,8 +354,17 @@ private fun TimePickerRow(
     minute: Int,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    is24Hour: Boolean = false,
     onClick: () -> Unit
 ) {
+    val timeDisplay = if (is24Hour) {
+        "%02d:%02d".format(hour, minute)
+    } else {
+        val h = if (hour % 12 == 0) 12 else hour % 12
+        val amPm = if (hour < 12) "ص" else "م"
+        "$h:%02d $amPm".format(minute)
+    }
+
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -337,7 +377,7 @@ private fun TimePickerRow(
             Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "%02d:%02d".format(hour, minute),
+                text = timeDisplay,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )

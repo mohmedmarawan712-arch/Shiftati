@@ -44,4 +44,7 @@ interface AttendanceDao {
 
     @Query("DELETE FROM attendance_records WHERE workDate >= :startDate AND workDate <= :endDate AND isFromServer = 1")
     suspend fun deleteServerRecordsInRange(startDate: String, endDate: String)
+
+    @Query("DELETE FROM attendance_records WHERE workDate = :date")
+    suspend fun deleteRecordsByDate(date: String)
 }

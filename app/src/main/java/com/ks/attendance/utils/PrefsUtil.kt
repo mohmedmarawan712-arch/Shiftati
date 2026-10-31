@@ -24,10 +24,12 @@ class PrefsUtil(private val context: Context) {
         val KEY_ESS_SAVE_CREDS    = booleanPreferencesKey("ess_save_creds")
         val KEY_DARK_MODE         = booleanPreferencesKey("dark_mode")
         val KEY_EMPLOYEE_NAME     = stringPreferencesKey("employee_name")
+        val KEY_TIME_FORMAT       = stringPreferencesKey("time_format") // "12h" | "24h"
 
         const val DEFAULT_HOURLY_RATE   = 30.0
-        const val DEFAULT_PAYROLL_START = 1
+        const val DEFAULT_PAYROLL_START = 29
         const val DEFAULT_LANGUAGE      = "ar"
+        const val DEFAULT_TIME_FORMAT   = "12h"
     }
 
     val allPreferences: Flow<Preferences> = context.dataStore.data
@@ -41,7 +43,11 @@ class PrefsUtil(private val context: Context) {
     }
 
     val payrollCycleType: Flow<String> = context.dataStore.data.map {
-        it[KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_CURRENT_MONTH
+        it[KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_29_TO_28
+    }
+
+    val timeFormat: Flow<String> = context.dataStore.data.map {
+        it[KEY_TIME_FORMAT] ?: DEFAULT_TIME_FORMAT
     }
 
     val language: Flow<String> = context.dataStore.data.map {
@@ -102,5 +108,9 @@ class PrefsUtil(private val context: Context) {
 
     suspend fun setEmployeeName(name: String) {
         context.dataStore.edit { it[KEY_EMPLOYEE_NAME] = name }
+    }
+
+    suspend fun setTimeFormat(format: String) {
+        context.dataStore.edit { it[KEY_TIME_FORMAT] = format }
     }
 }

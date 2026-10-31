@@ -113,6 +113,16 @@ fun SettingsScreen(
                 // Cycle selector chips
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     CycleOptionChip(
+                        title = "تلقائي: من يوم 29 إلى يوم 28 (الافتراضي)",
+                        subtitle = "حساب دورة الراتب تلقائياً مع مراعاة الأشهر 31 يوم وفبراير 28/29 يوم",
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_29_TO_28,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_29_TO_28
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_29_TO_28)
+                        }
+                    )
+
+                    CycleOptionChip(
                         title = "الشهر الحالي (من 1 حتى آخر يوم)",
                         subtitle = "يحسب الأيام الفعلية تلقائياً (30 أو 31 أو 28/29 في فبراير)",
                         isSelected = selectedCycle == PayrollUtil.CYCLE_CURRENT_MONTH,
@@ -183,7 +193,7 @@ fun SettingsScreen(
             }
 
             // ─── Display & Theme ──────────────────────────────────────────────
-            SettingsSectionCard(title = "المظهر والعرض", icon = Icons.Filled.DarkMode) {
+            SettingsSectionCard(title = "المظهر ونظام الوقت", icon = Icons.Filled.DarkMode) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -206,6 +216,39 @@ fun SettingsScreen(
                         onCheckedChange = { viewModel.setDarkMode(it) }
                     )
                 }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "تنسيق الوقت",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = if (state.is24Hour) "نظام 24 ساعة (مثال: 17:30)" else "نظام 12 ساعة (مثال: 05:30 م)",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(
+                            selected = !state.is24Hour,
+                            onClick = { viewModel.setTimeFormat("12h") },
+                            label = { Text("12 ساعة (ص/م)") }
+                        )
+                        FilterChip(
+                            selected = state.is24Hour,
+                            onClick = { viewModel.setTimeFormat("24h") },
+                            label = { Text("24 ساعة") }
+                        )
+                    }
+                }
             }
 
             // ─── ESS Integration ──────────────────────────────────────────────
@@ -223,7 +266,11 @@ fun SettingsScreen(
                             Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ColorWorked)
                             Spacer(modifier = Modifier.width(10.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("متصل بنظام ESS", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+                                Text(
+                                    text = if (state.employeeName.isNotBlank()) "الموظف: ${state.employeeName}" else "متصل بنظام ESS",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                                 Text(state.essEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             Button(

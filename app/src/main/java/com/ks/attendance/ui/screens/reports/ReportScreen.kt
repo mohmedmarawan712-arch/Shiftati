@@ -214,7 +214,7 @@ fun ReportScreen(viewModel: MainViewModel) {
                     reportState.records.sortedBy { it.checkInTime },
                     key = { it.id }
                 ) { record ->
-                    RecordTableRow(record = record)
+                    RecordTableRow(record = record, is24Hour = settingsState.is24Hour)
                 }
             }
         }
@@ -392,7 +392,18 @@ private fun HoursBarChart(records: List<AttendanceRecord>) {
 }
 
 @Composable
-private fun RecordTableRow(record: AttendanceRecord) {
+private fun RecordTableRow(record: AttendanceRecord, is24Hour: Boolean = false) {
+    val sourceLabel = when {
+        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل)"
+        record.source == "ess_online" -> "أونلاين"
+        else -> "يدوي"
+    }
+    val sourceColor = when {
+        record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiary
+        record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         shape = MaterialTheme.shapes.small,
@@ -402,22 +413,20 @@ private fun RecordTableRow(record: AttendanceRecord) {
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(modifier = Modifier.width(70.dp)) {
+            Column(modifier = Modifier.width(85.dp)) {
                 Text(record.workDate.takeLast(5),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold)
                 Text(
-                    text = if (record.source == "ess_online") "ESS" else "يدوي",
+                    text = sourceLabel,
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (record.source == "ess_online")
-                        MaterialTheme.colorScheme.secondary
-                    else MaterialTheme.colorScheme.tertiary
+                    color = sourceColor
                 )
             }
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "${PayrollUtil.formatTime(record.checkInTime)} → ${
-                        record.checkOutTime?.let { PayrollUtil.formatTime(it) } ?: "مفتوح"
+                    text = "${PayrollUtil.formatTime(record.checkInTime, is24Hour)} → ${
+                        record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
                     }",
                     style = MaterialTheme.typography.bodySmall
                 )

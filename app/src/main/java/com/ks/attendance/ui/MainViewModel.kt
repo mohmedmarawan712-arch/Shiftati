@@ -27,6 +27,8 @@ data class HomeState(
     val periodStart: String = "",
     val periodEnd: String = "",
     val employeeName: String = "",
+    val workedDays: Int = 0,
+    val is24Hour: Boolean = false,
     val isLoading: Boolean = false,
     val message: UiMessage? = null
 )
@@ -46,17 +48,20 @@ data class ReportState(
 
 data class SettingsState(
     val hourlyRate: Double = 30.0,
-    val payrollStartDay: Int = 1,
-    val payrollCycleType: String = PayrollUtil.CYCLE_CURRENT_MONTH,
+    val payrollStartDay: Int = 29,
+    val payrollCycleType: String = PayrollUtil.CYCLE_29_TO_28,
     val language: String = "ar",
     val darkMode: Boolean = true,
+    val timeFormat: String = "12h",
     val essEmail: String = "",
     val essPassword: String = "",
     val essSaveCredentials: Boolean = false,
     val employeeName: String = "",
     val isEssLoggedIn: Boolean = false,
     val essInstances: List<EssInstance> = emptyList()
-)
+) {
+    val is24Hour: Boolean get() = timeFormat == "24h"
+}
 
 class MainViewModel(
     private val repo: AttendanceRepository,
@@ -107,9 +112,10 @@ class MainViewModel(
             prefs.allPreferences.collect { p ->
                 val rate = p[PrefsUtil.KEY_HOURLY_RATE] ?: PrefsUtil.DEFAULT_HOURLY_RATE
                 val startDay = p[PrefsUtil.KEY_PAYROLL_START] ?: PrefsUtil.DEFAULT_PAYROLL_START
-                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_CURRENT_MONTH
+                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_29_TO_28
                 val lang = p[PrefsUtil.KEY_LANGUAGE] ?: PrefsUtil.DEFAULT_LANGUAGE
                 val dark = p[PrefsUtil.KEY_DARK_MODE] ?: true
+                val timeFmt = p[PrefsUtil.KEY_TIME_FORMAT] ?: PrefsUtil.DEFAULT_TIME_FORMAT
                 val email = p[PrefsUtil.KEY_ESS_EMAIL] ?: ""
                 val pass = p[PrefsUtil.KEY_ESS_PASSWORD] ?: ""
                 val saveCreds = p[PrefsUtil.KEY_ESS_SAVE_CREDS] ?: false
@@ -121,13 +127,17 @@ class MainViewModel(
                     payrollCycleType = cycleType,
                     language = lang,
                     darkMode = dark,
+                    timeFormat = timeFmt,
                     essEmail = email,
                     essPassword = pass,
                     essSaveCredentials = saveCreds,
                     isEssLoggedIn = repo.isEssLoggedIn,
                     employeeName = name
                 )
-                _homeState.value = _homeState.value.copy(employeeName = name)
+                _homeState.value = _homeState.value.copy(
+                    employeeName = name,
+                    is24Hour = (timeFmt == "24h")
+                )
                 refreshHome()
             }
         }
@@ -151,6 +161,11 @@ class MainViewModel(
             val openSession = repo.getOpenSession()
             val todayHours = repo.getTotalHoursInRange(today, today)
             val monthHours = repo.getTotalHoursInRange(periodStart, periodEnd)
+            val workedDays = allRecords.value
+                .filter { it.workDate in periodStart..periodEnd && it.hoursWorked > 0.0 }
+                .map { it.workDate }
+                .distinct()
+                .size
 
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
@@ -158,7 +173,8 @@ class MainViewModel(
                 periodEnd = periodEnd,
                 todayHours = todayHours,
                 monthHours = monthHours,
-                monthSalary = monthHours * rate
+                monthSalary = monthHours * rate,
+                workedDays = workedDays
             )
         }
         viewModelScope.launch {
@@ -224,6 +240,14 @@ class MainViewModel(
         viewModelScope.launch {
             repo.deleteRecord(record)
             refreshHome()
+        }
+    }
+
+    fun deleteDay(date: String) {
+        viewModelScope.launch {
+            repo.deleteDay(date)
+            refreshHome()
+            showHomeMessage("تم حذف جميع سجلات يوم $date بنجاح")
         }
     }
 
@@ -322,6 +346,13 @@ class MainViewModel(
 
     fun setDarkMode(enabled: Boolean) {
         viewModelScope.launch { prefs.setDarkMode(enabled) }
+    }
+
+    fun setTimeFormat(format: String) {
+        viewModelScope.launch {
+            prefs.setTimeFormat(format)
+            refreshHome()
+        }
     }
 
     fun setEmployeeName(name: String) {

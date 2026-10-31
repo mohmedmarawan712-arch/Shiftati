@@ -39,6 +39,7 @@ fun CalendarScreen(
     onDayClick: (String) -> Unit
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
+    val settingsState by viewModel.settingsState.collectAsState()
     val selectedDate by viewModel.selectedDate.collectAsState()
     val dayRecords by viewModel.dayRecords.collectAsState()
     val dayNotes by viewModel.dayNotes.collectAsState()
@@ -63,14 +64,6 @@ fun CalendarScreen(
     // Dates with notes
     var datesWithNotes by remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(displayYear, displayMonth) {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val start = sdf.format(Calendar.getInstance().also { it.set(displayYear, displayMonth, 1) }.time)
-        val c = Calendar.getInstance().also {
-            it.set(displayYear, displayMonth, 1)
-            it.set(Calendar.DAY_OF_MONTH, it.getActualMaximum(Calendar.DAY_OF_MONTH))
-        }
-        val end = sdf.format(c.time)
-        // We'll use allRecords to approximate — actual notes need a query
         datesWithNotes = emptySet()
     }
 
@@ -79,6 +72,7 @@ fun CalendarScreen(
     var showSheet by remember { mutableStateOf(false) }
     var addNoteText by remember { mutableStateOf("") }
     var showNoteInput by remember { mutableStateOf(false) }
+    var confirmDeleteDay by remember { mutableStateOf(false) }
 
     if (showSheet) {
         ModalBottomSheet(
@@ -89,6 +83,7 @@ fun CalendarScreen(
                 date = selectedDate,
                 records = dayRecords,
                 notes = dayNotes,
+                is24Hour = settingsState.is24Hour,
                 addNoteText = addNoteText,
                 showNoteInput = showNoteInput,
                 onAddNoteTextChange = { addNoteText = it },
@@ -101,12 +96,34 @@ fun CalendarScreen(
                     }
                 },
                 onDeleteNote = { viewModel.deleteNote(it) },
+                onDeleteDay = { confirmDeleteDay = true },
                 onNavigateAddRecord = {
                     showSheet = false
                     onDayClick(selectedDate)
                 }
             )
         }
+    }
+
+    if (confirmDeleteDay) {
+        AlertDialog(
+            onDismissRequest = { confirmDeleteDay = false },
+            title = { Text("حذف يوم العمل بالكامل") },
+            text = { Text("هل تريد حذف جميع ورديات يوم $selectedDate؟") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteDay(selectedDate)
+                        confirmDeleteDay = false
+                        showSheet = false
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) { Text("حذف اليوم", fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDeleteDay = false }) { Text("إلغاء") }
+            }
+        )
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -332,12 +349,14 @@ private fun DayBottomSheet(
     date: String,
     records: List<AttendanceRecord>,
     notes: List<DayNote>,
+    is24Hour: Boolean = false,
     addNoteText: String,
     showNoteInput: Boolean,
     onAddNoteTextChange: (String) -> Unit,
     onToggleNoteInput: () -> Unit,
     onSaveNote: () -> Unit,
     onDeleteNote: (DayNote) -> Unit,
+    onDeleteDay: () -> Unit,
     onNavigateAddRecord: () -> Unit
 ) {
     Column(
@@ -346,15 +365,31 @@ private fun DayBottomSheet(
             .padding(16.dp)
     ) {
         // Date header
-        Text(
-            text = DateUtil.toArabicFull(date),
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = DateUtil.toArabicFull(date),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            if (records.isNotEmpty()) {
+                IconButton(onClick = onDeleteDay) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = "حذف اليوم",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
 
         // Records section
-        Text("سجلات الحضور", style = MaterialTheme.typography.titleSmall,
+        Text("سجلات الحضور (${records.size})", style = MaterialTheme.typography.titleSmall,
             color = MaterialTheme.colorScheme.primary)
         Spacer(modifier = Modifier.height(8.dp))
         if (records.isEmpty()) {
@@ -363,19 +398,30 @@ private fun DayBottomSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             records.forEach { record ->
+                val sourceLabel = when {
+                    record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل يدوياً)"
+                    record.source == "ess_online" -> "أونلاين (ESS)"
+                    else -> "يدوي"
+                }
+                val sourceColor = when {
+                    record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiary
+                    record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
                 Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
                     shape = MaterialTheme.shapes.small,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 3.dp)
+                        .padding(vertical = 4.dp)
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.Login, contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(PayrollUtil.formatTime(record.checkInTime),
-                            style = MaterialTheme.typography.bodyMedium)
+                        Text(PayrollUtil.formatTime(record.checkInTime, is24Hour),
+                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                         if (record.checkOutTime != null) {
                             Icon(Icons.Filled.ArrowForward, contentDescription = null,
                                 modifier = Modifier.size(14.dp),
@@ -383,29 +429,59 @@ private fun DayBottomSheet(
                             Icon(Icons.Filled.Logout, contentDescription = null,
                                 tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(PayrollUtil.formatTime(record.checkOutTime),
-                                style = MaterialTheme.typography.bodyMedium)
+                            Text(PayrollUtil.formatTime(record.checkOutTime, is24Hour),
+                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.weight(1f))
                             Text(PayrollUtil.formatHours(record.hoursWorked),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary)
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.Bold)
                         } else {
                             Spacer(modifier = Modifier.weight(1f))
                             Badge { Text("مفتوح") }
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = sourceColor.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = sourceLabel,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = sourceColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(
-            onClick = onNavigateAddRecord,
-            modifier = Modifier.fillMaxWidth()
+        Spacer(modifier = Modifier.height(14.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(Icons.Filled.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("إضافة سجل لهذا اليوم")
+            Button(
+                onClick = onNavigateAddRecord,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text("إضافة سجل")
+            }
+            if (records.isNotEmpty()) {
+                OutlinedButton(
+                    onClick = onDeleteDay,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("حذف اليوم")
+                }
+            }
         }
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))

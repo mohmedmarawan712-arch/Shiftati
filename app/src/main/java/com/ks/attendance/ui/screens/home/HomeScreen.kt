@@ -192,19 +192,20 @@ fun HomeScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             // Total hours
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "%.1f".format(homeState.monthHours),
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onBackground
                                 )
                                 Text(
-                                    text = "ساعات العمل",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = "الساعات",
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -213,21 +214,44 @@ fun HomeScreen(
                             Box(
                                 modifier = Modifier
                                     .width(1.dp)
-                                    .height(44.dp)
-                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                    .height(36.dp)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                            )
+
+                            // Worked days
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = "${homeState.workedDays}",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.secondary
+                                )
+                                Text(
+                                    text = "أيام العمل",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Vertical divider
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(36.dp)
+                                    .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
                             )
 
                             // Estimated Salary
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
                                     text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
-                                    style = MaterialTheme.typography.headlineMedium,
+                                    style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
-                                    text = "الراتب التقديري",
-                                    style = MaterialTheme.typography.labelMedium,
+                                    text = "الراتب",
+                                    style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
@@ -267,6 +291,7 @@ fun HomeScreen(
                 items(homeState.todayRecords, key = { it.id }) { record ->
                     CompactRecordCard(
                         record = record,
+                        is24Hour = homeState.is24Hour,
                         onClick = { onNavigate("record/${record.id}") }
                     )
                 }
@@ -406,8 +431,20 @@ private fun HeroClockCard(
 @Composable
 private fun CompactRecordCard(
     record: AttendanceRecord,
+    is24Hour: Boolean = false,
     onClick: () -> Unit
 ) {
+    val sourceLabel = when {
+        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل يدوياً)"
+        record.source == "ess_online" -> "أونلاين (ESS)"
+        else -> "يدوي"
+    }
+    val sourceColor = when {
+        record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiary
+        record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
     Card(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -448,7 +485,7 @@ private fun CompactRecordCard(
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = PayrollUtil.formatTime(record.checkInTime),
+                        text = PayrollUtil.formatTime(record.checkInTime, is24Hour),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -459,19 +496,31 @@ private fun CompactRecordCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = record.checkOutTime?.let { PayrollUtil.formatTime(it) } ?: "مفتوح",
+                        text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = if (record.checkOutTime == null) ColorWorked else MaterialTheme.colorScheme.onBackground
                     )
                 }
-                if (record.note.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Text(
-                        text = record.note,
+                        text = sourceLabel,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        color = sourceColor,
+                        fontWeight = FontWeight.SemiBold
                     )
+                    if (record.note.isNotBlank()) {
+                        Text(
+                            text = "• ${record.note}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
                 }
             }
 

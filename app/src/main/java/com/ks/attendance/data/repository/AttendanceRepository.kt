@@ -37,6 +37,7 @@ class AttendanceRepository(
     suspend fun updateRecord(record: AttendanceRecord) = attendanceDao.update(record)
 
     suspend fun deleteRecord(record: AttendanceRecord) = attendanceDao.delete(record)
+    suspend fun deleteDay(date: String) = attendanceDao.deleteRecordsByDate(date)
 
     suspend fun getOpenSession(): AttendanceRecord? = attendanceDao.getOpenSession()
 

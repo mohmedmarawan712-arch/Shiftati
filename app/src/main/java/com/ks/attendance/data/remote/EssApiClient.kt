@@ -123,8 +123,8 @@ class EssApiClient {
         instanceId = instance.instanceId
         staffId = instance.staffId
 
-        // Query both Attachments (for schedulingUnit) and Demographics (for employee name)
-        val patternJson = """{"applicationId":"PeopleScheduler","containers":[{"type":"Static","container":"Staff","facets":[{"facet":"Attachments","parameters":{"ids":[{"objectId":"$staffId"}]}},{"facet":"Demographics","parameters":{"ids":[{"objectId":"$staffId"}]}}]}]}"""
+        // Query Attachments (for schedulingUnit) and StaffDetails (for employee name as per curl)
+        val patternJson = """{"applicationId":"PeopleScheduler","containers":[{"type":"Static","container":"Staff","facets":[{"facet":"Attachments","parameters":{"ids":[{"objectId":"$staffId"}]}},{"facet":"StaffDetails","parameters":{"ids":[{"objectId":"$staffId"}]}},{"facet":"Demographics","parameters":{"ids":[{"objectId":"$staffId"}]}}]}]}"""
         val result = post(mapOf(
             "external" to "html",
             "command" to "GetFacet",
@@ -147,28 +147,49 @@ class EssApiClient {
                     facets.forEach { facet ->
                         val f = facet as? Map<*, *> ?: return@forEach
                         val facetName = f["facet"]?.toString()
-                        val fd = f["facetData"] as? Map<*, *>
+                        val fd = f["facetData"]
 
                         if (facetName == "Attachments") {
-                            val atts = fd?.get("attachments") as? List<*>
+                            val atts = (fd as? Map<*, *>)?.get("attachments") as? List<*>
                             val sorted = atts?.sortedByDescending { ((it as? Map<*, *>)?.get("start") as? String) ?: "" }
                             val suIdObj = (sorted?.firstOrNull() as? Map<*, *>)?.get("suId") as? Map<*, *>
                             schedulingUnitId = suIdObj?.get("objectId")?.toString()
-                        } else if (facetName == "Demographics") {
-                            val demo = fd?.get("demographics") as? Map<*, *> ?: fd
-                            val first = demo?.get("firstName")?.toString() ?: ""
-                            val last = demo?.get("lastName")?.toString() ?: ""
-                            val preferred = demo?.get("preferredName")?.toString() ?: ""
-                            val name = if (preferred.isNotBlank()) preferred
-                                       else listOf(first, last).filter { it.isNotBlank() }.joinToString(" ")
-                            if (name.isNotBlank()) {
-                                detectedEmployeeName = name
+                        } else if (facetName == "StaffDetails" || facetName == "Demographics") {
+                            val extracted = findNameInMap(fd)
+                            if (!extracted.isNullOrBlank()) {
+                                detectedEmployeeName = extracted
                             }
                         }
                     }
                 }
             }
         }
+    }
+
+    private fun findNameInMap(data: Any?): String? {
+        if (data == null) return null
+        if (data is Map<*, *>) {
+            val first = (data["firstName"] ?: data["first_name"])?.toString()?.trim() ?: ""
+            val last = (data["lastName"] ?: data["last_name"])?.toString()?.trim() ?: ""
+            if (first.isNotBlank() || last.isNotBlank()) {
+                val full = listOf(first, last).filter { it.isNotBlank() }.joinToString(" ")
+                if (full.isNotBlank()) return full
+            }
+            val direct = (data["fullName"] ?: data["name"] ?: data["staffName"] ?: data["preferredName"] ?: data["knownAs"] ?: data["displayName"])?.toString()?.trim()
+            if (!direct.isNullOrBlank() && !direct.all { it.isDigit() }) {
+                return direct
+            }
+            for (value in data.values) {
+                val res = findNameInMap(value)
+                if (!res.isNullOrBlank()) return res
+            }
+        } else if (data is List<*>) {
+            for (item in data) {
+                val res = findNameInMap(item)
+                if (!res.isNullOrBlank()) return res
+            }
+        }
+        return null
     }
 
     /**

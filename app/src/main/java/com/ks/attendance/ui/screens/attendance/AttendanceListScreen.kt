@@ -35,7 +35,9 @@ fun AttendanceListScreen(
     onNavigate: (String) -> Unit
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
+    val settingsState by viewModel.settingsState.collectAsState()
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
+    var dayToDelete by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Group by date descending
@@ -83,13 +85,15 @@ fun AttendanceListScreen(
                     stickyHeader(key = "header_$date") {
                         DateGroupHeader(
                             date = date,
-                            totalHours = records.sumOf { it.hoursWorked }
+                            totalHours = records.sumOf { it.hoursWorked },
+                            onDeleteDay = { dayToDelete = date }
                         )
                     }
 
                     items(records, key = { it.id }) { record ->
                         SwipeToDismissRecordItem(
                             record = record,
+                            is24Hour = settingsState.is24Hour,
                             onDelete = { recordToDelete = record },
                             onEdit = { onNavigate("record/${record.id}") }
                         )
@@ -98,7 +102,7 @@ fun AttendanceListScreen(
             }
         }
 
-        // Confirm delete dialog
+        // Confirm delete single record dialog
         recordToDelete?.let { record ->
             ConfirmDeleteDialog(
                 onConfirm = {
@@ -108,11 +112,42 @@ fun AttendanceListScreen(
                 onDismiss = { recordToDelete = null }
             )
         }
+
+        // Confirm delete entire day dialog
+        dayToDelete?.let { date ->
+            AlertDialog(
+                onDismissRequest = { dayToDelete = null },
+                title = { Text("حذف يوم العمل بالكامل") },
+                text = { Text("هل أنت متأكد من حذف جميع ورديات يوم $date؟\nلن يمكن استرجاع هذه البيانات.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            viewModel.deleteDay(date)
+                            dayToDelete = null
+                        },
+                        colors = ButtonDefaults.textButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("حذف اليوم بالكامل", fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { dayToDelete = null }) {
+                        Text("إلغاء")
+                    }
+                }
+            )
+        }
     }
 }
 
 @Composable
-private fun DateGroupHeader(date: String, totalHours: Double) {
+private fun DateGroupHeader(
+    date: String,
+    totalHours: Double,
+    onDeleteDay: () -> Unit
+) {
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
     val display = remember(date) {
         runCatching {
@@ -128,7 +163,7 @@ private fun DateGroupHeader(date: String, totalHours: Double) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -136,19 +171,36 @@ private fun DateGroupHeader(date: String, totalHours: Double) {
                 text = display,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f)
             )
-            Surface(
-                shape = RoundedCornerShape(50.dp),
-                color = ColorWorked.copy(alpha = 0.2f)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                Text(
-                    text = PayrollUtil.formatHours(totalHours),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = ColorWorked,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                )
+                Surface(
+                    shape = RoundedCornerShape(50.dp),
+                    color = ColorWorked.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        text = PayrollUtil.formatHours(totalHours),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ColorWorked,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+                IconButton(
+                    onClick = onDeleteDay,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteSweep,
+                        contentDescription = "حذف اليوم بالكامل",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
             }
         }
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
@@ -159,6 +211,7 @@ private fun DateGroupHeader(date: String, totalHours: Double) {
 @Composable
 private fun SwipeToDismissRecordItem(
     record: AttendanceRecord,
+    is24Hour: Boolean = false,
     onDelete: () -> Unit,
     onEdit: () -> Unit
 ) {
@@ -198,6 +251,7 @@ private fun SwipeToDismissRecordItem(
     ) {
         RecordRow(
             record = record,
+            is24Hour = is24Hour,
             onEdit = onEdit
         )
     }
@@ -206,14 +260,15 @@ private fun SwipeToDismissRecordItem(
 @Composable
 private fun RecordRow(
     record: AttendanceRecord,
+    is24Hour: Boolean = false,
     onEdit: () -> Unit
 ) {
-    val checkIn = PayrollUtil.formatTime(record.checkInTime)
-    val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it) } ?: "مفتوح"
+    val checkIn = PayrollUtil.formatTime(record.checkInTime, is24Hour)
+    val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
     val isOpen = record.checkOutTime == null
     val sourceBadge = when {
-        record.source == "ess_online" && !record.isFromServer -> "ESS (معدل)"
-        record.source == "ess_online" -> "ESS"
+        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل يدوياً)"
+        record.source == "ess_online" -> "أونلاين (ESS)"
         else -> "يدوي"
     }
     val sourceBadgeColor = when {
