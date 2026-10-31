@@ -43,6 +43,7 @@ fun HomeScreen(
 
     // Live elapsed timer for active session
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
+    var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     LaunchedEffect(homeState.openSession) {
         val session = homeState.openSession
         if (session != null) {
@@ -292,10 +293,22 @@ fun HomeScreen(
                     CompactRecordCard(
                         record = record,
                         is24Hour = homeState.is24Hour,
-                        onClick = { onNavigate("record/${record.id}") }
+                        onClick = { onNavigate("record/${record.id}") },
+                        onDelete = { recordToDelete = record }
                     )
                 }
             }
+        }
+
+        // Confirm delete single record dialog
+        recordToDelete?.let { record ->
+            ConfirmDeleteDialog(
+                onConfirm = {
+                    viewModel.deleteRecord(record)
+                    recordToDelete = null
+                },
+                onDismiss = { recordToDelete = null }
+            )
         }
     }
 }
@@ -449,7 +462,8 @@ private fun HeroClockCard(
 private fun CompactRecordCard(
     record: AttendanceRecord,
     is24Hour: Boolean = false,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
     val sourceLabel = when {
         record.source == "ess_online" && !record.isFromServer -> "معدل"
@@ -461,6 +475,7 @@ private fun CompactRecordCard(
         record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
+    val isOpen = record.checkOutTime == null
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -479,25 +494,26 @@ private fun CompactRecordCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Distinct Attendance Badge (Fingerprint)
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
-                modifier = Modifier.size(38.dp)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = if (record.source == "ess_online") Icons.Filled.CloudDone else Icons.Filled.Schedule,
-                        contentDescription = null,
+                        imageVector = Icons.Filled.Fingerprint,
+                        contentDescription = "حضور",
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -512,12 +528,39 @@ private fun CompactRecordCard(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (record.checkOutTime == null) ColorWorked else MaterialTheme.colorScheme.onBackground
-                    )
+                    if (isOpen) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.HourglassTop,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = "مفتوح",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(13.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
                 }
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(
@@ -551,9 +594,23 @@ private fun CompactRecordCard(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
+                Spacer(modifier = Modifier.width(6.dp))
+            }
+
+            // Single record delete button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.DeleteOutline,
+                    contentDescription = "حذف هذا السجل",
+                    modifier = Modifier.size(17.dp),
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                )
             }
         }
     }

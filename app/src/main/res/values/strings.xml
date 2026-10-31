@@ -32,7 +32,7 @@
     <string name="hours_suffix">hrs</string>
     <string name="currency_egp">EGP</string>
     <string name="open_shift">Open Shift</string>
-    <string name="confirm_delete_record">Delete this record?</string>
+    <string name="confirm_delete_record">Delete this specific record?</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="save">Save</string>
@@ -77,14 +77,14 @@
     <string name="cycle_current_month">Current Month</string>
     <string name="cycle_previous_month">Previous Month</string>
     <string name="cycle_both_months">Both Months</string>
-    <string name="cycle_custom">Custom</string>
-    <string name="custom_start_day">Starts on day %d</string>
+    <string name="cycle_custom_range">Custom Date Range</string>
+    <string name="select_start_date">Start Date</string>
+    <string name="select_end_date">End Date</string>
+    <string name="active_period_banner">Active Period: %1$s to %2$s</string>
 
     <string name="section_appearance">Appearance &amp; Time</string>
     <string name="time_format_24h">24-Hour Format</string>
-    <string name="time_format_24h_desc">Use military 24-hour format instead of 12-hour AM/PM</string>
-    <string name="amoled_dark_mode">AMOLED Dark Mode</string>
-    <string name="amoled_desc">Pure black background for battery saving and comfort</string>
+    <string name="amoled_dark_mode">AMOLED Mode</string>
 
     <string name="section_ess">ESS Integration</string>
     <string name="ess_connected">Connected to ESS</string>

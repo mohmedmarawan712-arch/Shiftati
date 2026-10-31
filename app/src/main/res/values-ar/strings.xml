@@ -32,7 +32,7 @@
     <string name="hours_suffix">ساعة</string>
     <string name="currency_egp">ج.م</string>
     <string name="open_shift">شفت مفتوح</string>
-    <string name="confirm_delete_record">هل تريد حذف هذا السجل؟</string>
+    <string name="confirm_delete_record">هل تريد حذف هذا السجل المحدد؟</string>
     <string name="delete">حذف</string>
     <string name="cancel">إلغاء</string>
     <string name="save">حفظ</string>
@@ -77,14 +77,14 @@
     <string name="cycle_current_month">الشهر الحالي</string>
     <string name="cycle_previous_month">الشهر السابق</string>
     <string name="cycle_both_months">الشهران معاً</string>
-    <string name="cycle_custom">مخصص</string>
-    <string name="custom_start_day">يبدأ بيوم %d في الشهر</string>
+    <string name="cycle_custom_range">فترة مخصصة بالتواريخ</string>
+    <string name="select_start_date">تاريخ البداية</string>
+    <string name="select_end_date">تاريخ النهاية</string>
+    <string name="active_period_banner">الفترة الحالية: من %1$s إلى %2$s</string>
 
-    <string name="section_appearance">المظهر والوقت</string>
+    <string name="section_appearance">المظهر ونظام الوقت</string>
     <string name="time_format_24h">تنسيق 24 ساعة</string>
-    <string name="time_format_24h_desc">تفعيل التوقيت العسكري (24 ساعة) بدلاً من 12 ساعة</string>
-    <string name="amoled_dark_mode">وضع AMOLED الداكن</string>
-    <string name="amoled_desc">خلفية سوداء نقية ومريحة للعين</string>
+    <string name="amoled_dark_mode">وضع AMOLED</string>
 
     <string name="section_ess">الربط مع ESS</string>
     <string name="ess_connected">متصل بنظام ESS</string>

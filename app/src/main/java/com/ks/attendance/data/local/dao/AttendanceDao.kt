@@ -47,4 +47,10 @@ interface AttendanceDao {
 
     @Query("DELETE FROM attendance_records WHERE workDate = :date")
     suspend fun deleteRecordsByDate(date: String)
+
+    @Query("SELECT * FROM attendance_records")
+    suspend fun getAllRecordsDirect(): List<AttendanceRecord>
+
+    @Query("SELECT * FROM attendance_records WHERE workDate >= :startDate AND workDate <= :endDate")
+    suspend fun getRecordsInRangeDirect(startDate: String, endDate: String): List<AttendanceRecord>
 }

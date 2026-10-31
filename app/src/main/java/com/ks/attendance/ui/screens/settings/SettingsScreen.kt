@@ -27,9 +27,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
+import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.ColorWorked
 import com.ks.attendance.utils.PayrollUtil
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,13 +40,23 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val state by viewModel.settingsState.collectAsState()
+    val homeState by viewModel.homeState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Form states
     var employeeName by remember(state.employeeName) { mutableStateOf(state.employeeName) }
     var hourlyRate by remember(state.hourlyRate) { mutableStateOf(state.hourlyRate.toInt().toString()) }
-    var payrollStartDay by remember(state.payrollStartDay) { mutableIntStateOf(state.payrollStartDay) }
     var selectedCycle by remember(state.payrollCycleType) { mutableStateOf(state.payrollCycleType) }
+
+    // Custom date range dialog states
+    var customStartDate by remember(state.customStartDate) {
+        mutableStateOf(if (state.customStartDate.isNotBlank()) state.customStartDate else homeState.periodStart)
+    }
+    var customEndDate by remember(state.customEndDate) {
+        mutableStateOf(if (state.customEndDate.isNotBlank()) state.customEndDate else homeState.periodEnd)
+    }
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     // ESS states
     var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
@@ -59,7 +71,8 @@ fun SettingsScreen(
         topBar = {
             KSTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -111,17 +124,45 @@ fun SettingsScreen(
                 )
             }
 
-            // ─── 2. Payroll Cycle Card ───────────────────────────────────────
+            // ─── 2. Payroll Cycle Card (Unified & Highly Professional) ─────────
             SlateCard(
                 title = stringResource(R.string.section_payroll_cycle),
                 icon = Icons.Filled.CalendarMonth
             ) {
+                // Active period indicator banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.DateRange,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.active_period_banner, homeState.periodStart, homeState.periodEnd),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 val cycleOptions = listOf(
                     PayrollUtil.CYCLE_29_TO_28 to stringResource(R.string.cycle_29_28),
                     PayrollUtil.CYCLE_CURRENT_MONTH to stringResource(R.string.cycle_current_month),
                     PayrollUtil.CYCLE_PREVIOUS_MONTH to stringResource(R.string.cycle_previous_month),
                     PayrollUtil.CYCLE_BOTH_MONTHS to stringResource(R.string.cycle_both_months),
-                    PayrollUtil.CYCLE_CUSTOM_DAY to stringResource(R.string.cycle_custom)
+                    PayrollUtil.CYCLE_CUSTOM_RANGE to stringResource(R.string.cycle_custom_range)
                 )
 
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -132,69 +173,106 @@ fun SettingsScreen(
                             isSelected = isSelected,
                             onClick = {
                                 selectedCycle = cycleKey
-                                viewModel.setPayrollCycleType(cycleKey)
+                                if (cycleKey == PayrollUtil.CYCLE_CUSTOM_RANGE) {
+                                    viewModel.setCustomPeriodRange(customStartDate, customEndDate)
+                                } else {
+                                    viewModel.setPayrollCycleType(cycleKey)
+                                }
                             }
                         )
                     }
                 }
 
-                AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_DAY) {
+                // If Custom Date Range is selected, show exact Start and End Date pickers
+                AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_RANGE) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 10.dp)
+                            .padding(top = 12.dp)
                     ) {
+                        Text(
+                            text = "اختر تاريخ البداية والنهاية للدورة:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Text(
-                                stringResource(R.string.custom_start_day, payrollStartDay),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            // Start Date Picker Button
+                            OutlinedButton(
+                                onClick = { showStartDatePicker = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        stringResource(R.string.select_start_date),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        customStartDate.ifBlank { "اختر التاريخ" },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // End Date Picker Button
+                            OutlinedButton(
+                                onClick = { showEndDatePicker = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        stringResource(R.string.select_end_date),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        customEndDate.ifBlank { "اختر التاريخ" },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
-                        Slider(
-                            value = payrollStartDay.toFloat(),
-                            onValueChange = {
-                                payrollStartDay = it.toInt()
-                                viewModel.setPayrollStartDay(it.toInt())
-                            },
-                            valueRange = 1f..31f,
-                            steps = 29
-                        )
                     }
                 }
             }
 
-            // ─── 3. Appearance & Time Format Card ────────────────────────────
+            // ─── 3. Appearance & Time Format Card (Pure AMOLED & 24h Without Subtitle) ─
             SlateCard(
                 title = stringResource(R.string.section_appearance),
                 icon = Icons.Filled.Tune
             ) {
-                // 24-Hour Switch
-                SlateToggleRow(
+                // AMOLED Switch (Only Title + Switch)
+                SlateCleanToggleRow(
+                    title = stringResource(R.string.amoled_dark_mode),
+                    checked = state.darkMode,
+                    onCheckedChange = { viewModel.setDarkMode(it) }
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
+
+                // 24-Hour Switch (Only Title + Switch)
+                SlateCleanToggleRow(
                     title = stringResource(R.string.time_format_24h),
-                    subtitle = if (state.is24Hour) "18:30 (عسكري)" else "06:30 م (ص/م)",
                     checked = state.is24Hour,
                     onCheckedChange = { checked ->
                         viewModel.setTimeFormat(if (checked) "24h" else "12h")
                     }
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 10.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-                )
-
-                // AMOLED Switch
-                SlateToggleRow(
-                    title = stringResource(R.string.amoled_dark_mode),
-                    subtitle = stringResource(R.string.amoled_desc),
-                    checked = state.darkMode,
-                    onCheckedChange = { viewModel.setDarkMode(it) }
                 )
             }
 
@@ -371,6 +449,44 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+
+        // Custom Start Date Picker Dialog
+        if (showStartDatePicker) {
+            val initialMillis = try {
+                PayrollUtil.parseDate(customStartDate).time
+            } catch (e: Exception) {
+                System.currentTimeMillis()
+            }
+            DatePickerDialog(
+                initialMillis = initialMillis,
+                onConfirm = { millis ->
+                    showStartDatePicker = false
+                    val formatted = PayrollUtil.formatDate(millis)
+                    customStartDate = formatted
+                    viewModel.setCustomPeriodRange(formatted, customEndDate)
+                },
+                onDismiss = { showStartDatePicker = false }
+            )
+        }
+
+        // Custom End Date Picker Dialog
+        if (showEndDatePicker) {
+            val initialMillis = try {
+                PayrollUtil.parseDate(customEndDate).time
+            } catch (e: Exception) {
+                System.currentTimeMillis()
+            }
+            DatePickerDialog(
+                initialMillis = initialMillis,
+                onConfirm = { millis ->
+                    showEndDatePicker = false
+                    val formatted = PayrollUtil.formatDate(millis)
+                    customEndDate = formatted
+                    viewModel.setCustomPeriodRange(customStartDate, formatted)
+                },
+                onDismiss = { showEndDatePicker = false }
+            )
+        }
     }
 }
 
@@ -457,9 +573,8 @@ private fun SlateOptionRow(
 }
 
 @Composable
-private fun SlateToggleRow(
+private fun SlateCleanToggleRow(
     title: String,
-    subtitle: String,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -468,19 +583,12 @@ private fun SlateToggleRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange

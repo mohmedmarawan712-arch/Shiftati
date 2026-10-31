@@ -416,31 +416,60 @@ private fun DayBottomSheet(
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
                 ) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Login, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                        // Attendance Fingerprint Icon
+                        Icon(
+                            Icons.Filled.Fingerprint,
+                            contentDescription = "حضور",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
+                        )
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(PayrollUtil.formatTime(record.checkInTime, is24Hour),
-                            style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            PayrollUtil.formatTime(record.checkInTime, is24Hour),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("←", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(4.dp))
                         if (record.checkOutTime != null) {
-                            Icon(Icons.Filled.ArrowForward, contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Icon(Icons.Filled.Logout, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Filled.CheckCircle,
+                                contentDescription = "انصراف",
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(PayrollUtil.formatTime(record.checkOutTime, is24Hour),
-                                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            Text(
+                                PayrollUtil.formatTime(record.checkOutTime, is24Hour),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                             Spacer(modifier = Modifier.weight(1f))
-                            Text(PayrollUtil.formatHours(record.hoursWorked),
+                            Text(
+                                PayrollUtil.formatHours(record.hoursWorked),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
-                                fontWeight = FontWeight.Bold)
+                                fontWeight = FontWeight.Bold
+                            )
                         } else {
+                            Icon(
+                                Icons.Filled.HourglassTop,
+                                contentDescription = "مفتوح",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "مفتوح",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error
+                            )
                             Spacer(modifier = Modifier.weight(1f))
-                            Badge { Text("مفتوح") }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = sourceColor.copy(alpha = 0.15f)
@@ -450,6 +479,18 @@ private fun DayBottomSheet(
                                 style = MaterialTheme.typography.labelSmall,
                                 color = sourceColor,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                        // Delete single record button
+                        IconButton(
+                            onClick = { viewModel.deleteRecord(record) },
+                            modifier = Modifier.size(30.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.DeleteOutline,
+                                contentDescription = "حذف هذا السجل",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                             )
                         }
                     }

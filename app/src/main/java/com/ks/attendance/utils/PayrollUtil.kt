@@ -20,17 +20,27 @@ object PayrollUtil {
     const val CYCLE_PREVIOUS_MONTH = "PREVIOUS_MONTH"
     const val CYCLE_BOTH_MONTHS    = "BOTH_MONTHS"
     const val CYCLE_CUSTOM_DAY     = "CUSTOM_DAY"
+    const val CYCLE_CUSTOM_RANGE   = "CUSTOM_RANGE"
 
     /**
-     * Resolves the period according to [cycleType] and [startDay].
+     * Resolves the period according to [cycleType], [startDay], or explicit [customStart] and [customEnd].
      * Defaults to the calendar-accurate [CYCLE_29_TO_28] (day 29 to day 28).
      */
     fun resolvePeriod(
         cycleType: String = CYCLE_29_TO_28,
         startDay: Int = 29,
+        customStart: String? = null,
+        customEnd: String? = null,
         referenceDate: Date = Date()
     ): Pair<String, String> {
         return when (cycleType) {
+            CYCLE_CUSTOM_RANGE   -> {
+                if (!customStart.isNullOrBlank() && !customEnd.isNullOrBlank()) {
+                    customStart to customEnd
+                } else {
+                    getPayrollPeriod29to28(referenceDate)
+                }
+            }
             CYCLE_CURRENT_MONTH  -> getCurrentMonthPeriod(referenceDate)
             CYCLE_PREVIOUS_MONTH -> getPreviousMonthPeriod(referenceDate)
             CYCLE_BOTH_MONTHS    -> getBothMonthsPeriod(referenceDate)

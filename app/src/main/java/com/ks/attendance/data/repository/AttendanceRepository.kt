@@ -91,8 +91,8 @@ class AttendanceRepository(
         essClient.selectInstance(instance)
 
     /**
-     * Sync a given payroll period from ESS.
-     * Clears old server records for the period, fetches fresh, converts, and inserts.
+     * Clears old server records for the period, fetches fresh, converts, and inserts
+     * without duplicating any existing user-edited or manual shifts.
      */
     suspend fun syncFromEss(startDate: Date, endDate: Date): Result<Int> = runCatching {
         val clockings = essClient.fetchClockings(startDate, endDate).getOrThrow()
@@ -102,9 +102,18 @@ class AttendanceRepository(
         val endStr = sdfDate.format(endDate)
         attendanceDao.deleteServerRecordsInRange(startStr, endStr)
 
+        val existingRecords = attendanceDao.getRecordsInRangeDirect(startStr, endStr)
         var inserted = 0
         for (shift in shifts) {
             if (shift.workDate < startStr || shift.workDate > endStr) continue
+
+            // Avoid re-inserting if user already has a matching manual or edited shift
+            val duplicate = existingRecords.any { existing ->
+                existing.workDate == shift.workDate &&
+                kotlin.math.abs(existing.checkInTime - shift.start.time) < 15 * 60 * 1000L
+            }
+            if (duplicate) continue
+
             val record = AttendanceRecord(
                 workDate = shift.workDate,
                 checkInTime = shift.start.time,
@@ -116,7 +125,32 @@ class AttendanceRepository(
             attendanceDao.insert(record)
             inserted++
         }
+        deduplicateRecords()
         inserted
+    }
+
+    /**
+     * Scans all records and deletes any duplicated shifts (same workDate & matching check-in),
+     * preserving user-edited or manual records over pure server records.
+     */
+    suspend fun deduplicateRecords(): Int {
+        val all = attendanceDao.getAllRecordsDirect()
+        val seen = mutableSetOf<String>()
+        var deletedCount = 0
+        // Sort so user-edited/manual records take precedence over unedited server records, then newest first
+        val sorted = all.sortedWith(
+            compareByDescending<AttendanceRecord> { !it.isFromServer }
+                .thenByDescending { it.id }
+        )
+        for (rec in sorted) {
+            // Bucket by date and 10-minute checkIn interval to catch identical duplicate shifts
+            val bucket = "${rec.workDate}_${rec.checkInTime / 600_000}"
+            if (!seen.add(bucket)) {
+                attendanceDao.delete(rec)
+                deletedCount++
+            }
+        }
+        return deletedCount
     }
 
     val isEssLoggedIn get() = essClient.isLoggedIn

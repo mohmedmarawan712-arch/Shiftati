@@ -57,6 +57,8 @@ data class SettingsState(
     val essPassword: String = "",
     val essSaveCredentials: Boolean = false,
     val employeeName: String = "",
+    val customStartDate: String = "",
+    val customEndDate: String = "",
     val isEssLoggedIn: Boolean = false,
     val essInstances: List<EssInstance> = emptyList()
 ) {
@@ -103,7 +105,15 @@ class MainViewModel(
 
     init {
         loadSettings()
-        refreshHome()
+        viewModelScope.launch {
+            repo.deduplicateRecords()
+            refreshHome()
+        }
+        viewModelScope.launch {
+            repo.getRecordsForDay(today).collect { records ->
+                _homeState.value = _homeState.value.copy(todayRecords = records)
+            }
+        }
         observeSettings()
     }
 
@@ -120,6 +130,8 @@ class MainViewModel(
                 val pass = p[PrefsUtil.KEY_ESS_PASSWORD] ?: ""
                 val saveCreds = p[PrefsUtil.KEY_ESS_SAVE_CREDS] ?: false
                 val name = p[PrefsUtil.KEY_EMPLOYEE_NAME] ?: ""
+                val customStart = p[PrefsUtil.KEY_CUSTOM_START_DATE] ?: ""
+                val customEnd = p[PrefsUtil.KEY_CUSTOM_END_DATE] ?: ""
 
                 _settingsState.value = SettingsState(
                     hourlyRate = rate,
@@ -132,7 +144,9 @@ class MainViewModel(
                     essPassword = pass,
                     essSaveCredentials = saveCreds,
                     isEssLoggedIn = repo.isEssLoggedIn,
-                    employeeName = name
+                    employeeName = name,
+                    customStartDate = customStart,
+                    customEndDate = customEnd
                 )
                 _homeState.value = _homeState.value.copy(
                     employeeName = name,
@@ -156,7 +170,15 @@ class MainViewModel(
             val rate = prefs.hourlyRate.first()
             val startDay = prefs.payrollStartDay.first()
             val cycleType = prefs.payrollCycleType.first()
-            val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(cycleType, startDay, Date())
+            val customStart = prefs.customStartDate.first()
+            val customEnd = prefs.customEndDate.first()
+            val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(
+                cycleType = cycleType,
+                startDay = startDay,
+                customStart = customStart,
+                customEnd = customEnd,
+                referenceDate = Date()
+            )
 
             val openSession = repo.getOpenSession()
             val todayHours = repo.getTotalHoursInRange(today, today)
@@ -176,11 +198,6 @@ class MainViewModel(
                 monthSalary = monthHours * rate,
                 workedDays = workedDays
             )
-        }
-        viewModelScope.launch {
-            repo.getRecordsForDay(today).collect { records ->
-                _homeState.value = _homeState.value.copy(todayRecords = records)
-            }
         }
     }
 
@@ -276,8 +293,16 @@ class MainViewModel(
             val rate = prefs.hourlyRate.first()
             val startDay = prefs.payrollStartDay.first()
             val cycleType = prefs.payrollCycleType.first()
+            val customStart = prefs.customStartDate.first()
+            val customEnd = prefs.customEndDate.first()
             val (ps, pe) = if (start != null && end != null) start to end
-                           else PayrollUtil.resolvePeriod(cycleType, startDay, Date())
+                           else PayrollUtil.resolvePeriod(
+                               cycleType = cycleType,
+                               startDay = startDay,
+                               customStart = customStart,
+                               customEnd = customEnd,
+                               referenceDate = Date()
+                           )
 
             repo.getRecordsInRange(ps, pe).collect { records ->
                 val totalHours = records.sumOf { it.hoursWorked }
@@ -296,8 +321,16 @@ class MainViewModel(
         viewModelScope.launch {
             val startDay = prefs.payrollStartDay.first()
             val cycleType = prefs.payrollCycleType.first()
+            val customStart = prefs.customStartDate.first()
+            val customEnd = prefs.customEndDate.first()
             val (ps, pe) = if (start != null && end != null) start to end
-                           else PayrollUtil.resolvePeriod(cycleType, startDay, Date())
+                           else PayrollUtil.resolvePeriod(
+                               cycleType = cycleType,
+                               startDay = startDay,
+                               customStart = customStart,
+                               customEnd = customEnd,
+                               referenceDate = Date()
+                           )
             repo.getNotesInRange(ps, pe).collect { notes ->
                 _reportState.value = _reportState.value.copy(notes = notes)
             }
@@ -341,6 +374,15 @@ class MainViewModel(
         viewModelScope.launch {
             prefs.setPayrollCycleType(type)
             refreshHome()
+            loadReport()
+        }
+    }
+
+    fun setCustomPeriodRange(start: String, end: String) {
+        viewModelScope.launch {
+            prefs.setCustomPeriodRange(start, end)
+            refreshHome()
+            loadReport()
         }
     }
 

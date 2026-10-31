@@ -25,6 +25,8 @@ class PrefsUtil(private val context: Context) {
         val KEY_DARK_MODE         = booleanPreferencesKey("dark_mode")
         val KEY_EMPLOYEE_NAME     = stringPreferencesKey("employee_name")
         val KEY_TIME_FORMAT       = stringPreferencesKey("time_format") // "12h" | "24h"
+        val KEY_CUSTOM_START_DATE = stringPreferencesKey("custom_start_date")
+        val KEY_CUSTOM_END_DATE   = stringPreferencesKey("custom_end_date")
 
         const val DEFAULT_HOURLY_RATE   = 30.0
         const val DEFAULT_PAYROLL_START = 29
@@ -109,6 +111,22 @@ class PrefsUtil(private val context: Context) {
     suspend fun setEmployeeName(name: String) {
         val shortened = name.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }.take(2).joinToString(" ")
         context.dataStore.edit { it[KEY_EMPLOYEE_NAME] = shortened }
+    }
+
+    val customStartDate: Flow<String> = context.dataStore.data.map {
+        it[KEY_CUSTOM_START_DATE] ?: ""
+    }
+
+    val customEndDate: Flow<String> = context.dataStore.data.map {
+        it[KEY_CUSTOM_END_DATE] ?: ""
+    }
+
+    suspend fun setCustomPeriodRange(start: String, end: String) {
+        context.dataStore.edit {
+            it[KEY_CUSTOM_START_DATE] = start
+            it[KEY_CUSTOM_END_DATE] = end
+            it[KEY_PAYROLL_CYCLE] = PayrollUtil.CYCLE_CUSTOM_RANGE
+        }
     }
 
     suspend fun setTimeFormat(format: String) {
