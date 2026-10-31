@@ -138,7 +138,7 @@ fun AddEditRecordScreen(
                 existing.copy(
                     workDate = workDate,
                     checkInTime = inMillis,
-                    checkOutTime = null,
+                    checkOutTime = inMillis,
                     hoursWorked = 0.0,
                     source = "off_day",
                     note = defaultNote,
@@ -148,7 +148,7 @@ fun AddEditRecordScreen(
                 AttendanceRecord(
                     workDate = workDate,
                     checkInTime = inMillis,
-                    checkOutTime = null,
+                    checkOutTime = inMillis,
                     hoursWorked = 0.0,
                     source = "off_day",
                     note = defaultNote,
@@ -377,7 +377,7 @@ fun AddEditRecordScreen(
                     hour = checkInHour,
                     minute = checkInMinute,
                     label = "وقت الدخول",
-                    icon = Icons.Filled.Login,
+                    icon = Icons.Filled.Fingerprint,
                     is24Hour = settingsState.is24Hour,
                     onClick = { showCheckInPicker = true }
                 )

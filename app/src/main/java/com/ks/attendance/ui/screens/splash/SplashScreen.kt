@@ -137,15 +137,6 @@ fun SplashScreen(
                 fontWeight = FontWeight.Medium,
                 color = subtitleColor
             )
-
-            Spacer(modifier = Modifier.height(48.dp))
-
-            // Subtle loader
-            CircularProgressIndicator(
-                modifier = Modifier.size(22.dp),
-                strokeWidth = 2.dp,
-                color = ColorWorked.copy(alpha = 0.8f)
-            )
         }
 
         // Bottom version watermark

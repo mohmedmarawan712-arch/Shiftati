@@ -36,7 +36,7 @@ interface AttendanceDao {
     suspend fun getById(id: Long): AttendanceRecord?
 
     /** Find any open session (checkOutTime IS NULL) — used for active clock-in detection */
-    @Query("SELECT * FROM attendance_records WHERE checkOutTime IS NULL ORDER BY checkInTime DESC LIMIT 1")
+    @Query("SELECT * FROM attendance_records WHERE checkOutTime IS NULL AND source != 'off_day' ORDER BY checkInTime DESC LIMIT 1")
     suspend fun getOpenSession(): AttendanceRecord?
 
     @Query("""

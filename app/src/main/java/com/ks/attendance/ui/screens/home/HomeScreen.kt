@@ -142,9 +142,6 @@ fun HomeScreen(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    TextButton(onClick = { onNavigate("list") }) {
-                        Text("عرض الكل", style = MaterialTheme.typography.labelMedium)
-                    }
                 }
             }
 
@@ -496,7 +493,7 @@ private fun CompactRecordCard(
                         } else {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    Icons.Filled.CheckCircle,
+                                    Icons.Filled.Logout,
                                     contentDescription = null,
                                     modifier = Modifier.size(13.dp),
                                     tint = MaterialTheme.colorScheme.secondary

@@ -522,7 +522,7 @@ private fun RecordRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.CheckCircle,
+                                imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
                                 contentDescription = "انصراف",
                                 tint = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(16.dp)

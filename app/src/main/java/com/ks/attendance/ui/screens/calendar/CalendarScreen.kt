@@ -445,7 +445,7 @@ private fun DayBottomSheet(
                         Spacer(modifier = Modifier.width(4.dp))
                         if (record.checkOutTime != null) {
                             Icon(
-                                Icons.Filled.CheckCircle,
+                                Icons.Filled.Logout,
                                 contentDescription = "انصراف",
                                 tint = MaterialTheme.colorScheme.secondary,
                                 modifier = Modifier.size(16.dp)

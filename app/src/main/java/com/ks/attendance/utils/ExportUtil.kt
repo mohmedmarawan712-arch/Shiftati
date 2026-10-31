@@ -39,7 +39,8 @@ object ExportUtil {
 
         val totalHours = records.sumOf { it.hoursWorked }
         val totalSalary = totalHours * hourlyRate
-        val workedDays = records.map { it.workDate }.distinct().size
+        val workedDays = records.filter { it.hoursWorked > 0.0 }.map { it.workDate }.distinct().size
+        val offDays = records.filter { it.source == "off_day" }.map { it.workDate }.distinct().size
 
         val html = buildString {
             append("""
@@ -93,23 +94,26 @@ object ExportUtil {
             for (record in records.sortedBy { it.checkInTime }) {
                 val date = runCatching { sdfDate.parse(record.workDate) }.getOrNull() ?: Date(record.checkInTime)
                 val dayName = arabicDayName(date)
-                val checkIn = PayrollUtil.formatTime(record.checkInTime, false)
-                val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح"
-                val hoursText = PayrollUtil.formatHours(record.hoursWorked)
-                val hoursDec = "%.2f".format(record.hoursWorked)
+                val isOff = (record.source == "off_day")
+                val checkIn = if (isOff) "إجازة (OFF)" else PayrollUtil.formatTime(record.checkInTime, false)
+                val checkOut = if (isOff) "-" else (record.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح")
+                val hoursText = if (isOff) "عطلة (0 س)" else PayrollUtil.formatHours(record.hoursWorked)
+                val hoursDec = if (isOff) "0.00" else "%.2f".format(record.hoursWorked)
                 val dayNotes = notesByDate[record.workDate]?.joinToString(" | ") { it.noteText } ?: record.note
                 val source = when {
+                    isOff -> "إجازة"
                     record.source == "ess_online" && !record.isFromServer -> "معدل"
                     record.source == "ess_online" -> "ESS"
                     else -> "يدوي"
                 }
+                val rowStyle = if (isOff) "background-color: #fffbeb;" else ""
                 append("""
-                      <tr>
+                      <tr style="$rowStyle">
                         <td style="font-weight:bold;">$dayName</td>
                         <td>${record.workDate}</td>
-                        <td style="color:#059669; font-weight:bold;">$checkIn</td>
-                        <td style="color:#2563eb; font-weight:bold;">$checkOut</td>
-                        <td style="font-weight:bold; color:#047857;">$hoursText ($hoursDec)</td>
+                        <td style="color:${if (isOff) "#b45309" else "#059669"}; font-weight:bold;">$checkIn</td>
+                        <td style="color:${if (isOff) "#b45309" else "#2563eb"}; font-weight:bold;">$checkOut</td>
+                        <td style="font-weight:bold; color:${if (isOff) "#b45309" else "#047857"};">$hoursText ($hoursDec)</td>
                         <td>$source</td>
                         <td style="text-align:right;">$dayNotes</td>
                       </tr>
@@ -124,8 +128,12 @@ object ExportUtil {
                         <td colspan="3" style="text-align:center; color:#047857;">${"%.2f".format(totalHours)} ساعة</td>
                       </tr>
                       <tr class="summary-row">
-                        <td colspan="4" style="text-align:right;">عدد أيام العمل:</td>
+                        <td colspan="4" style="text-align:right;">عدد أيام العمل الفعلية:</td>
                         <td colspan="3" style="text-align:center;">$workedDays يوم</td>
+                      </tr>
+                      <tr class="summary-row">
+                        <td colspan="4" style="text-align:right;">عدد أيام الإجازات (OFF):</td>
+                        <td colspan="3" style="text-align:center; color:#b45309;">$offDays يوم</td>
                       </tr>
                       <tr class="summary-row">
                         <td colspan="4" style="text-align:right;">سعر الساعة:</td>
