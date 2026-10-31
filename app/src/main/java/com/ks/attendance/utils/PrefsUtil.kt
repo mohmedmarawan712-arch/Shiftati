@@ -30,6 +30,8 @@ class PrefsUtil(private val context: Context) {
         const val DEFAULT_LANGUAGE      = "ar"
     }
 
+    val allPreferences: Flow<Preferences> = context.dataStore.data
+
     val hourlyRate: Flow<Double> = context.dataStore.data.map {
         it[KEY_HOURLY_RATE] ?: DEFAULT_HOURLY_RATE
     }

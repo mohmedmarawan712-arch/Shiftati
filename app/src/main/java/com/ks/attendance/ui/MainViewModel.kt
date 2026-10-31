@@ -104,17 +104,18 @@ class MainViewModel(
 
     private fun observeSettings() {
         viewModelScope.launch {
-            combine(
-                prefs.hourlyRate,
-                prefs.payrollStartDay,
-                prefs.payrollCycleType,
-                prefs.language,
-                prefs.darkMode,
-                prefs.essEmail,
-                prefs.essPassword,
-                prefs.essSaveCredentials
-            ) { rate, startDay, cycleType, lang, dark, email, pass, saveCreds ->
-                SettingsState(
+            prefs.allPreferences.collect { p ->
+                val rate = p[PrefsUtil.KEY_HOURLY_RATE] ?: PrefsUtil.DEFAULT_HOURLY_RATE
+                val startDay = p[PrefsUtil.KEY_PAYROLL_START] ?: PrefsUtil.DEFAULT_PAYROLL_START
+                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_CURRENT_MONTH
+                val lang = p[PrefsUtil.KEY_LANGUAGE] ?: PrefsUtil.DEFAULT_LANGUAGE
+                val dark = p[PrefsUtil.KEY_DARK_MODE] ?: true
+                val email = p[PrefsUtil.KEY_ESS_EMAIL] ?: ""
+                val pass = p[PrefsUtil.KEY_ESS_PASSWORD] ?: ""
+                val saveCreds = p[PrefsUtil.KEY_ESS_SAVE_CREDS] ?: false
+                val name = p[PrefsUtil.KEY_EMPLOYEE_NAME] ?: ""
+
+                _settingsState.value = SettingsState(
                     hourlyRate = rate,
                     payrollStartDay = startDay,
                     payrollCycleType = cycleType,
@@ -123,18 +124,11 @@ class MainViewModel(
                     essEmail = email,
                     essPassword = pass,
                     essSaveCredentials = saveCreds,
-                    isEssLoggedIn = repo.isEssLoggedIn
+                    isEssLoggedIn = repo.isEssLoggedIn,
+                    employeeName = name
                 )
-            }.collect { state ->
-                val currentName = _settingsState.value.employeeName
-                _settingsState.value = state.copy(employeeName = currentName)
-                refreshHome()
-            }
-        }
-        viewModelScope.launch {
-            prefs.employeeName.collect { name ->
-                _settingsState.value = _settingsState.value.copy(employeeName = name)
                 _homeState.value = _homeState.value.copy(employeeName = name)
+                refreshHome()
             }
         }
     }
