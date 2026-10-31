@@ -123,7 +123,7 @@ fun AttendanceListScreen(
                                 text = "ملخص النفخ",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             if (homeState.periodStart.isNotBlank()) {
                                 Surface(
@@ -153,7 +153,7 @@ fun AttendanceListScreen(
                                     text = "%.1f".format(homeState.monthHours),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "الساعات",
@@ -176,7 +176,7 @@ fun AttendanceListScreen(
                                     text = "${homeState.workedDays}",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "أيام العمل",
@@ -199,7 +199,7 @@ fun AttendanceListScreen(
                                     text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.primary
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "الراتب",
@@ -430,7 +430,7 @@ private fun DateGroupHeader(
                 text = display,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.weight(1f)
             )
             Row(
@@ -444,7 +444,7 @@ private fun DateGroupHeader(
                     Text(
                         text = PayrollUtil.formatHours(totalHours),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
@@ -604,7 +604,7 @@ private fun RecordRow(
                                 text = PayrollUtil.formatHours(record.hoursWorked),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
                                 maxLines = 1,
                                 softWrap = false
@@ -636,7 +636,7 @@ private fun RecordRow(
                             text = sourceBadge,
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Medium,
-                            color = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
