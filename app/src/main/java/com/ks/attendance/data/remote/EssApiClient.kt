@@ -264,11 +264,4 @@ class EssApiClient {
         }
         allItems
     }
-
-    fun logout() {
-        sessionId = null
-        instanceId = null
-        staffId = null
-        schedulingUnitId = null
-    }
 }
