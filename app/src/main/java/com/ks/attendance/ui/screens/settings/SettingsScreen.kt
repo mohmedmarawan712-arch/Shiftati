@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
-import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.ColorWorked
@@ -57,7 +56,6 @@ fun SettingsScreen(
     }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
-    var showClearDataDialog by remember { mutableStateOf(false) }
 
     // ESS states
     var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
@@ -448,19 +446,6 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("تصدير السجلات كملف Excel (.csv)")
                 }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedButton(
-                    onClick = { showClearDataDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Icon(Icons.Filled.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.clear_all_data))
-                }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -501,17 +486,6 @@ fun SettingsScreen(
                     viewModel.setCustomPeriodRange(customStartDate, formatted)
                 },
                 onDismiss = { showEndDatePicker = false }
-            )
-        }
-
-        if (showClearDataDialog) {
-            ConfirmDeleteDialog(
-                onConfirm = {
-                    viewModel.clearAllData()
-                    showClearDataDialog = false
-                },
-                onDismiss = { showClearDataDialog = false },
-                message = stringResource(R.string.confirm_clear_data)
             )
         }
     }
