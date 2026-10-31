@@ -31,22 +31,25 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by viewModel.settingsState.collectAsState()
             val layoutDirection = if (settings.language == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
+            var showSplash by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 KSAttendanceTheme(darkTheme = settings.darkMode) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
+                        color = if (settings.darkMode) androidx.compose.ui.graphics.Color.Black else MaterialTheme.colorScheme.background
                     ) {
-                        KSNavGraph(viewModel = viewModel)
+                        if (showSplash) {
+                            com.ks.attendance.ui.screens.splash.SplashScreen(
+                                isDark = settings.darkMode,
+                                onSplashFinished = { showSplash = false }
+                            )
+                        } else {
+                            KSNavGraph(viewModel = viewModel)
+                        }
                     }
                 }
             }
         }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewModel.autoLoginAndSyncIfSaved()
     }
 }

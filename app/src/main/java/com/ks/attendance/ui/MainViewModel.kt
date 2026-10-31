@@ -567,7 +567,11 @@ class MainViewModel(
         }
     }
 
+    private var hasSyncedOnLaunch = false
+
     fun autoLoginAndSyncIfSaved() {
+        if (hasSyncedOnLaunch) return
+        hasSyncedOnLaunch = true
         viewModelScope.launch {
             try {
                 val saveCreds = prefs.essSaveCredentials.first()
@@ -591,11 +595,7 @@ class MainViewModel(
                     }
 
                     if (repo.isEssLoggedIn) {
-                        syncFromEss { count ->
-                            if (count > 0) {
-                                showHomeMessage("تمت المزامنة التلقائية: $count وردية جديدة")
-                            }
-                        }
+                        syncFromEss { /* Silent background sync on launch */ }
                     }
                 }
             } catch (_: Exception) {}

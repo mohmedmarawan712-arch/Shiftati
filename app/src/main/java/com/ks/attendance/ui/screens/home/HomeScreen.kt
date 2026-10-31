@@ -41,8 +41,6 @@ fun HomeScreen(
     onNavigate: (String) -> Unit
 ) {
     val homeState by viewModel.homeState.collectAsState()
-    val snackbarHostState = remember { SnackbarHostState() }
-
     // Live elapsed timer for active session
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
@@ -58,15 +56,6 @@ fun HomeScreen(
         } else {
             elapsedSeconds = 0L
         }
-    }
-
-    LaunchedEffect(homeState.message) {
-        val msg = homeState.message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(
-            message = msg.text,
-            duration = SnackbarDuration.Short
-        )
-        viewModel.clearMessage()
     }
 
     val isClockedIn = homeState.openSession != null
@@ -87,7 +76,6 @@ fun HomeScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigate("record/-1") },
@@ -413,18 +401,21 @@ private fun CompactRecordCard(
     onDelete: () -> Unit,
     onRevert: (() -> Unit)? = null
 ) {
+    val isOffDay = (record.source == "off_day")
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceLabel = when {
+        isOffDay -> "إجازة"
         isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceColor = when {
+        isOffDay -> MaterialTheme.colorScheme.tertiary
         isModified -> MaterialTheme.colorScheme.tertiary
         record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    val isOpen = record.checkOutTime == null
+    val isOpen = !isOffDay && record.checkOutTime == null
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -446,17 +437,18 @@ private fun CompactRecordCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Distinct Attendance Badge (Fingerprint)
+            // Distinct Attendance Badge (BeachAccess if off_day, Fingerprint if regular)
             Surface(
                 shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                color = if (isOffDay) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
+                else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = Icons.Filled.Fingerprint,
-                        contentDescription = "حضور",
-                        tint = MaterialTheme.colorScheme.primary,
+                        imageVector = if (isOffDay) Icons.Filled.BeachAccess else Icons.Filled.Fingerprint,
+                        contentDescription = if (isOffDay) "إجازة" else "حضور",
+                        tint = if (isOffDay) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -465,49 +457,58 @@ private fun CompactRecordCard(
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isOffDay) {
                     Text(
-                        text = PayrollUtil.formatTime(record.checkInTime, is24Hour),
+                        text = "يوم إجازة (OFF)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Text(
-                        text = " ← ",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (isOpen) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.HourglassTop,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Text(
-                                text = "مفتوح",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                        }
-                    } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.CheckCircle,
-                                contentDescription = null,
-                                modifier = Modifier.size(13.dp),
-                                tint = MaterialTheme.colorScheme.secondary
-                            )
-                            Spacer(modifier = Modifier.width(2.dp))
-                            Text(
-                                text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = PayrollUtil.formatTime(record.checkInTime, is24Hour),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = " ← ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (isOpen) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.HourglassTop,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = MaterialTheme.colorScheme.error
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "مفتوح",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.CheckCircle,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(13.dp),
+                                    tint = MaterialTheme.colorScheme.secondary
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            }
                         }
                     }
                 }
@@ -537,7 +538,7 @@ private fun CompactRecordCard(
                         }
                     }
 
-                    if (record.note.isNotBlank()) {
+                    if (record.note.isNotBlank() && (!isOffDay || record.note != "إجازة (OFF)")) {
                         Text(
                             text = "• ${record.note}",
                             style = MaterialTheme.typography.labelSmall,
@@ -548,7 +549,21 @@ private fun CompactRecordCard(
                 }
             }
 
-            if (record.hoursWorked > 0) {
+            if (isOffDay) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                ) {
+                    Text(
+                        text = "OFF",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.tertiary,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(6.dp))
+            } else if (record.hoursWorked > 0) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant

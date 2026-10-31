@@ -46,6 +46,7 @@ fun AddEditRecordScreen(
     var checkOutMinute by remember { mutableIntStateOf(0) }
     var noteText by remember { mutableStateOf("") }
     var isOnlineRecord by remember { mutableStateOf(false) }
+    var isOffDay by remember { mutableStateOf(false) }
     var errorMsg by remember { mutableStateOf<String?>(null) }
 
     // Dialogs
@@ -60,6 +61,7 @@ fun AddEditRecordScreen(
     var initialHasCheckOut by remember { mutableStateOf(false) }
     var initialCheckOutHour by remember { mutableIntStateOf(-1) }
     var initialCheckOutMinute by remember { mutableIntStateOf(-1) }
+    var initialIsOffDay by remember { mutableStateOf(false) }
 
     // Load existing record if editing
     LaunchedEffect(recordId) {
@@ -69,6 +71,8 @@ fun AddEditRecordScreen(
                 workDate = r.workDate
                 initialWorkDate = r.workDate
                 isOnlineRecord = (r.source == "ess_online")
+                isOffDay = (r.source == "off_day")
+                initialIsOffDay = (r.source == "off_day")
                 val cal = Calendar.getInstance()
                 cal.timeInMillis = r.checkInTime
                 checkInHour = cal.get(Calendar.HOUR_OF_DAY)
@@ -106,25 +110,55 @@ fun AddEditRecordScreen(
     var showUnsavedDialog by remember { mutableStateOf(false) }
 
     val hasUnsavedChanges by remember(
-        workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute, noteText,
-        initialWorkDate, initialCheckInHour, initialCheckInMinute, initialHasCheckOut, initialCheckOutHour, initialCheckOutMinute
+        workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute, noteText, isOffDay,
+        initialWorkDate, initialCheckInHour, initialCheckInMinute, initialHasCheckOut, initialCheckOutHour, initialCheckOutMinute, initialIsOffDay
     ) {
         derivedStateOf {
             if (!isEdit) {
-                noteText.isNotBlank() || workDate != today || checkInHour != 9 || checkInMinute != 0 || hasCheckOut
+                isOffDay || noteText.isNotBlank() || workDate != today || checkInHour != 9 || checkInMinute != 0 || hasCheckOut
             } else {
                 val existing = viewModel.allRecords.value.find { it.id == recordId }
+                (isOffDay != initialIsOffDay) ||
                 (initialWorkDate != null && workDate != initialWorkDate) ||
-                (initialCheckInHour != -1 && checkInHour != initialCheckInHour) ||
-                (initialCheckInMinute != -1 && checkInMinute != initialCheckInMinute) ||
-                (hasCheckOut != initialHasCheckOut) ||
-                (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute)) ||
+                (!isOffDay && initialCheckInHour != -1 && checkInHour != initialCheckInHour) ||
+                (!isOffDay && initialCheckInMinute != -1 && checkInMinute != initialCheckInMinute) ||
+                (!isOffDay && hasCheckOut != initialHasCheckOut) ||
+                (!isOffDay && hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute)) ||
                 (noteText.trim() != (existing?.note?.trim() ?: ""))
             }
         }
     }
 
     fun performSave(): Boolean {
+        if (isOffDay) {
+            val inMillis = dateTimeToMillis(workDate, 0, 0)
+            val defaultNote = if (noteText.isBlank()) "إجازة (OFF)" else noteText.trim()
+            val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
+            val record = if (isEdit && existing != null) {
+                existing.copy(
+                    workDate = workDate,
+                    checkInTime = inMillis,
+                    checkOutTime = null,
+                    hoursWorked = 0.0,
+                    source = "off_day",
+                    note = defaultNote,
+                    isFromServer = false
+                )
+            } else {
+                AttendanceRecord(
+                    workDate = workDate,
+                    checkInTime = inMillis,
+                    checkOutTime = null,
+                    hoursWorked = 0.0,
+                    source = "off_day",
+                    note = defaultNote,
+                    isFromServer = false
+                )
+            }
+            if (isEdit) viewModel.updateRecord(record) else viewModel.addRecord(record)
+            return true
+        }
+
         val timeOrDateModifiedByUser = (workDate != initialWorkDate) ||
             (checkInHour != initialCheckInHour) ||
             (checkInMinute != initialCheckInMinute) ||
@@ -168,6 +202,7 @@ fun AddEditRecordScreen(
                 checkOutTime = outMillis,
                 hoursWorked = hours,
                 note = noteText.trim(),
+                source = if (existing.source == "off_day") "manual" else existing.source,
                 isFromServer = if (timeOrDateModifiedByUser) false else existing.isFromServer
             )
         } else {
@@ -288,61 +323,136 @@ fun AddEditRecordScreen(
                 }
             }
 
-            // ─── Check-in time ────────────────────────────────────────────────
-            SectionLabel("وقت الدخول")
-            TimePickerRow(
-                hour = checkInHour,
-                minute = checkInMinute,
-                label = "وقت الدخول",
-                icon = Icons.Filled.Login,
-                is24Hour = settingsState.is24Hour,
-                onClick = { showCheckInPicker = true }
-            )
-
-            // ─── Check-out time ───────────────────────────────────────────────
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+            // ─── OFF Day Toggle Card ──────────────────────────────────────────
+            OutlinedCard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { isOffDay = !isOffDay },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.outlinedCardColors(
+                    containerColor = if (isOffDay) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
+                    else MaterialTheme.colorScheme.surface
+                ),
+                border = androidx.compose.foundation.BorderStroke(
+                    width = 1.dp,
+                    color = if (isOffDay) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)
+                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                )
             ) {
-                SectionLabel("وقت الانصراف", modifier = Modifier.weight(1f))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("اختياري", style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Switch(checked = hasCheckOut, onCheckedChange = { hasCheckOut = it })
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.BeachAccess,
+                        contentDescription = "يوم إجازة",
+                        tint = if (isOffDay) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "يوم إجازة (OFF)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isOffDay) "عطلة رسمية / إجازة بدون ساعات عمل وتوقيت" else "تحديد هذا اليوم كإجازة بدون مواعيد حضور وانصراف",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isOffDay,
+                        onCheckedChange = { isOffDay = it }
+                    )
                 }
             }
-            if (hasCheckOut) {
-                TimePickerRow(
-                    hour = checkOutHour,
-                    minute = checkOutMinute,
-                    label = "وقت الانصراف",
-                    icon = Icons.Filled.Logout,
-                    is24Hour = settingsState.is24Hour,
-                    onClick = { showCheckOutPicker = true }
-                )
-            }
 
-            // ─── Computed hours ───────────────────────────────────────────────
-            computedHours?.let { hours ->
+            if (!isOffDay) {
+                // ─── Check-in time ────────────────────────────────────────────────
+                SectionLabel("وقت الدخول")
+                TimePickerRow(
+                    hour = checkInHour,
+                    minute = checkInMinute,
+                    label = "وقت الدخول",
+                    icon = Icons.Filled.Login,
+                    is24Hour = settingsState.is24Hour,
+                    onClick = { showCheckInPicker = true }
+                )
+
+                // ─── Check-out time ───────────────────────────────────────────────
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SectionLabel("وقت الانصراف", modifier = Modifier.weight(1f))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("اختياري", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Switch(checked = hasCheckOut, onCheckedChange = { hasCheckOut = it })
+                    }
+                }
+                if (hasCheckOut) {
+                    TimePickerRow(
+                        hour = checkOutHour,
+                        minute = checkOutMinute,
+                        label = "وقت الانصراف",
+                        icon = Icons.Filled.Logout,
+                        is24Hour = settingsState.is24Hour,
+                        onClick = { showCheckOutPicker = true }
+                    )
+                }
+
+                // ─── Computed hours ───────────────────────────────────────────────
+                computedHours?.let { hours ->
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.Timer, contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "الساعات المحسوبة: ${PayrollUtil.formatHours(hours)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+            } else {
                 Surface(
-                    color = MaterialTheme.colorScheme.primaryContainer,
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.45f),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Filled.Timer, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(
+                            Icons.Filled.BeachAccess,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "الساعات المحسوبة: ${PayrollUtil.formatHours(hours)}",
+                            text = "تم تسجيل اليوم كإجازة (OFF). لا يلزم إدخال مواعيد.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            fontWeight = FontWeight.Medium
+                            color = MaterialTheme.colorScheme.onTertiaryContainer,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }

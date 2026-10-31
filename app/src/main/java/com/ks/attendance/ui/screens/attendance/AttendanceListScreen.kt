@@ -44,13 +44,6 @@ fun AttendanceListScreen(
     var dayToDelete by remember { mutableStateOf<String?>(null) }
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
-
-    LaunchedEffect(homeState.message) {
-        val msg = homeState.message ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(msg.text)
-        viewModel.clearMessage()
-    }
 
     // Group by date descending
     val grouped = remember(allRecords) {
@@ -75,7 +68,6 @@ fun AttendanceListScreen(
                 }
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigate("record/-1") }) {
                 Icon(Icons.Default.Add, contentDescription = "إضافة سجل")
@@ -420,16 +412,19 @@ private fun RecordRow(
     onDelete: () -> Unit,
     onRevert: (() -> Unit)? = null
 ) {
+    val isOffDay = (record.source == "off_day")
     val checkIn = PayrollUtil.formatTime(record.checkInTime, is24Hour)
     val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
-    val isOpen = record.checkOutTime == null
+    val isOpen = !isOffDay && record.checkOutTime == null
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceBadge = when {
+        isOffDay -> "إجازة"
         isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceBadgeColor = when {
+        isOffDay -> MaterialTheme.colorScheme.tertiaryContainer
         isModified -> MaterialTheme.colorScheme.tertiaryContainer
         record.source == "ess_online" -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer
@@ -451,81 +446,114 @@ private fun RecordRow(
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 10.dp)
         ) {
-            // Line 1: Check-in, Arrow, Check-out, and Hours Badge
+            // Line 1: Check-in, Arrow, Check-out, and Hours Badge (or OFF day banner)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Times Row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    // Check-in
+                if (isOffDay) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.Fingerprint,
-                            contentDescription = "حضور",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(17.dp)
+                            imageVector = Icons.Filled.BeachAccess,
+                            contentDescription = "إجازة",
+                            tint = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = checkIn,
+                            text = "يوم إجازة (OFF)",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            softWrap = false
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
-                    Text(
-                        text = "←",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    // Check-out
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.CheckCircle,
-                            contentDescription = "انصراف",
-                            tint = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = checkOut,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-                }
-
-                // Hours duration chip
-                if (!isOpen) {
                     Surface(
                         shape = RoundedCornerShape(50.dp),
-                        color = ColorWorked.copy(alpha = 0.18f)
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
                     ) {
                         Text(
-                            text = PayrollUtil.formatHours(record.hoursWorked),
+                            text = "OFF",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = ColorWorked,
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                            maxLines = 1,
-                            softWrap = false
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                         )
+                    }
+                } else {
+                    // Times Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Check-in
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Fingerprint,
+                                contentDescription = "حضور",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Text(
+                                text = checkIn,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+
+                        Text(
+                            text = "←",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // Check-out
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.CheckCircle,
+                                contentDescription = "انصراف",
+                                tint = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = checkOut,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+
+                    // Hours duration chip
+                    if (!isOpen) {
+                        Surface(
+                            shape = RoundedCornerShape(50.dp),
+                            color = ColorWorked.copy(alpha = 0.18f)
+                        ) {
+                            Text(
+                                text = PayrollUtil.formatHours(record.hoursWorked),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ColorWorked,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
                 }
             }
