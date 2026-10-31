@@ -1,5 +1,6 @@
 package com.ks.attendance.ui.screens.attendance
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -27,7 +28,7 @@ import com.ks.attendance.utils.PayrollUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AttendanceListScreen(
     viewModel: MainViewModel,
