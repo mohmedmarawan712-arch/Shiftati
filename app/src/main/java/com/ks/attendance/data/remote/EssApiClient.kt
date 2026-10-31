@@ -56,6 +56,14 @@ class EssApiClient {
 
     val isLoggedIn get() = sessionId != null
 
+    fun logout() {
+        sessionId = null
+        instanceId = null
+        staffId = null
+        schedulingUnitId = null
+        detectedEmployeeName = null
+    }
+
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private fun md5(input: String): String {
@@ -173,23 +181,27 @@ class EssApiClient {
             val last = (data["lastName"] ?: data["last_name"])?.toString()?.trim() ?: ""
             if (first.isNotBlank() || last.isNotBlank()) {
                 val full = listOf(first, last).filter { it.isNotBlank() }.joinToString(" ")
-                if (full.isNotBlank()) return full
+                if (full.isNotBlank()) return toTwoTokens(full)
             }
             val direct = (data["fullName"] ?: data["name"] ?: data["staffName"] ?: data["preferredName"] ?: data["knownAs"] ?: data["displayName"])?.toString()?.trim()
             if (!direct.isNullOrBlank() && !direct.all { it.isDigit() }) {
-                return direct
+                return toTwoTokens(direct)
             }
             for (value in data.values) {
                 val res = findNameInMap(value)
-                if (!res.isNullOrBlank()) return res
+                if (!res.isNullOrBlank()) return toTwoTokens(res)
             }
         } else if (data is List<*>) {
             for (item in data) {
                 val res = findNameInMap(item)
-                if (!res.isNullOrBlank()) return res
+                if (!res.isNullOrBlank()) return toTwoTokens(res)
             }
         }
         return null
+    }
+
+    private fun toTwoTokens(raw: String): String {
+        return raw.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }.take(2).joinToString(" ")
     }
 
     /**

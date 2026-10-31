@@ -107,7 +107,8 @@ class PrefsUtil(private val context: Context) {
     }
 
     suspend fun setEmployeeName(name: String) {
-        context.dataStore.edit { it[KEY_EMPLOYEE_NAME] = name }
+        val shortened = name.trim().split("\\s+".toRegex()).filter { it.isNotBlank() }.take(2).joinToString(" ")
+        context.dataStore.edit { it[KEY_EMPLOYEE_NAME] = shortened }
     }
 
     suspend fun setTimeFormat(format: String) {

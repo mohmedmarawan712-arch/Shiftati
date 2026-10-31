@@ -121,4 +121,6 @@ class AttendanceRepository(
 
     val isEssLoggedIn get() = essClient.isLoggedIn
     val detectedEmployeeName get() = essClient.detectedEmployeeName
+
+    fun essLogout() = essClient.logout()
 }

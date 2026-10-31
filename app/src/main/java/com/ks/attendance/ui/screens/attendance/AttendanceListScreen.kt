@@ -267,8 +267,8 @@ private fun RecordRow(
     val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
     val isOpen = record.checkOutTime == null
     val sourceBadge = when {
-        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل يدوياً)"
-        record.source == "ess_online" -> "أونلاين (ESS)"
+        record.source == "ess_online" && !record.isFromServer -> "معدل"
+        record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceBadgeColor = when {

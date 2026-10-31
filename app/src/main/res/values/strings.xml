@@ -1,99 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">KS Attendance</string>
+    <string name="app_name">Shiftati</string>
 
-    <!-- Home -->
-    <string name="home">الرئيسية</string>
-    <string name="clock_in">تسجيل الدخول</string>
-    <string name="clock_out">تسجيل الانصراف</string>
-    <string name="today_hours">ساعات اليوم</string>
-    <string name="month_hours">ساعات الشهر</string>
-    <string name="estimated_salary">الراتب التقديري</string>
-    <string name="period_from">الفترة من</string>
-    <string name="period_to">إلى</string>
-    <string name="no_records_today">لا توجد سجلات اليوم</string>
-    <string name="add_record">إضافة سجل</string>
-    <string name="session_active">جلسة نشطة</string>
-    <string name="elapsed">المنقضي</string>
+    <!-- General / Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_records">Records</string>
+    <string name="nav_calendar">Calendar</string>
+    <string name="nav_reports">Reports</string>
+    <string name="nav_settings">Settings</string>
 
-    <!-- Records -->
-    <string name="records">السجلات</string>
-    <string name="check_in">دخول</string>
-    <string name="check_out">خروج</string>
-    <string name="hours_worked">ساعات العمل</string>
-    <string name="open_session">مفتوح</string>
-    <string name="source_manual">يدوي</string>
-    <string name="source_ess">ESS</string>
-    <string name="delete_confirm">هل تريد حذف هذا السجل؟</string>
-    <string name="no_records">لا توجد سجلات</string>
+    <!-- Home Screen -->
+    <string name="clock_in">Clock In</string>
+    <string name="clock_out">Clock Out</string>
+    <string name="session_active">Active Shift</string>
+    <string name="session_idle">No active shift</string>
+    <string name="elapsed">Elapsed</string>
+    <string name="today_hours">Today Hours</string>
+    <string name="month_hours">Month Hours</string>
+    <string name="estimated_salary">Est. Salary</string>
+    <string name="period_label">Payroll Period:</string>
+    <string name="today_records">Today Shifts</string>
+    <string name="no_records_today">No shifts recorded today</string>
 
-    <!-- Add/Edit -->
-    <string name="add_record_title">إضافة سجل</string>
-    <string name="edit_record_title">تعديل السجل</string>
-    <string name="select_date">اختر التاريخ</string>
-    <string name="check_in_time">وقت الدخول</string>
-    <string name="check_out_time">وقت الانصراف</string>
-    <string name="note">ملاحظة</string>
-    <string name="save">حفظ</string>
-    <string name="cancel">إلغاء</string>
-    <string name="computed_hours">الساعات المحسوبة</string>
-    <string name="optional">اختياري</string>
+    <!-- Badges -->
+    <string name="badge_manual">Manual</string>
+    <string name="badge_ess">ESS</string>
+    <string name="badge_modified">Edited</string>
+
+    <!-- Records / List -->
+    <string name="records_title">Attendance Records</string>
+    <string name="hours_suffix">hrs</string>
+    <string name="currency_egp">EGP</string>
+    <string name="open_shift">Open Shift</string>
+    <string name="confirm_delete_record">Delete this record?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="notes_label">Notes</string>
+
+    <!-- Add/Edit Record -->
+    <string name="add_record">New Shift</string>
+    <string name="edit_record">Edit Shift</string>
+    <string name="work_date">Work Date</string>
+    <string name="check_in_time">Clock In Time</string>
+    <string name="check_out_time">Clock Out Time</string>
+    <string name="calculated_hours">Calculated Hours</string>
+    <string name="note_placeholder">Add a note for this day (optional)...</string>
+    <string name="ess_edit_hint">Editing ESS record converts it to manual mode</string>
 
     <!-- Calendar -->
-    <string name="calendar">التقويم</string>
-    <string name="add_note">إضافة ملاحظة</string>
-    <string name="notes">الملاحظات</string>
-    <string name="no_notes">لا توجد ملاحظات</string>
+    <string name="calendar_title">Shift Calendar</string>
+    <string name="day_details">Day Details</string>
+    <string name="no_records_for_day">No records for this day</string>
+    <string name="add_day_note">Add Note</string>
 
     <!-- Reports -->
-    <string name="reports">التقارير</string>
-    <string name="total_hours">إجمالي الساعات</string>
-    <string name="worked_days">أيام العمل</string>
-    <string name="salary_egp">الراتب (ج.م)</string>
-    <string name="export_csv">تصدير CSV</string>
-    <string name="sync_ess">مزامنة ESS</string>
-    <string name="current_period">الفترة الحالية</string>
-    <string name="export_success">تم التصدير بنجاح</string>
-    <string name="synced_records">سجل تم مزامنته</string>
+    <string name="reports_title">Reports &amp; Statistics</string>
+    <string name="export_excel">Export Excel</string>
+    <string name="sync_ess">Sync ESS</string>
+    <string name="total_hours">Total Hours</string>
+    <string name="worked_days">Worked Days</string>
+    <string name="salary_calculated">Calculated Salary</string>
+    <string name="current_cycle">Current Cycle</string>
+    <string name="daily_breakdown">Daily Breakdown</string>
 
-    <!-- Settings -->
-    <string name="settings">الإعدادات</string>
-    <string name="employee_name">الاسم</string>
-    <string name="hourly_rate">سعر الساعة (ج.م)</string>
-    <string name="payroll_start">يوم بداية الراتب</string>
-    <string name="language">اللغة</string>
-    <string name="dark_mode">الوضع الليلي</string>
-    <string name="ess_section">ESS (اختياري)</string>
-    <string name="ess_email">البريد الإلكتروني</string>
-    <string name="ess_password">كلمة المرور</string>
-    <string name="ess_login">تسجيل الدخول لـ ESS</string>
-    <string name="ess_logout">تسجيل الخروج من ESS</string>
-    <string name="ess_logged_in">متصل بـ ESS</string>
-    <string name="ess_not_logged_in">غير متصل</string>
-    <string name="clear_data">مسح جميع البيانات</string>
-    <string name="clear_data_confirm">سيتم حذف جميع سجلات الحضور والملاحظات نهائياً. هل تريد المتابعة؟</string>
-    <string name="app_version">إصدار التطبيق</string>
-    <string name="arabic">عربي</string>
-    <string name="english">English</string>
-    <string name="section_profile">الملف الشخصي</string>
-    <string name="section_salary">إعدادات الراتب</string>
-    <string name="section_appearance">المظهر</string>
-    <string name="section_ess">الاتصال بـ ESS</string>
-    <string name="section_about">عن التطبيق</string>
-    <string name="select_instance">اختر الحساب</string>
+    <!-- Settings (Sleek Slate) -->
+    <string name="settings_title">Settings</string>
+    <string name="section_profile">Profile</string>
+    <string name="employee_name">Employee Name</string>
+    <string name="employee_name_hint">First and last name</string>
+    <string name="hourly_rate">Hourly Rate</string>
 
-    <!-- Days -->
-    <string name="day_sat">السبت</string>
-    <string name="day_sun">الأحد</string>
-    <string name="day_mon">الاثنين</string>
-    <string name="day_tue">الثلاثاء</string>
-    <string name="day_wed">الأربعاء</string>
-    <string name="day_thu">الخميس</string>
-    <string name="day_fri">الجمعة</string>
+    <string name="section_payroll_cycle">Payroll Cycle</string>
+    <string name="cycle_29_28">Auto (29th - 28th)</string>
+    <string name="cycle_current_month">Current Month</string>
+    <string name="cycle_previous_month">Previous Month</string>
+    <string name="cycle_both_months">Both Months</string>
+    <string name="cycle_custom">Custom</string>
+    <string name="custom_start_day">Starts on day %d</string>
 
-    <!-- Errors -->
-    <string name="error_generic">حدث خطأ</string>
-    <string name="error_checkout_before_checkin">وقت الخروج يجب أن يكون بعد وقت الدخول</string>
-    <string name="error_no_open_session">لا توجد جلسة مفتوحة</string>
-    <string name="error_session_exists">يوجد جلسة مفتوحة بالفعل</string>
+    <string name="section_appearance">Appearance &amp; Time</string>
+    <string name="time_format_24h">24-Hour Format</string>
+    <string name="time_format_24h_desc">Use military 24-hour format instead of 12-hour AM/PM</string>
+    <string name="amoled_dark_mode">AMOLED Dark Mode</string>
+    <string name="amoled_desc">Pure black background for battery saving and comfort</string>
+
+    <string name="section_ess">ESS Integration</string>
+    <string name="ess_connected">Connected to ESS</string>
+    <string name="ess_not_connected">Not connected</string>
+    <string name="ess_email">Email</string>
+    <string name="ess_password">Password</string>
+    <string name="ess_remember_me">Remember credentials</string>
+    <string name="ess_login_btn">Sign In &amp; Sync</string>
+    <string name="ess_sync_btn">Sync Now</string>
+    <string name="ess_logout_btn">Sign Out</string>
+
+    <!-- Days of week -->
+    <string name="day_sat">Sat</string>
+    <string name="day_sun">Sun</string>
+    <string name="day_mon">Mon</string>
+    <string name="day_tue">Tue</string>
+    <string name="day_wed">Wed</string>
+    <string name="day_thu">Thu</string>
+    <string name="day_fri">Fri</string>
+
+    <!-- Messages -->
+    <string name="clock_in_success">Clocked in successfully ✓</string>
+    <string name="clock_out_success">Clocked out successfully ✓</string>
+    <string name="sync_success">Synced %d shifts successfully</string>
+    <string name="export_success">Excel file created successfully</string>
 </resources>

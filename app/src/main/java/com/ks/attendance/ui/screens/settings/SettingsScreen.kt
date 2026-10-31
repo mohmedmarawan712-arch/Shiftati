@@ -1,9 +1,12 @@
 package com.ks.attendance.ui.screens.settings
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -13,16 +16,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ks.attendance.data.remote.EssInstance
+import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
-import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.ColorWorked
 import com.ks.attendance.utils.PayrollUtil
@@ -42,18 +46,18 @@ fun SettingsScreen(
     var payrollStartDay by remember(state.payrollStartDay) { mutableIntStateOf(state.payrollStartDay) }
     var selectedCycle by remember(state.payrollCycleType) { mutableStateOf(state.payrollCycleType) }
 
-    // ESS form states
+    // ESS states
     var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
     var essPassword by remember(state.essPassword) { mutableStateOf(state.essPassword) }
     var saveCreds by remember(state.essSaveCredentials) { mutableStateOf(state.essSaveCredentials) }
     var showPassword by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
+    var isSyncing by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf<String?>(null) }
-    var showInstanceSelector by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            KSTopBar(title = "الإعدادات", onBack = onBack)
+            KSTopBar(title = stringResource(R.string.settings_title), onBack = onBack)
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -62,120 +66,93 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── Profile Section ──────────────────────────────────────────────
-            SettingsSectionCard(title = "الملف الشخصي", icon = Icons.Filled.Person) {
+            // ─── 1. Profile & Rate Card ──────────────────────────────────────
+            SlateCard(
+                title = stringResource(R.string.section_profile),
+                icon = Icons.Filled.PersonOutline
+            ) {
                 OutlinedTextField(
                     value = employeeName,
                     onValueChange = {
                         employeeName = it
                         viewModel.setEmployeeName(it)
                     },
-                    label = { Text("اسم الموظف") },
-                    placeholder = { Text("اكتب اسمك أو سيتم جلبه من ESS") },
+                    label = { Text(stringResource(R.string.employee_name)) },
+                    placeholder = { Text(stringResource(R.string.employee_name_hint)) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
+                    shape = RoundedCornerShape(12.dp),
                     singleLine = true
                 )
-            }
 
-            // ─── Salary & Payroll Cycle Section ───────────────────────────────
-            SettingsSectionCard(title = "إعدادات الراتب والدورة", icon = Icons.Filled.AccountBalanceWallet) {
-                // Hourly Rate
+                Spacer(modifier = Modifier.height(12.dp))
+
                 OutlinedTextField(
                     value = hourlyRate,
                     onValueChange = {
                         hourlyRate = it
                         it.toDoubleOrNull()?.let { rate -> viewModel.setHourlyRate(rate) }
                     },
-                    label = { Text("سعر الساعة (جنيه)") },
+                    label = { Text(stringResource(R.string.hourly_rate)) },
                     modifier = Modifier.fillMaxWidth(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(14.dp),
-                    trailingIcon = { Text("ج.م  ", color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = {
+                        Text(
+                            stringResource(R.string.currency_egp) + "  ",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
                     singleLine = true
                 )
+            }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = "طريقة احتساب دورة الشهر:",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
+            // ─── 2. Payroll Cycle Card ───────────────────────────────────────
+            SlateCard(
+                title = stringResource(R.string.section_payroll_cycle),
+                icon = Icons.Filled.CalendarMonth
+            ) {
+                val cycleOptions = listOf(
+                    PayrollUtil.CYCLE_29_TO_28 to stringResource(R.string.cycle_29_28),
+                    PayrollUtil.CYCLE_CURRENT_MONTH to stringResource(R.string.cycle_current_month),
+                    PayrollUtil.CYCLE_PREVIOUS_MONTH to stringResource(R.string.cycle_previous_month),
+                    PayrollUtil.CYCLE_BOTH_MONTHS to stringResource(R.string.cycle_both_months),
+                    PayrollUtil.CYCLE_CUSTOM_DAY to stringResource(R.string.cycle_custom)
                 )
 
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // Cycle selector chips
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CycleOptionChip(
-                        title = "تلقائي: من يوم 29 إلى يوم 28 (الافتراضي)",
-                        subtitle = "حساب دورة الراتب تلقائياً مع مراعاة الأشهر 31 يوم وفبراير 28/29 يوم",
-                        isSelected = selectedCycle == PayrollUtil.CYCLE_29_TO_28,
-                        onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_29_TO_28
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_29_TO_28)
-                        }
-                    )
-
-                    CycleOptionChip(
-                        title = "الشهر الحالي (من 1 حتى آخر يوم)",
-                        subtitle = "يحسب الأيام الفعلية تلقائياً (30 أو 31 أو 28/29 في فبراير)",
-                        isSelected = selectedCycle == PayrollUtil.CYCLE_CURRENT_MONTH,
-                        onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_CURRENT_MONTH
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CURRENT_MONTH)
-                        }
-                    )
-
-                    CycleOptionChip(
-                        title = "الشهر السابق كاملاً",
-                        subtitle = "لعرض وحساب ساعات ورواتب الشهر المنقضي",
-                        isSelected = selectedCycle == PayrollUtil.CYCLE_PREVIOUS_MONTH,
-                        onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_PREVIOUS_MONTH
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_PREVIOUS_MONTH)
-                        }
-                    )
-
-                    CycleOptionChip(
-                        title = "الشهرين معاً (السابق + الحالي)",
-                        subtitle = "لحساب كامل الفترتين معاً",
-                        isSelected = selectedCycle == PayrollUtil.CYCLE_BOTH_MONTHS,
-                        onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_BOTH_MONTHS
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_BOTH_MONTHS)
-                        }
-                    )
-
-                    CycleOptionChip(
-                        title = "دورة مخصصة تبدأ بيوم محدد",
-                        subtitle = "مثلاً: من يوم 26 حتى 25 من الشهر التالي",
-                        isSelected = selectedCycle == PayrollUtil.CYCLE_CUSTOM_DAY,
-                        onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_CUSTOM_DAY
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_DAY)
-                        }
-                    )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    cycleOptions.forEach { (cycleKey, label) ->
+                        val isSelected = selectedCycle == cycleKey
+                        SlateOptionRow(
+                            title = label,
+                            isSelected = isSelected,
+                            onClick = {
+                                selectedCycle = cycleKey
+                                viewModel.setPayrollCycleType(cycleKey)
+                            }
+                        )
+                    }
                 }
 
-                // If custom day is selected, show day number picker
                 AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_DAY) {
-                    Column(modifier = Modifier.padding(top = 12.dp)) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp)
+                    ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("يوم بداية الدورة:", style = MaterialTheme.typography.bodySmall)
                             Text(
-                                "يوم $payrollStartDay في الشهر",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
+                                stringResource(R.string.custom_start_day, payrollStartDay),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -192,107 +169,117 @@ fun SettingsScreen(
                 }
             }
 
-            // ─── Display & Theme ──────────────────────────────────────────────
-            SettingsSectionCard(title = "المظهر ونظام الوقت", icon = Icons.Filled.DarkMode) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "وضع AMOLED الداكن",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "خلفية سوداء بالكامل 100% لتوفير طاقة الشاشة ومظهر فخم",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            // ─── 3. Appearance & Time Format Card ────────────────────────────
+            SlateCard(
+                title = stringResource(R.string.section_appearance),
+                icon = Icons.Filled.Tune
+            ) {
+                // 24-Hour Switch
+                SlateToggleRow(
+                    title = stringResource(R.string.time_format_24h),
+                    subtitle = if (state.is24Hour) "18:30 (عسكري)" else "06:30 م (ص/م)",
+                    checked = state.is24Hour,
+                    onCheckedChange = { checked ->
+                        viewModel.setTimeFormat(if (checked) "24h" else "12h")
                     }
-                    Switch(
-                        checked = state.darkMode,
-                        onCheckedChange = { viewModel.setDarkMode(it) }
-                    )
-                }
+                )
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 10.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "تنسيق الوقت",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = if (state.is24Hour) "نظام 24 ساعة (مثال: 17:30)" else "نظام 12 ساعة (مثال: 05:30 م)",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FilterChip(
-                            selected = !state.is24Hour,
-                            onClick = { viewModel.setTimeFormat("12h") },
-                            label = { Text("12 ساعة (ص/م)") }
-                        )
-                        FilterChip(
-                            selected = state.is24Hour,
-                            onClick = { viewModel.setTimeFormat("24h") },
-                            label = { Text("24 ساعة") }
-                        )
-                    }
-                }
+                // AMOLED Switch
+                SlateToggleRow(
+                    title = stringResource(R.string.amoled_dark_mode),
+                    subtitle = stringResource(R.string.amoled_desc),
+                    checked = state.darkMode,
+                    onCheckedChange = { viewModel.setDarkMode(it) }
+                )
             }
 
-            // ─── ESS Integration ──────────────────────────────────────────────
-            SettingsSectionCard(title = "الربط مع نظام ESS (أونلاين)", icon = Icons.Filled.CloudSync) {
+            // ─── 4. ESS Integration Card ──────────────────────────────────────
+            SlateCard(
+                title = stringResource(R.string.section_ess),
+                icon = Icons.Filled.CloudQueue
+            ) {
                 if (state.isEssLoggedIn) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = ColorWorked.copy(alpha = 0.15f),
-                        modifier = Modifier.fillMaxWidth()
+                    // Connected Status
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(ColorWorked.copy(alpha = 0.12f))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = ColorWorked)
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column(modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(ColorWorked)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (state.employeeName.isNotBlank()) state.employeeName else stringResource(R.string.ess_connected),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            if (state.essEmail.isNotBlank()) {
                                 Text(
-                                    text = if (state.employeeName.isNotBlank()) "الموظف: ${state.employeeName}" else "متصل بنظام ESS",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold
+                                    text = state.essEmail,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(state.essEmail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            Button(
-                                onClick = {
-                                    viewModel.syncFromEss { count ->
-                                        loginMessage = "تمت المزامنة بنجاح: $count وردية"
-                                    }
-                                },
-                                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text("مزامنة الآن")
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                isSyncing = true
+                                viewModel.syncFromEss { count ->
+                                    isSyncing = false
+                                    loginMessage = "تمت المزامنة بنجاح: $count وردية"
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isSyncing
+                        ) {
+                            if (isSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(stringResource(R.string.ess_sync_btn))
+                            }
+                        }
+
+                        OutlinedButton(
+                            onClick = { viewModel.essLogout() },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(stringResource(R.string.ess_logout_btn))
+                        }
+                    }
                 } else {
+                    // Login Form
                     OutlinedTextField(
                         value = essEmail,
                         onValueChange = { essEmail = it },
-                        label = { Text("البريد الإلكتروني") },
+                        label = { Text(stringResource(R.string.ess_email)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        singleLine = true
+                        shape = RoundedCornerShape(12.dp),
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -300,15 +287,16 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = essPassword,
                         onValueChange = { essPassword = it },
-                        label = { Text("كلمة المرور") },
+                        label = { Text(stringResource(R.string.ess_password)) },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(12.dp),
                         visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {
                             IconButton(onClick = { showPassword = !showPassword }) {
                                 Icon(
                                     imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = null
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
                                 )
                             }
                         },
@@ -317,9 +305,10 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Remember credentials checkbox
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { saveCreds = !saveCreds },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Checkbox(
@@ -328,13 +317,13 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "حفظ البريد وكلمة المرور للدخول التلقائي",
+                            text = stringResource(R.string.ess_remember_me),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Button(
                         onClick = {
@@ -356,39 +345,45 @@ fun SettingsScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
                         enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
                     ) {
                         if (isLoggingIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Filled.Login, contentDescription = null)
+                            Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("تسجيل الدخول ومزامنة الورديات")
+                            Text(stringResource(R.string.ess_login_btn))
                         }
                     }
                 }
 
-                loginMessage?.let {
+                loginMessage?.let { msg ->
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        text = msg,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
+// ─── Sleek Slate Design Building Blocks ───────────────────────────────────────
+
 @Composable
-private fun SettingsSectionCard(
+private fun SlateCard(
     title: String,
     icon: ImageVector,
     content: @Composable ColumnScope.() -> Unit
 ) {
     Card(
-        shape = RoundedCornerShape(22.dp),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
@@ -396,22 +391,22 @@ private fun SettingsSectionCard(
             .fillMaxWidth()
             .border(
                 width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
-                shape = RoundedCornerShape(22.dp)
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(18.dp)
             )
     ) {
-        Column(modifier = Modifier.padding(18.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -423,47 +418,72 @@ private fun SettingsSectionCard(
 }
 
 @Composable
-private fun CycleOptionChip(
+private fun SlateOptionRow(
     title: String,
-    subtitle: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(14.dp),
-        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        shape = RoundedCornerShape(10.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
         border = androidx.compose.foundation.BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
+            width = if (isSelected) 1.dp else 0.5.dp,
             color = if (isSelected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
         ),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             RadioButton(
                 selected = isSelected,
                 onClick = onClick,
-                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
+    }
+}
+
+@Composable
+private fun SlateToggleRow(
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange
+        )
     }
 }

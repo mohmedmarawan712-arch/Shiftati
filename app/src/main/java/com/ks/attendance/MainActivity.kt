@@ -9,8 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.navigation.KSNavGraph
 import com.ks.attendance.ui.theme.KSAttendanceTheme
@@ -27,12 +28,16 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val settings by viewModel.settingsState.collectAsState()
-            KSAttendanceTheme(darkTheme = settings.darkMode) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    KSNavGraph(viewModel = viewModel)
+            val layoutDirection = if (settings.language == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
+
+            CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
+                KSAttendanceTheme(darkTheme = settings.darkMode) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        KSNavGraph(viewModel = viewModel)
+                    }
                 }
             }
         }

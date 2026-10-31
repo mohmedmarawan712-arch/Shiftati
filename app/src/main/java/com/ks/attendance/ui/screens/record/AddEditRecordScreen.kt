@@ -122,8 +122,9 @@ fun AddEditRecordScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "هذه الوردية مستوردة من نظام ESS. يمكنك تعديل الساعات أو التاريخ بحرية، وسيتم تثبيت تعديلاتك محلياً ولن تتأثر بأي مزامنة لاحقة.",
+                            text = "وردية مستوردة من ESS (تعديلك يُحفظ محلياً)",
                             style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
                     }

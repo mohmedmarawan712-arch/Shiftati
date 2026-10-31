@@ -169,20 +169,20 @@ fun ReportScreen(viewModel: MainViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Export CSV
+                    // Export Excel
                     OutlinedButton(
-                        onClick = { viewModel.exportCsv() },
+                        onClick = { viewModel.exportExcel() },
                         modifier = Modifier.weight(1f),
                         enabled = !reportState.isExporting && reportState.records.isNotEmpty()
                     ) {
                         if (reportState.isExporting) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Filled.Download, contentDescription = null,
+                            Icon(Icons.Filled.Description, contentDescription = null,
                                 modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("تصدير CSV")
+                        Text("تصدير Excel")
                     }
 
                     // ESS Sync (only if logged in)
@@ -394,8 +394,8 @@ private fun HoursBarChart(records: List<AttendanceRecord>) {
 @Composable
 private fun RecordTableRow(record: AttendanceRecord, is24Hour: Boolean = false) {
     val sourceLabel = when {
-        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل)"
-        record.source == "ess_online" -> "أونلاين"
+        record.source == "ess_online" && !record.isFromServer -> "معدل"
+        record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceColor = when {

@@ -400,29 +400,46 @@ private fun HeroClockCard(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Large Action Button
+            // High-End Modern Action Trigger Button
             Button(
                 onClick = onClockToggle,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
-                shape = RoundedCornerShape(16.dp),
+                    .height(64.dp),
+                shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (isClockedIn) ColorAbsent else MaterialTheme.colorScheme.primary,
                     contentColor = Color.White
-                )
+                ),
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 1.dp)
             ) {
-                Icon(
-                    imageVector = if (isClockedIn) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    text = if (isClockedIn) "تسجيل انصراف" else "تسجيل حضور",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.2f),
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = if (isClockedIn) Icons.Filled.Logout else Icons.Filled.Fingerprint,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text(
+                        text = if (isClockedIn) "تسجيل انصراف" else "تسجيل حضور",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = if (isClockedIn) "اضغط لإنهاء ورديتك الحالية" else "اضغط لبدء احتساب ساعاتك",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White.copy(alpha = 0.85f)
+                    )
+                }
             }
         }
     }
@@ -435,8 +452,8 @@ private fun CompactRecordCard(
     onClick: () -> Unit
 ) {
     val sourceLabel = when {
-        record.source == "ess_online" && !record.isFromServer -> "أونلاين (معدل يدوياً)"
-        record.source == "ess_online" -> "أونلاين (ESS)"
+        record.source == "ess_online" && !record.isFromServer -> "معدل"
+        record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceColor = when {

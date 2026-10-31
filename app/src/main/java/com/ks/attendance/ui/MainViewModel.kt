@@ -304,11 +304,11 @@ class MainViewModel(
         }
     }
 
-    fun exportCsv() {
+    fun exportExcel() {
         viewModelScope.launch {
             _reportState.value = _reportState.value.copy(isExporting = true)
             val state = _reportState.value
-            val result = ExportUtil.exportCsv(
+            val result = ExportUtil.exportExcel(
                 context = context,
                 records = state.records,
                 notes = state.notes,
@@ -321,6 +321,10 @@ class MainViewModel(
                 exportedPath = result.getOrNull()
             )
         }
+    }
+
+    fun exportCsv() {
+        exportExcel()
     }
 
     // ─── Settings ─────────────────────────────────────────────────────────────
@@ -394,6 +398,16 @@ class MainViewModel(
                     prefs.setEmployeeName(detected)
                 }
             }
+        }
+    }
+
+    fun essLogout() {
+        viewModelScope.launch {
+            repo.essLogout()
+            _settingsState.value = _settingsState.value.copy(
+                isEssLoggedIn = false,
+                essInstances = emptyList()
+            )
         }
     }
 
