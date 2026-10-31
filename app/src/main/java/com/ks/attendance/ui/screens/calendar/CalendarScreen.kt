@@ -297,16 +297,14 @@ private fun DayCell(
 
     val bgColor = when {
         isSelected -> MaterialTheme.colorScheme.primary
-        isToday    -> ColorToday.copy(alpha = 0.3f)
-        isWorked   -> ColorWorked.copy(alpha = 0.2f)
-        isPast     -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.15f)
+        isToday    -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        isWorked   -> MaterialTheme.colorScheme.surfaceVariant
         else       -> Color.Transparent
     }
 
     val textColor = when {
         isSelected -> MaterialTheme.colorScheme.onPrimary
-        isToday    -> MaterialTheme.colorScheme.onBackground
-        isWorked   -> MaterialTheme.colorScheme.primary
+        isToday    -> MaterialTheme.colorScheme.primary
         else       -> MaterialTheme.colorScheme.onBackground
     }
 
@@ -318,7 +316,7 @@ private fun DayCell(
             .background(bgColor)
             .then(
                 if (isToday && !isSelected)
-                    Modifier.border(1.5.dp, ColorToday, CircleShape)
+                    Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, CircleShape)
                 else Modifier
             )
             .clickable(onClick = onClick),
@@ -336,7 +334,7 @@ private fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(if (isSelected) Color.White else ColorWorked)
+                        .background(if (isSelected) Color.White else ColorFingerprint)
                 )
             }
             if (hasNote) {
@@ -344,7 +342,7 @@ private fun DayCell(
                     modifier = Modifier
                         .size(4.dp)
                         .clip(CircleShape)
-                        .background(ColorNote)
+                        .background(if (isSelected) Color.White else MaterialTheme.colorScheme.primary)
                 )
             }
         }
@@ -413,11 +411,10 @@ private fun DayBottomSheet(
                     record.source == "ess_online" -> "ESS"
                     else -> "يدوي"
                 }
-                val sourceColor = when {
-                    record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiary
-                    record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                }
+                val sourceColor = if (record.source == "ess_online" && !record.isFromServer)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant
 
                 Surface(
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -524,9 +521,11 @@ private fun DayBottomSheet(
             if (records.isNotEmpty()) {
                 OutlinedButton(
                     onClick = onDeleteDay,
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                        contentColor = ColorDelete
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, ColorDelete.copy(alpha = 0.5f))
                 ) {
                     Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))

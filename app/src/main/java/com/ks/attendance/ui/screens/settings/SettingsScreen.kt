@@ -613,7 +613,6 @@ fun SettingsScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ThemeOptionItem(
                             title = "تلقائي (حسب النظام)",
-                            subtitle = "يتكيف تلقائياً مع مظهر الهاتف العام",
                             icon = Icons.Filled.BrightnessAuto,
                             isSelected = state.themeMode == PrefsUtil.THEME_SYSTEM,
                             onClick = {
@@ -623,7 +622,6 @@ fun SettingsScreen(
                         )
                         ThemeOptionItem(
                             title = "الوضع الداكن (AMOLED)",
-                            subtitle = "أسود داكن نقي ومريح للعين ويوفر البطارية",
                             icon = Icons.Filled.DarkMode,
                             isSelected = state.themeMode == PrefsUtil.THEME_DARK,
                             onClick = {
@@ -633,7 +631,6 @@ fun SettingsScreen(
                         )
                         ThemeOptionItem(
                             title = "الوضع الفاتح",
-                            subtitle = "مظهر نهاري كلاسيكي مشرق وواضح",
                             icon = Icons.Filled.LightMode,
                             isSelected = state.themeMode == PrefsUtil.THEME_LIGHT,
                             onClick = {
@@ -764,7 +761,6 @@ private fun SlateCleanToggleRow(
 @Composable
 private fun ThemeOptionItem(
     title: String,
-    subtitle: String,
     icon: ImageVector,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -799,19 +795,12 @@ private fun ThemeOptionItem(
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
     }
 }

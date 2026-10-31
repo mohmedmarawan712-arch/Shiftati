@@ -406,12 +406,7 @@ private fun CompactRecordCard(
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
-    val sourceColor = when {
-        isOffDay -> MaterialTheme.colorScheme.tertiary
-        isModified -> MaterialTheme.colorScheme.tertiary
-        record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val sourceColor = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val isOpen = !isOffDay && record.checkOutTime == null
 
     Card(

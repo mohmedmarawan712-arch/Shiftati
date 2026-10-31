@@ -148,7 +148,7 @@ fun AttendanceListScreen(
                                     text = "%.1f".format(homeState.monthHours),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onBackground
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "الساعات",
@@ -171,7 +171,7 @@ fun AttendanceListScreen(
                                     text = "${homeState.workedDays}",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.secondary
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 Text(
                                     text = "أيام العمل",
@@ -429,12 +429,12 @@ private fun DateGroupHeader(
             ) {
                 Surface(
                     shape = RoundedCornerShape(50.dp),
-                    color = ColorWorked.copy(alpha = 0.2f)
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = PayrollUtil.formatHours(totalHours),
                         style = MaterialTheme.typography.labelMedium,
-                        color = ColorWorked,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
@@ -474,12 +474,6 @@ private fun RecordRow(
         isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
-    }
-    val sourceBadgeColor = when {
-        isOffDay -> MaterialTheme.colorScheme.tertiaryContainer
-        isModified -> MaterialTheme.colorScheme.tertiaryContainer
-        record.source == "ess_online" -> MaterialTheme.colorScheme.primaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
     }
 
     Surface(
@@ -594,13 +588,13 @@ private fun RecordRow(
                     if (!isOpen) {
                         Surface(
                             shape = RoundedCornerShape(50.dp),
-                            color = ColorWorked.copy(alpha = 0.18f)
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Text(
                                 text = PayrollUtil.formatHours(record.hoursWorked),
                                 style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = ColorWorked,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
                                 maxLines = 1,
                                 softWrap = false
@@ -625,13 +619,14 @@ private fun RecordRow(
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(4.dp),
-                        color = sourceBadgeColor
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
                             text = sourceBadge,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
+                            fontWeight = FontWeight.Medium,
+                            color = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
