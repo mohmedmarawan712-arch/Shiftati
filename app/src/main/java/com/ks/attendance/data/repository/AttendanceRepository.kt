@@ -121,10 +121,10 @@ class AttendanceRepository(
         for (shift in shifts) {
             if (shift.workDate < startStr || shift.workDate > endStr) continue
 
-            // Avoid re-inserting if user already has a matching manual or edited shift
+            // Avoid re-inserting if user already has a modified or manual shift on this day, or matching shift
             val duplicate = existingRecords.any { existing ->
-                existing.workDate == shift.workDate &&
-                kotlin.math.abs(existing.checkInTime - shift.start.time) < 15 * 60 * 1000L
+                (existing.workDate == shift.workDate && !existing.isFromServer) ||
+                (existing.workDate == shift.workDate && kotlin.math.abs(existing.checkInTime - shift.start.time) < 30 * 60 * 1000L)
             }
             if (duplicate) continue
 
@@ -141,6 +141,47 @@ class AttendanceRepository(
         }
         deduplicateRecords()
         inserted
+    }
+
+    /**
+     * Reverts a user-modified record back to official ESS server times
+     * for that specific date, while preserving any user notes.
+     */
+    suspend fun revertRecordToEss(record: AttendanceRecord): Result<AttendanceRecord> = runCatching {
+        val cal = Calendar.getInstance()
+        val parts = record.workDate.split("-").map { it.toInt() }
+        cal.set(parts[0], parts[1] - 1, parts[2], 0, 0, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        val dayStart = cal.time
+        cal.set(parts[0], parts[1] - 1, parts[2], 23, 59, 59)
+        cal.set(Calendar.MILLISECOND, 999)
+        val dayEnd = cal.time
+
+        val clockings = essClient.fetchClockings(dayStart, dayEnd).getOrThrow()
+        val (shifts, _) = ClockingParser.pairShifts(clockings)
+
+        val matchingShifts = shifts.filter { it.workDate == record.workDate }
+        if (matchingShifts.isEmpty()) {
+            throw IllegalStateException("لم يتم العثور على وردية مسجلة على السيرفر في تاريخ ${record.workDate}")
+        }
+
+        // Pick shift closest to the record's check-in time
+        val shift = if (matchingShifts.size == 1) {
+            matchingShifts.first()
+        } else {
+            matchingShifts.minByOrNull { kotlin.math.abs(it.start.time - record.checkInTime) } ?: matchingShifts.first()
+        }
+
+        val reverted = record.copy(
+            checkInTime = shift.start.time,
+            checkOutTime = shift.end.time,
+            hoursWorked = shift.hoursWorked,
+            isFromServer = true,
+            source = "ess_online"
+            // Note is preserved
+        )
+        attendanceDao.update(reverted)
+        reverted
     }
 
     /**

@@ -124,32 +124,7 @@ class MainViewModel(
             }
         }
         // Auto-sync from ESS on launch if credentials exist
-        viewModelScope.launch {
-            delay(1500L)
-            val saveCreds = prefs.essSaveCredentials.first()
-            val email = prefs.essEmail.first()
-            val pass = prefs.essPassword.first()
-            if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
-                try {
-                    if (!repo.isEssLoggedIn) {
-                        val loginRes = repo.essLogin(email.trim(), pass)
-                        if (loginRes.isSuccess) {
-                            val instances = loginRes.getOrDefault(emptyList())
-                            if (instances.isNotEmpty()) {
-                                repo.essSelectInstance(instances.first())
-                            }
-                        }
-                    }
-                    if (repo.isEssLoggedIn) {
-                        syncFromEss { count ->
-                            if (count > 0) {
-                                showHomeMessage("تمت المزامنة التلقائية: $count وردية جديدة")
-                            }
-                        }
-                    }
-                } catch (_: Exception) {}
-            }
-        }
+        autoLoginAndSyncIfSaved()
         observeSettings()
     }
 
@@ -592,6 +567,41 @@ class MainViewModel(
         }
     }
 
+    fun autoLoginAndSyncIfSaved() {
+        viewModelScope.launch {
+            try {
+                val saveCreds = prefs.essSaveCredentials.first()
+                val email = prefs.essEmail.first()
+                val pass = prefs.essPassword.first()
+                if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
+                    if (!repo.isEssLoggedIn) {
+                        val loginRes = repo.essLogin(email.trim(), pass)
+                        if (loginRes.isSuccess) {
+                            val instances = loginRes.getOrDefault(emptyList())
+                            if (instances.isNotEmpty()) {
+                                repo.essSelectInstance(instances.first())
+                            }
+                            _settingsState.value = _settingsState.value.copy(
+                                isEssLoggedIn = true,
+                                essInstances = instances
+                            )
+                        }
+                    } else {
+                        _settingsState.value = _settingsState.value.copy(isEssLoggedIn = true)
+                    }
+
+                    if (repo.isEssLoggedIn) {
+                        syncFromEss { count ->
+                            if (count > 0) {
+                                showHomeMessage("تمت المزامنة التلقائية: $count وردية جديدة")
+                            }
+                        }
+                    }
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
     fun essLogout() {
         viewModelScope.launch {
             repo.essLogout()
@@ -599,6 +609,44 @@ class MainViewModel(
                 isEssLoggedIn = false,
                 essInstances = emptyList()
             )
+        }
+    }
+
+    fun revertRecordToEss(record: AttendanceRecord, onDone: (Boolean, String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (!repo.isEssLoggedIn) {
+                    val saveCreds = prefs.essSaveCredentials.first()
+                    val email = prefs.essEmail.first()
+                    val pass = prefs.essPassword.first()
+                    if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
+                        val loginRes = repo.essLogin(email.trim(), pass)
+                        if (loginRes.isSuccess) {
+                            val instances = loginRes.getOrDefault(emptyList())
+                            if (instances.isNotEmpty()) repo.essSelectInstance(instances.first())
+                            _settingsState.value = _settingsState.value.copy(
+                                isEssLoggedIn = true,
+                                essInstances = instances
+                            )
+                        }
+                    }
+                }
+                if (!repo.isEssLoggedIn) {
+                    onDone(false, "يجب تسجيل الدخول إلى ESS أولاً")
+                    return@launch
+                }
+
+                val result = repo.revertRecordToEss(record)
+                if (result.isSuccess) {
+                    refreshHome()
+                    loadReport()
+                    onDone(true, "تمت استعادة توقيت الوردية من ESS بنجاح ✓")
+                } else {
+                    onDone(false, result.exceptionOrNull()?.message ?: "فشلت استعادة الوردية من السيرفر")
+                }
+            } catch (e: Exception) {
+                onDone(false, e.message ?: "حدث خطأ أثناء المزامنة")
+            }
         }
     }
 
@@ -619,9 +667,15 @@ class MainViewModel(
                             if (instances.isNotEmpty()) {
                                 repo.essSelectInstance(instances.first())
                             }
+                            _settingsState.value = _settingsState.value.copy(
+                                isEssLoggedIn = true,
+                                essInstances = instances
+                            )
                         }
                     } catch (_: Exception) {}
                 }
+            } else {
+                _settingsState.value = _settingsState.value.copy(isEssLoggedIn = true)
             }
 
             // Sync broad window: from start of previous month through end of next month
@@ -654,7 +708,7 @@ class MainViewModel(
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private fun showHomeMessage(text: String, isError: Boolean = false) {
+    fun showHomeMessage(text: String, isError: Boolean = false) {
         _homeState.value = _homeState.value.copy(message = UiMessage(text, isError))
     }
 

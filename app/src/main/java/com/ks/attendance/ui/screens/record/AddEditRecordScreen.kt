@@ -202,17 +202,17 @@ fun AddEditRecordScreen(
                 title = if (isEdit) "تعديل السجل" else "إضافة سجل",
                 onBack = handleBack,
                 actions = {
-                    FilledTonalButton(
+                    IconButton(
                         onClick = {
                             if (performSave()) onBack()
-                        },
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                        modifier = Modifier.padding(end = 8.dp)
+                        }
                     ) {
-                        Icon(Icons.Filled.Check, contentDescription = "حفظ", modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("حفظ", fontWeight = FontWeight.Bold)
+                        Icon(
+                            Icons.Filled.Check,
+                            contentDescription = "حفظ",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
             )

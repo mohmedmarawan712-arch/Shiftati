@@ -42,6 +42,8 @@ fun AttendanceListScreen(
     val settingsState by viewModel.settingsState.collectAsState()
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     var dayToDelete by remember { mutableStateOf<String?>(null) }
+    var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
+    var isReverting by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(homeState.message) {
@@ -231,7 +233,8 @@ fun AttendanceListScreen(
                             record = record,
                             is24Hour = settingsState.is24Hour,
                             onDelete = { recordToDelete = record },
-                            onEdit = { onNavigate("record/${record.id}") }
+                            onEdit = { onNavigate("record/${record.id}") },
+                            onRevert = { recordToRevert = record }
                         )
                     }
                 }
@@ -246,6 +249,72 @@ fun AttendanceListScreen(
                     recordToDelete = null
                 },
                 onDismiss = { recordToDelete = null }
+            )
+        }
+
+        // Confirm revert modified record dialog
+        recordToRevert?.let { record ->
+            AlertDialog(
+                onDismissRequest = { if (!isReverting) recordToRevert = null },
+                icon = {
+                    Icon(
+                        Icons.Filled.Sync,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "استعادة توقيت الوردية من ESS",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "هل تريد استعادة مواعيد الحضور والانصراف الأصلية المسجلة على السيرفر ليوم ${record.workDate}؟",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "• سيتم استرجاع الساعات وأوقات البصمة الحقيقية من السيرفر.\n• سيتم الاحتفاظ بملاحظاتك الحالية دون حذف.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            isReverting = true
+                            viewModel.revertRecordToEss(record) { success, msg ->
+                                isReverting = false
+                                recordToRevert = null
+                                viewModel.showHomeMessage(msg)
+                            }
+                        },
+                        enabled = !isReverting
+                    ) {
+                        if (isReverting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("استعادة وتحديث")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { recordToRevert = null },
+                        enabled = !isReverting
+                    ) {
+                        Text("إلغاء")
+                    }
+                }
             )
         }
 
@@ -348,18 +417,20 @@ private fun RecordRow(
     record: AttendanceRecord,
     is24Hour: Boolean = false,
     onEdit: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRevert: (() -> Unit)? = null
 ) {
     val checkIn = PayrollUtil.formatTime(record.checkInTime, is24Hour)
     val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
     val isOpen = record.checkOutTime == null
+    val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceBadge = when {
-        record.source == "ess_online" && !record.isFromServer -> "معدل"
+        isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceBadgeColor = when {
-        record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiaryContainer
+        isModified -> MaterialTheme.colorScheme.tertiaryContainer
         record.source == "ess_online" -> MaterialTheme.colorScheme.primaryContainer
         else -> MaterialTheme.colorScheme.secondaryContainer
     }
@@ -470,7 +541,7 @@ private fun RecordRow(
                 // Left side: Source badge and optional Note
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Surface(
@@ -484,6 +555,22 @@ private fun RecordRow(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
+
+                    // Show sync icon button right next to the "معدل" badge
+                    if (isModified && onRevert != null) {
+                        IconButton(
+                            onClick = onRevert,
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Sync,
+                                contentDescription = "استعادة من ESS",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
                     if (record.note.isNotBlank()) {
                         Text(
                             text = record.note,

@@ -46,6 +46,8 @@ fun HomeScreen(
     // Live elapsed timer for active session
     var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
+    var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
+    var isReverting by remember { mutableStateOf(false) }
     LaunchedEffect(homeState.openSession) {
         val session = homeState.openSession
         if (session != null) {
@@ -172,7 +174,8 @@ fun HomeScreen(
                         record = record,
                         is24Hour = homeState.is24Hour,
                         onClick = { onNavigate("record/${record.id}") },
-                        onDelete = { recordToDelete = record }
+                        onDelete = { recordToDelete = record },
+                        onRevert = { recordToRevert = record }
                     )
                 }
             }
@@ -186,6 +189,72 @@ fun HomeScreen(
                     recordToDelete = null
                 },
                 onDismiss = { recordToDelete = null }
+            )
+        }
+
+        // Confirm revert modified record dialog
+        recordToRevert?.let { record ->
+            AlertDialog(
+                onDismissRequest = { if (!isReverting) recordToRevert = null },
+                icon = {
+                    Icon(
+                        Icons.Filled.Sync,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "استعادة توقيت الوردية من ESS",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "هل تريد استعادة مواعيد الحضور والانصراف الأصلية المسجلة على السيرفر ليوم ${record.workDate}؟",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "• سيتم استرجاع الساعات وأوقات البصمة الحقيقية من السيرفر.\n• سيتم الاحتفاظ بملاحظاتك الحالية دون حذف.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            isReverting = true
+                            viewModel.revertRecordToEss(record) { success, msg ->
+                                isReverting = false
+                                recordToRevert = null
+                                viewModel.showHomeMessage(msg)
+                            }
+                        },
+                        enabled = !isReverting
+                    ) {
+                        if (isReverting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text("استعادة وتحديث")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { recordToRevert = null },
+                        enabled = !isReverting
+                    ) {
+                        Text("إلغاء")
+                    }
+                }
             )
         }
     }
@@ -341,15 +410,17 @@ private fun CompactRecordCard(
     record: AttendanceRecord,
     is24Hour: Boolean = false,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onRevert: (() -> Unit)? = null
 ) {
+    val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceLabel = when {
-        record.source == "ess_online" && !record.isFromServer -> "معدل"
+        isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
     }
     val sourceColor = when {
-        record.source == "ess_online" && !record.isFromServer -> MaterialTheme.colorScheme.tertiary
+        isModified -> MaterialTheme.colorScheme.tertiary
         record.source == "ess_online" -> MaterialTheme.colorScheme.secondary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -451,6 +522,21 @@ private fun CompactRecordCard(
                         color = sourceColor,
                         fontWeight = FontWeight.SemiBold
                     )
+
+                    if (isModified && onRevert != null) {
+                        IconButton(
+                            onClick = onRevert,
+                            modifier = Modifier.size(22.dp)
+                        ) {
+                            Icon(
+                                Icons.Filled.Sync,
+                                contentDescription = "استعادة من ESS",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
+                    }
+
                     if (record.note.isNotBlank()) {
                         Text(
                             text = "• ${record.note}",
