@@ -417,7 +417,7 @@ private fun EssInstanceSelector(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(10.dp)
                     ) {
-                        Text(instance.name)
+                        Text(instance.instanceName.ifEmpty { instance.instanceId })
                     }
                 }
             }
