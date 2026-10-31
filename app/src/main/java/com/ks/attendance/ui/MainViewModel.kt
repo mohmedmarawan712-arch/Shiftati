@@ -458,7 +458,15 @@ class MainViewModel(
             _homeState.value = _homeState.value.copy(isLoading = true)
             val startDay = prefs.payrollStartDay.first()
             val cycleType = prefs.payrollCycleType.first()
-            val (ps, pe) = PayrollUtil.resolvePeriod(cycleType, startDay, Date())
+            val customStart = prefs.customStartDate.first()
+            val customEnd = prefs.customEndDate.first()
+            val (ps, pe) = PayrollUtil.resolvePeriod(
+                cycleType = cycleType,
+                startDay = startDay,
+                customStart = customStart,
+                customEnd = customEnd,
+                referenceDate = Date()
+            )
             val result = repo.syncFromEss(
                 PayrollUtil.parseDate(ps),
                 PayrollUtil.parseDate(pe)

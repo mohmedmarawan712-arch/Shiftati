@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
+import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.ColorWorked
@@ -43,8 +44,7 @@ fun SettingsScreen(
     val homeState by viewModel.homeState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Form states
-    var employeeName by remember(state.employeeName) { mutableStateOf(state.employeeName) }
+    // Rate state
     var hourlyRate by remember(state.hourlyRate) { mutableStateOf(state.hourlyRate.toInt().toString()) }
     var selectedCycle by remember(state.payrollCycleType) { mutableStateOf(state.payrollCycleType) }
 
@@ -57,6 +57,7 @@ fun SettingsScreen(
     }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+    var showClearDataDialog by remember { mutableStateOf(false) }
 
     // ESS states
     var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
@@ -83,200 +84,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── 1. Profile & Rate Card ──────────────────────────────────────
-            SlateCard(
-                title = stringResource(R.string.section_profile),
-                icon = Icons.Filled.PersonOutline
-            ) {
-                OutlinedTextField(
-                    value = employeeName,
-                    onValueChange = {
-                        employeeName = it
-                        viewModel.setEmployeeName(it)
-                    },
-                    label = { Text(stringResource(R.string.employee_name)) },
-                    placeholder = { Text(stringResource(R.string.employee_name_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                OutlinedTextField(
-                    value = hourlyRate,
-                    onValueChange = {
-                        hourlyRate = it
-                        it.toDoubleOrNull()?.let { rate -> viewModel.setHourlyRate(rate) }
-                    },
-                    label = { Text(stringResource(R.string.hourly_rate)) },
-                    modifier = Modifier.fillMaxWidth(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = RoundedCornerShape(12.dp),
-                    trailingIcon = {
-                        Text(
-                            stringResource(R.string.currency_egp) + "  ",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true
-                )
-            }
-
-            // ─── 2. Payroll Cycle Card (Unified & Highly Professional) ─────────
-            SlateCard(
-                title = stringResource(R.string.section_payroll_cycle),
-                icon = Icons.Filled.CalendarMonth
-            ) {
-                // Active period indicator banner
-                Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Filled.DateRange,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.active_period_banner, homeState.periodStart, homeState.periodEnd),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                val cycleOptions = listOf(
-                    PayrollUtil.CYCLE_29_TO_28 to stringResource(R.string.cycle_29_28),
-                    PayrollUtil.CYCLE_CURRENT_MONTH to stringResource(R.string.cycle_current_month),
-                    PayrollUtil.CYCLE_PREVIOUS_MONTH to stringResource(R.string.cycle_previous_month),
-                    PayrollUtil.CYCLE_BOTH_MONTHS to stringResource(R.string.cycle_both_months),
-                    PayrollUtil.CYCLE_CUSTOM_RANGE to stringResource(R.string.cycle_custom_range)
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    cycleOptions.forEach { (cycleKey, label) ->
-                        val isSelected = selectedCycle == cycleKey
-                        SlateOptionRow(
-                            title = label,
-                            isSelected = isSelected,
-                            onClick = {
-                                selectedCycle = cycleKey
-                                if (cycleKey == PayrollUtil.CYCLE_CUSTOM_RANGE) {
-                                    viewModel.setCustomPeriodRange(customStartDate, customEndDate)
-                                } else {
-                                    viewModel.setPayrollCycleType(cycleKey)
-                                }
-                            }
-                        )
-                    }
-                }
-
-                // If Custom Date Range is selected, show exact Start and End Date pickers
-                AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_RANGE) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 12.dp)
-                    ) {
-                        Text(
-                            text = "اختر تاريخ البداية والنهاية للدورة:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            // Start Date Picker Button
-                            OutlinedButton(
-                                onClick = { showStartDatePicker = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.select_start_date),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        customStartDate.ifBlank { "اختر التاريخ" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            // End Date Picker Button
-                            OutlinedButton(
-                                onClick = { showEndDatePicker = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.select_end_date),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        customEndDate.ifBlank { "اختر التاريخ" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ─── 3. Appearance & Time Format Card (Pure AMOLED & 24h Without Subtitle) ─
-            SlateCard(
-                title = stringResource(R.string.section_appearance),
-                icon = Icons.Filled.Tune
-            ) {
-                // AMOLED Switch (Only Title + Switch)
-                SlateCleanToggleRow(
-                    title = stringResource(R.string.amoled_dark_mode),
-                    checked = state.darkMode,
-                    onCheckedChange = { viewModel.setDarkMode(it) }
-                )
-
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
-                )
-
-                // 24-Hour Switch (Only Title + Switch)
-                SlateCleanToggleRow(
-                    title = stringResource(R.string.time_format_24h),
-                    checked = state.is24Hour,
-                    onCheckedChange = { checked ->
-                        viewModel.setTimeFormat(if (checked) "24h" else "12h")
-                    }
-                )
-            }
-
-            // ─── 4. ESS Integration Card ──────────────────────────────────────
+            // ─── 1. ESS Integration Card (Top of the page) ─────────────────────
             SlateCard(
                 title = stringResource(R.string.section_ess),
                 icon = Icons.Filled.CloudQueue
@@ -447,6 +255,214 @@ fun SettingsScreen(
                 }
             }
 
+            // ─── 2. Hourly Rate Card ──────────────────────────────────────────
+            SlateCard(
+                title = stringResource(R.string.hourly_rate),
+                icon = Icons.Filled.Payments
+            ) {
+                OutlinedTextField(
+                    value = hourlyRate,
+                    onValueChange = {
+                        hourlyRate = it
+                        it.toDoubleOrNull()?.let { rate -> viewModel.setHourlyRate(rate) }
+                    },
+                    label = { Text(stringResource(R.string.hourly_rate)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    shape = RoundedCornerShape(12.dp),
+                    trailingIcon = {
+                        Text(
+                            stringResource(R.string.currency_egp) + "  ",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    singleLine = true
+                )
+            }
+
+            // ─── 3. Payroll Cycle Card (Simplified: Auto 29-28 or Custom Range) ─
+            SlateCard(
+                title = stringResource(R.string.section_payroll_cycle),
+                icon = Icons.Filled.CalendarMonth
+            ) {
+                // Active period indicator banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.DateRange,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.active_period_banner, homeState.periodStart, homeState.periodEnd),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // The 2 clean options: Standard automated (29-28) or Custom Date Range
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Option 1: Automated 29 to 28
+                    SlateOptionRow(
+                        title = stringResource(R.string.cycle_29_28),
+                        isSelected = selectedCycle != PayrollUtil.CYCLE_CUSTOM_RANGE,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_29_TO_28
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_29_TO_28)
+                        }
+                    )
+
+                    // Option 2: Custom Date Range
+                    SlateOptionRow(
+                        title = stringResource(R.string.cycle_custom_range),
+                        isSelected = selectedCycle == PayrollUtil.CYCLE_CUSTOM_RANGE,
+                        onClick = {
+                            selectedCycle = PayrollUtil.CYCLE_CUSTOM_RANGE
+                            val start = customStartDate.ifBlank { homeState.periodStart }
+                            val end = customEndDate.ifBlank { homeState.periodEnd }
+                            customStartDate = start
+                            customEndDate = end
+                            viewModel.setCustomPeriodRange(start, end)
+                        }
+                    )
+                }
+
+                // If Custom Date Range is selected, show exact Start and End Date pickers
+                AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_RANGE) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 12.dp)
+                    ) {
+                        Text(
+                            text = "اختر تاريخ البداية والنهاية للفترة:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Start Date Picker Button
+                            OutlinedButton(
+                                onClick = { showStartDatePicker = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        stringResource(R.string.select_start_date),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        customStartDate.ifBlank { "اختر التاريخ" },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // End Date Picker Button
+                            OutlinedButton(
+                                onClick = { showEndDatePicker = true },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        stringResource(R.string.select_end_date),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        customEndDate.ifBlank { "اختر التاريخ" },
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ─── 4. Appearance & Time Format (Pure AMOLED & 24h Without Subtitle) ─
+            SlateCard(
+                title = stringResource(R.string.section_appearance),
+                icon = Icons.Filled.Tune
+            ) {
+                // AMOLED Switch (Only Title + Switch)
+                SlateCleanToggleRow(
+                    title = stringResource(R.string.amoled_dark_mode),
+                    checked = state.darkMode,
+                    onCheckedChange = { viewModel.setDarkMode(it) }
+                )
+
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+                )
+
+                // 24-Hour Switch (Only Title + Switch)
+                SlateCleanToggleRow(
+                    title = stringResource(R.string.time_format_24h),
+                    checked = state.is24Hour,
+                    onCheckedChange = { checked ->
+                        viewModel.setTimeFormat(if (checked) "24h" else "12h")
+                    }
+                )
+            }
+
+            // ─── 5. Data & Backup Card ────────────────────────────────────────
+            SlateCard(
+                title = "إدارة البيانات والنسخ الاحتياطي",
+                icon = Icons.Filled.Storage
+            ) {
+                OutlinedButton(
+                    onClick = { viewModel.exportCsv() },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Filled.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("تصدير السجلات كملف Excel (.csv)")
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                OutlinedButton(
+                    onClick = { showClearDataDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Filled.DeleteForever, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(stringResource(R.string.clear_all_data))
+                }
+            }
+
             Spacer(modifier = Modifier.height(24.dp))
         }
 
@@ -485,6 +501,17 @@ fun SettingsScreen(
                     viewModel.setCustomPeriodRange(customStartDate, formatted)
                 },
                 onDismiss = { showEndDatePicker = false }
+            )
+        }
+
+        if (showClearDataDialog) {
+            ConfirmDeleteDialog(
+                onConfirm = {
+                    viewModel.clearAllData()
+                    showClearDataDialog = false
+                },
+                onDismiss = { showClearDataDialog = false },
+                message = stringResource(R.string.confirm_clear_data)
             )
         }
     }

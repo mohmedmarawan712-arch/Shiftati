@@ -32,7 +32,7 @@ sealed class Screen(val route: String, val labelAr: String, val icon: ImageVecto
 }
 
 val bottomNavScreens = listOf(
-    Screen.Home, Screen.List, Screen.Calendar, Screen.Reports, Screen.Settings
+    Screen.Home, Screen.List, Screen.Settings
 )
 
 @Composable
