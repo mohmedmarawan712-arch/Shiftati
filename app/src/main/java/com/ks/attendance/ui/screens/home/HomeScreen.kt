@@ -26,6 +26,7 @@ import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.EmptyState
+import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
@@ -69,6 +70,21 @@ fun HomeScreen(
     val isClockedIn = homeState.openSession != null
 
     Scaffold(
+        topBar = {
+            KSTopBar(
+                title = "شفتاتي",
+                onBack = null,
+                actions = {
+                    IconButton(onClick = { viewModel.syncFromEss {} }) {
+                        Icon(
+                            Icons.Filled.Sync,
+                            contentDescription = "مزامنة سريعة",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            )
+        },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
@@ -91,48 +107,23 @@ fun HomeScreen(
         ) {
             // ─── Header ───────────────────────────────────────────────────────
             item {
-                Column {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            val greeting = if (homeState.employeeName.isNotBlank())
-                                "أهلاً، ${homeState.employeeName}"
-                            else
-                                "مرحباً بك 👋"
-                            Text(
-                                text = greeting,
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                            Text(
-                                text = DateUtil.toArabicFull(DateUtil.today()),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-
-                        // ESS Status indicator
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.padding(4.dp)
-                        ) {
-                            IconButton(
-                                onClick = { onNavigate("settings") },
-                                modifier = Modifier.size(40.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.Settings,
-                                    contentDescription = "الإعدادات",
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
+                Column(modifier = Modifier.padding(top = 4.dp)) {
+                    val greeting = if (homeState.employeeName.isNotBlank())
+                        "أهلاً، ${homeState.employeeName}"
+                    else
+                        "مرحباً بك 👋"
+                    Text(
+                        text = greeting,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = DateUtil.toArabicFull(DateUtil.today()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -181,7 +172,7 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.surface
                                 ) {
                                     Text(
-                                        text = "${homeState.periodStart.takeLast(5)} → ${homeState.periodEnd.takeLast(5)}",
+                                        text = "من ${homeState.periodStart} إلى ${homeState.periodEnd}",
                                         style = MaterialTheme.typography.labelSmall,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant

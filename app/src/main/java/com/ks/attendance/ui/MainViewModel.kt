@@ -114,6 +114,39 @@ class MainViewModel(
                 _homeState.value = _homeState.value.copy(todayRecords = records)
             }
         }
+        // Keep home metrics in sync whenever records change
+        viewModelScope.launch {
+            allRecords.collect {
+                refreshHome()
+            }
+        }
+        // Auto-sync from ESS on launch if credentials exist
+        viewModelScope.launch {
+            delay(1500L)
+            val saveCreds = prefs.essSaveCredentials.first()
+            val email = prefs.essEmail.first()
+            val pass = prefs.essPassword.first()
+            if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
+                try {
+                    if (!repo.isEssLoggedIn) {
+                        val loginRes = repo.essLogin(email.trim(), pass)
+                        if (loginRes.isSuccess) {
+                            val instances = loginRes.getOrDefault(emptyList())
+                            if (instances.isNotEmpty()) {
+                                repo.essSelectInstance(instances.first())
+                            }
+                        }
+                    }
+                    if (repo.isEssLoggedIn) {
+                        syncFromEss { count ->
+                            if (count > 0) {
+                                showHomeMessage("تمت المزامنة التلقائية: $count وردية جديدة")
+                            }
+                        }
+                    }
+                } catch (_: Exception) {}
+            }
+        }
         observeSettings()
     }
 
@@ -182,9 +215,10 @@ class MainViewModel(
 
             val openSession = repo.getOpenSession()
             val todayHours = repo.getTotalHoursInRange(today, today)
-            val monthHours = repo.getTotalHoursInRange(periodStart, periodEnd)
-            val workedDays = allRecords.value
-                .filter { it.workDate in periodStart..periodEnd && it.hoursWorked > 0.0 }
+            val recordsInRange = repo.getRecordsInRangeDirect(periodStart, periodEnd)
+            val monthHours = recordsInRange.sumOf { it.hoursWorked }
+            val workedDays = recordsInRange
+                .filter { it.hoursWorked > 0.0 }
                 .map { it.workDate }
                 .distinct()
                 .size
@@ -339,20 +373,46 @@ class MainViewModel(
 
     fun exportExcel() {
         viewModelScope.launch {
-            _reportState.value = _reportState.value.copy(isExporting = true)
-            val state = _reportState.value
-            val result = ExportUtil.exportExcel(
-                context = context,
-                records = state.records,
-                notes = state.notes,
-                periodStart = state.periodStart,
-                periodEnd = state.periodEnd,
-                hourlyRate = state.hourlyRate
-            )
-            _reportState.value = _reportState.value.copy(
-                isExporting = false,
-                exportedPath = result.getOrNull()
-            )
+            try {
+                val records = repo.getAllRecordsDirect()
+                if (records.isEmpty()) {
+                    showHomeMessage("لا توجد سجلات لتصديرها بعد", isError = true)
+                    return@launch
+                }
+                val rate = prefs.hourlyRate.first()
+                val startDay = prefs.payrollStartDay.first()
+                val cycleType = prefs.payrollCycleType.first()
+                val customStart = prefs.customStartDate.first()
+                val customEnd = prefs.customEndDate.first()
+                val (ps, pe) = PayrollUtil.resolvePeriod(
+                    cycleType = cycleType,
+                    startDay = startDay,
+                    customStart = customStart,
+                    customEnd = customEnd,
+                    referenceDate = Date()
+                )
+
+                _reportState.value = _reportState.value.copy(isExporting = true)
+                val result = ExportUtil.exportExcel(
+                    context = context,
+                    records = records,
+                    notes = emptyList(),
+                    periodStart = ps,
+                    periodEnd = pe,
+                    hourlyRate = rate
+                )
+                _reportState.value = _reportState.value.copy(isExporting = false)
+
+                if (result.isSuccess) {
+                    val path = result.getOrThrow()
+                    showHomeMessage("تم تصدير ملف الإكسل بنجاح ✓\nتم الحفظ في: $path")
+                    ExportUtil.shareExportedFile(context, path)
+                } else {
+                    showHomeMessage("فشل تصدير الإكسل: ${result.exceptionOrNull()?.message}", isError = true)
+                }
+            } catch (e: Exception) {
+                showHomeMessage("خطأ أثناء التصدير: ${e.message}", isError = true)
+            }
         }
     }
 

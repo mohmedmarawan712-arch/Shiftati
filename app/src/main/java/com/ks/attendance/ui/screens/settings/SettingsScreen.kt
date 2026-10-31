@@ -37,7 +37,7 @@ import java.util.*
 @Composable
 fun SettingsScreen(
     viewModel: MainViewModel,
-    onBack: () -> Unit
+    onBack: (() -> Unit)? = null
 ) {
     val state by viewModel.settingsState.collectAsState()
     val homeState by viewModel.homeState.collectAsState()

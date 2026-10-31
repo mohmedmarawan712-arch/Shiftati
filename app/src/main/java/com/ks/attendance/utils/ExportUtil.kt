@@ -1,20 +1,28 @@
 package com.ks.attendance.utils
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Environment
+import androidx.core.content.FileProvider
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
 import java.io.File
-import java.io.FileWriter
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import java.text.SimpleDateFormat
 import java.util.*
 
 object ExportUtil {
 
     private val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    private val sdfTime = SimpleDateFormat("HH:mm:ss", Locale.US)
-    private val sdfDateTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US)
+    private val sdfTime = SimpleDateFormat("hh:mm a", Locale("ar"))
+    private val sdfDateTime = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
+    /**
+     * Exports attendance records to a styled Excel XML/HTML (.xls) workbook.
+     * Contains columns: اليوم، التاريخ، الحضور، الانصراف، عدد الساعات، المصدر، الملاحظات.
+     */
     fun exportExcel(
         context: Context,
         records: List<AttendanceRecord>,
@@ -25,7 +33,8 @@ object ExportUtil {
     ): Result<String> = runCatching {
         val notesByDate = notes.groupBy { it.date }
         val dir = getExportDir(context)
-        val fileName = "ks_attendance_${periodStart}_$periodEnd.xls"
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
+        val fileName = "Shiftati_${periodStart}_${periodEnd}_$timeStamp.xls"
         val file = File(dir, fileName)
 
         val totalHours = records.sumOf { it.hoursWorked }
@@ -43,7 +52,7 @@ object ExportUtil {
                  <x:ExcelWorkbook>
                   <x:ExcelWorksheets>
                    <x:ExcelWorksheet>
-                    <x:Name>تقرير الورديات والراتب</x:Name>
+                    <x:Name>سجل الحضور والراتب</x:Name>
                     <x:WorksheetOptions>
                      <x:DisplayRightToLeft/>
                      <x:Gridline/>
@@ -53,28 +62,27 @@ object ExportUtil {
                  </x:ExcelWorkbook>
                 </xml><![endif]-->
                 <style>
-                  body { font-family: Tahoma, Arial, sans-serif; direction: rtl; }
-                  table { border-collapse: collapse; width: 100%; margin-top: 15px; }
-                  th { background-color: #10B981; color: #ffffff; padding: 10px; border: 1px solid #cccccc; font-weight: bold; }
-                  td { padding: 8px 12px; border: 1px solid #dddddd; text-align: center; }
-                  .title { font-size: 18px; font-weight: bold; color: #004D40; text-align: right; }
-                  .summary-box { background-color: #F0FDF4; font-weight: bold; }
-                  .header-summary { background-color: #E2E8F0; font-weight: bold; }
+                  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; }
+                  table { border-collapse: collapse; width: 100%; margin-top: 12px; }
+                  th { background-color: #059669; color: #ffffff; padding: 12px 8px; border: 1px solid #047857; font-weight: bold; font-size: 14px; text-align: center; }
+                  td { padding: 10px 8px; border: 1px solid #d1d5db; text-align: center; font-size: 13px; }
+                  .title { font-size: 20px; font-weight: bold; color: #065f46; text-align: right; margin-bottom: 6px; }
+                  .subtitle { font-size: 13px; color: #4b5563; text-align: right; margin-bottom: 12px; }
+                  .summary-row { background-color: #ecfdf5; font-weight: bold; }
+                  .total-row { background-color: #d1fae5; font-weight: bold; font-size: 15px; color: #047857; }
                 </style>
                 </head>
                 <body dir="rtl">
                   <div class="title">تقرير ساعات العمل والراتب (شفتاتي)</div>
-                  <div>الفترة: من $periodStart إلى $periodEnd</div>
-                  <div>تاريخ التصدير: ${sdfDateTime.format(Date())}</div>
-                  <br/>
+                  <div class="subtitle">الفترة المحتسبة: من $periodStart إلى $periodEnd &nbsp;|&nbsp; تاريخ التصدير: ${sdfDateTime.format(Date())}</div>
                   <table>
                     <thead>
                       <tr>
-                        <th>التاريخ</th>
                         <th>اليوم</th>
-                        <th>وقت الحضور</th>
-                        <th>وقت الانصراف</th>
-                        <th>الساعات</th>
+                        <th>التاريخ</th>
+                        <th>الحضور</th>
+                        <th>الانصراف</th>
+                        <th>عدد الساعات</th>
                         <th>المصدر</th>
                         <th>الملاحظات</th>
                       </tr>
@@ -83,12 +91,13 @@ object ExportUtil {
             """.trimIndent())
 
             for (record in records.sortedBy { it.checkInTime }) {
-                val date = sdfDate.parse(record.workDate) ?: continue
+                val date = runCatching { sdfDate.parse(record.workDate) }.getOrNull() ?: Date(record.checkInTime)
                 val dayName = arabicDayName(date)
-                val checkIn = sdfDateTime.format(Date(record.checkInTime))
-                val checkOut = record.checkOutTime?.let { sdfDateTime.format(Date(it)) } ?: "مفتوح"
-                val hours = "%.2f".format(record.hoursWorked)
-                val dayNotes = notesByDate[record.workDate]?.joinToString(" | ") { it.noteText } ?: ""
+                val checkIn = PayrollUtil.formatTime(record.checkInTime, false)
+                val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح"
+                val hoursText = PayrollUtil.formatHours(record.hoursWorked)
+                val hoursDec = "%.2f".format(record.hoursWorked)
+                val dayNotes = notesByDate[record.workDate]?.joinToString(" | ") { it.noteText } ?: record.note
                 val source = when {
                     record.source == "ess_online" && !record.isFromServer -> "معدل"
                     record.source == "ess_online" -> "ESS"
@@ -96,13 +105,13 @@ object ExportUtil {
                 }
                 append("""
                       <tr>
+                        <td style="font-weight:bold;">$dayName</td>
                         <td>${record.workDate}</td>
-                        <td>$dayName</td>
-                        <td>$checkIn</td>
-                        <td>$checkOut</td>
-                        <td style="font-weight:bold; color:#047857;">$hours</td>
+                        <td style="color:#059669; font-weight:bold;">$checkIn</td>
+                        <td style="color:#2563eb; font-weight:bold;">$checkOut</td>
+                        <td style="font-weight:bold; color:#047857;">$hoursText ($hoursDec)</td>
                         <td>$source</td>
-                        <td>$dayNotes</td>
+                        <td style="text-align:right;">$dayNotes</td>
                       </tr>
                 """.trimIndent())
             }
@@ -110,21 +119,21 @@ object ExportUtil {
             append("""
                     </tbody>
                     <tfoot>
-                      <tr class="header-summary">
-                        <td colspan="4" style="text-align:right;">إجمالي الساعات المنجزة</td>
-                        <td colspan="3" style="font-weight:bold; color:#047857;">${"%.2f".format(totalHours)} ساعة</td>
+                      <tr class="summary-row">
+                        <td colspan="4" style="text-align:right;">إجمالي الساعات المنجزة:</td>
+                        <td colspan="3" style="text-align:center; color:#047857;">${"%.2f".format(totalHours)} ساعة</td>
                       </tr>
-                      <tr class="header-summary">
-                        <td colspan="4" style="text-align:right;">عدد أيام العمل</td>
-                        <td colspan="3">$workedDays يوم</td>
+                      <tr class="summary-row">
+                        <td colspan="4" style="text-align:right;">عدد أيام العمل:</td>
+                        <td colspan="3" style="text-align:center;">$workedDays يوم</td>
                       </tr>
-                      <tr class="header-summary">
-                        <td colspan="4" style="text-align:right;">سعر الساعة المحتسب</td>
-                        <td colspan="3">${"%,.0f".format(hourlyRate)} ج.م</td>
+                      <tr class="summary-row">
+                        <td colspan="4" style="text-align:right;">سعر الساعة:</td>
+                        <td colspan="3" style="text-align:center;">${"%,.0f".format(hourlyRate)} ج.م</td>
                       </tr>
-                      <tr class="summary-box">
-                        <td colspan="4" style="text-align:right; font-size:16px;">صافي الراتب التقديري</td>
-                        <td colspan="3" style="font-size:16px; color:#059669;">${"%,.0f".format(totalSalary)} ج.م</td>
+                      <tr class="total-row">
+                        <td colspan="4" style="text-align:right;">صافي الراتب التقديري:</td>
+                        <td colspan="3" style="text-align:center;">${"%,.0f".format(totalSalary)} ج.م</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -133,73 +142,105 @@ object ExportUtil {
             """.trimIndent())
         }
 
-        FileWriter(file, Charsets.UTF_8).use { fw ->
-            fw.write("\uFEFF")
-            fw.write(html)
+        FileOutputStream(file).use { fos ->
+            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
+                writer.write("\uFEFF") // UTF-8 BOM for Arabic support
+                writer.write(html)
+                writer.flush()
+            }
         }
+
+        // Also export a clean CSV alongside it for maximum compatibility
+        val csvFileName = "Shiftati_${periodStart}_${periodEnd}_$timeStamp.csv"
+        val csvFile = File(dir, csvFileName)
+        exportCsvFile(csvFile, records, notes, hourlyRate)
 
         file.absolutePath
     }
 
-    /**
-     * Export attendance records + notes to a CSV file.
-     * Returns the file path on success.
-     */
-    fun exportCsv(
-        context: Context,
+    private fun exportCsvFile(
+        file: File,
         records: List<AttendanceRecord>,
         notes: List<DayNote>,
-        periodStart: String,
-        periodEnd: String,
         hourlyRate: Double
-    ): Result<String> = runCatching {
+    ) {
         val notesByDate = notes.groupBy { it.date }
-        val dir = getExportDir(context)
-        val fileName = "ks_attendance_${periodStart}_$periodEnd.csv"
-        val file = File(dir, fileName)
-
-        FileWriter(file, Charsets.UTF_8).use { fw ->
-            // BOM for Excel Arabic support
-            fw.write("\uFEFF")
-            // Header
-            fw.write("التاريخ,يوم الأسبوع,وقت الدخول,وقت الخروج,الساعات,الملاحظات,المصدر\n")
-
-            for (record in records.sortedBy { it.checkInTime }) {
-                val date = sdfDate.parse(record.workDate) ?: continue
-                val dayName = arabicDayName(date)
-                val checkIn = sdfDateTime.format(Date(record.checkInTime))
-                val checkOut = record.checkOutTime?.let { sdfDateTime.format(Date(it)) } ?: "—"
-                val hours = "%.2f".format(record.hoursWorked)
-                val dayNotes = notesByDate[record.workDate]?.joinToString(" | ") { it.noteText } ?: ""
-                val source = when {
-                    record.source == "ess_online" && !record.isFromServer -> "معدل"
-                    record.source == "ess_online" -> "ESS"
-                    else -> "يدوي"
+        FileOutputStream(file).use { fos ->
+            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
+                writer.write("\uFEFF") // UTF-8 BOM
+                writer.write("اليوم,التاريخ,الحضور,الانصراف,عدد الساعات,الساعات العشرية,المصدر,الملاحظات\n")
+                for (rec in records.sortedBy { it.checkInTime }) {
+                    val date = runCatching { sdfDate.parse(rec.workDate) }.getOrNull() ?: Date(rec.checkInTime)
+                    val dayName = arabicDayName(date)
+                    val checkIn = PayrollUtil.formatTime(rec.checkInTime, false).replace(",", " ")
+                    val checkOut = (rec.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح").replace(",", " ")
+                    val hours = PayrollUtil.formatHours(rec.hoursWorked).replace(",", " ")
+                    val hoursDec = "%.2f".format(rec.hoursWorked)
+                    val source = when {
+                        rec.source == "ess_online" && !rec.isFromServer -> "معدل"
+                        rec.source == "ess_online" -> "ESS"
+                        else -> "يدوي"
+                    }
+                    val note = (notesByDate[rec.workDate]?.joinToString(" | ") { it.noteText } ?: rec.note).replace(",", " - ").replace("\n", " ")
+                    writer.write("\"$dayName\",\"${rec.workDate}\",\"$checkIn\",\"$checkOut\",\"$hours\",\"$hoursDec\",\"$source\",\"$note\"\n")
                 }
-                fw.write("${record.workDate},$dayName,$checkIn,$checkOut,$hours,\"$dayNotes\",$source\n")
+                val totalHours = records.sumOf { it.hoursWorked }
+                val totalSalary = totalHours * hourlyRate
+                writer.write("\n\"إجمالي الساعات\",\"${"%.2f".format(totalHours)}\",\"إجمالي الراتب\",\"${"%,.0f".format(totalSalary)} ج.م\"\n")
+                writer.flush()
             }
-
-            // Summary row
-            val totalHours = records.sumOf { it.hoursWorked }
-            val totalSalary = totalHours * hourlyRate
-            fw.write("\n")
-            fw.write("إجمالي الساعات,,,,${"%.2f".format(totalHours)},,\n")
-            fw.write("الراتب المتوقع (EGP),,,,${"%,.0f".format(totalSalary)},,\n")
-            fw.write("سعر الساعة (EGP),,,,${"%,.0f".format(hourlyRate)},,\n")
-            fw.write("الفترة من,$periodStart,إلى,$periodEnd,,\n")
         }
-
-        file.absolutePath
     }
 
     private fun getExportDir(context: Context): File {
-        val dir = if (Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED) {
-            File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "KSAttendance")
-        } else {
-            File(context.filesDir, "exports")
+        // Preferred: Public Downloads folder
+        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        if (downloads != null && downloads.exists()) {
+            val folder = File(downloads, "Shiftati")
+            if (!folder.exists()) folder.mkdirs()
+            if (folder.canWrite()) return folder
         }
-        if (!dir.exists()) dir.mkdirs()
-        return dir
+        // Fallback: App External Documents
+        val extDocs = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        if (extDocs != null) {
+            if (!extDocs.exists()) extDocs.mkdirs()
+            return extDocs
+        }
+        // Fallback: Internal files
+        val internal = File(context.filesDir, "exports")
+        if (!internal.exists()) internal.mkdirs()
+        return internal
+    }
+
+    /**
+     * Share or open the exported file using Android system intent with FileProvider
+     */
+    fun shareExportedFile(context: Context, filePath: String) {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) return
+
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "application/vnd.ms-excel"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra(Intent.EXTRA_SUBJECT, "سجل حضور شفتاتي")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val chooser = Intent.createChooser(intent, "مشاركة أو فتح ملف الإكسل").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (_: Exception) {
+            // Silently ignore if no app is available or permission issue
+        }
     }
 
     private fun arabicDayName(date: Date): String {
@@ -213,21 +254,6 @@ object ExportUtil {
             Calendar.WEDNESDAY -> "الأربعاء"
             Calendar.THURSDAY  -> "الخميس"
             Calendar.FRIDAY    -> "الجمعة"
-            else               -> ""
-        }
-    }
-
-    fun englishDayName(date: Date): String {
-        val cal = Calendar.getInstance()
-        cal.time = date
-        return when (cal.get(Calendar.DAY_OF_WEEK)) {
-            Calendar.SATURDAY  -> "Sat"
-            Calendar.SUNDAY    -> "Sun"
-            Calendar.MONDAY    -> "Mon"
-            Calendar.TUESDAY   -> "Tue"
-            Calendar.WEDNESDAY -> "Wed"
-            Calendar.THURSDAY  -> "Thu"
-            Calendar.FRIDAY    -> "Fri"
             else               -> ""
         }
     }

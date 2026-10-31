@@ -36,10 +36,17 @@ fun AttendanceListScreen(
     onNavigate: (String) -> Unit
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
+    val homeState by viewModel.homeState.collectAsState()
     val settingsState by viewModel.settingsState.collectAsState()
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     var dayToDelete by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(homeState.message) {
+        val msg = homeState.message ?: return@LaunchedEffect
+        snackbarHostState.showSnackbar(msg.text)
+        viewModel.clearMessage()
+    }
 
     // Group by date descending
     val grouped = remember(allRecords) {
@@ -52,7 +59,7 @@ fun AttendanceListScreen(
         topBar = {
             KSTopBar(
                 title = "سجل الحضور",
-                onBack = { onNavigate("home") },
+                onBack = null,
                 actions = {
                     IconButton(onClick = { viewModel.exportCsv() }) {
                         Icon(
@@ -101,7 +108,7 @@ fun AttendanceListScreen(
                     }
 
                     items(records, key = { it.id }) { record ->
-                        SwipeToDismissRecordItem(
+                        RecordRow(
                             record = record,
                             is24Hour = settingsState.is24Hour,
                             onDelete = { recordToDelete = record },
@@ -217,57 +224,6 @@ private fun DateGroupHeader(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SwipeToDismissRecordItem(
-    record: AttendanceRecord,
-    is24Hour: Boolean = false,
-    onDelete: () -> Unit,
-    onEdit: () -> Unit
-) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-            }
-            false // don't auto-dismiss; dialog handles deletion
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            val color by animateColorAsState(
-                targetValue = if (dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart)
-                    MaterialTheme.colorScheme.errorContainer
-                else Color.Transparent,
-                label = "swipeBg"
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color)
-                    .padding(end = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "حذف",
-                    tint = MaterialTheme.colorScheme.error
-                )
-            }
-        }
-    ) {
-        RecordRow(
-            record = record,
-            is24Hour = is24Hour,
-            onEdit = onEdit,
-            onDelete = onDelete
-        )
-    }
-}
-
 @Composable
 private fun RecordRow(
     record: AttendanceRecord,
@@ -297,8 +253,8 @@ private fun RecordRow(
                 detectTapGestures(onLongPress = { onEdit() })
             },
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.28f),
-        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f))
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
     ) {
         Column(
             modifier = Modifier

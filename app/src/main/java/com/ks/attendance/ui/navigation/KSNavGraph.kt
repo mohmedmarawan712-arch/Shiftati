@@ -137,7 +137,7 @@ fun KSNavGraph(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     viewModel = viewModel,
-                    onBack = { navController.popBackStack() }
+                    onBack = null
                 )
             }
             // Add/Edit record — recordId = -1 means new

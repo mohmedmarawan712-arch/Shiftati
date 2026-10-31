@@ -44,6 +44,11 @@ class AttendanceRepository(
     suspend fun getTotalHoursInRange(start: String, end: String): Double =
         attendanceDao.getTotalHoursInRange(start, end) ?: 0.0
 
+    suspend fun getAllRecordsDirect(): List<AttendanceRecord> = attendanceDao.getAllRecordsDirect()
+
+    suspend fun getRecordsInRangeDirect(start: String, end: String): List<AttendanceRecord> =
+        attendanceDao.getRecordsInRangeDirect(start, end)
+
     // ─── Clock-in / Clock-out shortcuts ──────────────────────────────────────
 
     suspend fun clockIn(): Long {
