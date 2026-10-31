@@ -353,7 +353,7 @@ private fun HeroClockCard(
                     .height(64.dp),
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isClockedIn) ColorAbsent else MaterialTheme.colorScheme.primary,
+                    containerColor = if (isClockedIn) ColorLogout else ColorFingerprint,
                     contentColor = Color.White
                 ),
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 1.dp)
@@ -437,15 +437,15 @@ private fun CompactRecordCard(
             // Distinct Attendance Badge (BeachAccess if off_day, Fingerprint if regular)
             Surface(
                 shape = CircleShape,
-                color = if (isOffDay) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-                else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                color = if (isOffDay) ColorOffDay.copy(alpha = 0.15f)
+                else ColorFingerprint.copy(alpha = 0.12f),
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = if (isOffDay) Icons.Filled.BeachAccess else Icons.Filled.Fingerprint,
                         contentDescription = if (isOffDay) "إجازة" else "حضور",
-                        tint = if (isOffDay) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                        tint = if (isOffDay) ColorOffDay else ColorFingerprint,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -459,7 +459,7 @@ private fun CompactRecordCard(
                         text = "يوم إجازة (OFF)",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = ColorOffDay
                     )
                 } else {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -496,7 +496,7 @@ private fun CompactRecordCard(
                                     Icons.Filled.Logout,
                                     contentDescription = null,
                                     modifier = Modifier.size(13.dp),
-                                    tint = MaterialTheme.colorScheme.secondary
+                                    tint = ColorLogout
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(

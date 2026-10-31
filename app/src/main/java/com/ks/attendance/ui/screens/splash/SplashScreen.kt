@@ -56,9 +56,9 @@ fun SplashScreen(
         onSplashFinished()
     }
 
-    val bgColor = if (isDark) Color(0xFF000000) else Color(0xFFF7FBF9)
-    val textColor = if (isDark) Color.White else Color(0xFF151D1A)
-    val subtitleColor = if (isDark) Color(0xFF8E9793) else Color(0xFF626B67)
+    val bgColor = if (isDark) Color(0xFF000000) else Color(0xFFF8FAFC)
+    val textColor = if (isDark) Color.White else Color(0xFF0F172A)
+    val subtitleColor = if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
 
     Box(
         modifier = Modifier

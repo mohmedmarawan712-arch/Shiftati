@@ -31,7 +31,7 @@ import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
-import com.ks.attendance.ui.theme.ColorWorked
+import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.PayrollUtil
 import java.util.*
 
@@ -157,9 +157,15 @@ fun SettingsScreen(
 
                         OutlinedButton(
                             onClick = { viewModel.essLogout() },
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = ColorLogout
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, ColorLogout.copy(alpha = 0.5f))
                         ) {
-                            Text(stringResource(R.string.ess_logout_btn))
+                            Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(stringResource(R.string.ess_logout_btn), fontWeight = FontWeight.Bold)
                         }
                     }
                 } else {

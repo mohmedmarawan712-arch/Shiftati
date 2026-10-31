@@ -25,7 +25,7 @@ import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.EmptyState
 import com.ks.attendance.ui.components.KSTopBar
-import com.ks.attendance.ui.theme.ColorWorked
+import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.PayrollUtil
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
@@ -375,7 +375,7 @@ fun AttendanceListScreen(
                             dayToDelete = null
                         },
                         colors = ButtonDefaults.textButtonColors(
-                            contentColor = MaterialTheme.colorScheme.error
+                            contentColor = ColorDelete
                         )
                     ) {
                         Text("حذف اليوم بالكامل", fontWeight = FontWeight.Bold)
@@ -446,7 +446,7 @@ private fun DateGroupHeader(
                     Icon(
                         imageVector = Icons.Default.DeleteSweep,
                         contentDescription = "حذف اليوم بالكامل",
-                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                        tint = ColorDelete,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -525,13 +525,13 @@ private fun RecordRow(
 
                     Surface(
                         shape = RoundedCornerShape(50.dp),
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f)
+                        color = ColorOffDay.copy(alpha = 0.15f)
                     ) {
                         Text(
                             text = "OFF",
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = ColorOffDay,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
                         )
                     }
@@ -549,7 +549,7 @@ private fun RecordRow(
                             Icon(
                                 imageVector = Icons.Filled.Fingerprint,
                                 contentDescription = "حضور",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = ColorFingerprint,
                                 modifier = Modifier.size(17.dp)
                             )
                             Text(
@@ -576,7 +576,7 @@ private fun RecordRow(
                             Icon(
                                 imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
                                 contentDescription = "انصراف",
-                                tint = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.secondary,
+                                tint = ColorLogout,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
@@ -686,7 +686,7 @@ private fun RecordRow(
                             Icons.Default.DeleteOutline,
                             contentDescription = "حذف السجل",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                            tint = ColorDelete
                         )
                     }
                 }

@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material3.*
+import com.ks.attendance.ui.theme.ColorDelete
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -188,7 +189,7 @@ fun ConfirmDeleteDialog(
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
+                tint = ColorDelete
             )
         },
         title = {
@@ -201,7 +202,7 @@ fun ConfirmDeleteDialog(
             Button(
                 onClick = onConfirm,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
+                    containerColor = ColorDelete
                 )
             ) {
                 Text("حذف")

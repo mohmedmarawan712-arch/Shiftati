@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.KSTopBar
+import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
 import java.text.SimpleDateFormat
@@ -342,12 +343,12 @@ fun AddEditRecordScreen(
                     .clickable { isOffDay = !isOffDay },
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.outlinedCardColors(
-                    containerColor = if (isOffDay) MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.35f)
+                    containerColor = if (isOffDay) ColorOffDay.copy(alpha = 0.12f)
                     else MaterialTheme.colorScheme.surface
                 ),
                 border = androidx.compose.foundation.BorderStroke(
                     width = 1.dp,
-                    color = if (isOffDay) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.6f)
+                    color = if (isOffDay) ColorOffDay.copy(alpha = 0.7f)
                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
                 )
             ) {
@@ -358,7 +359,7 @@ fun AddEditRecordScreen(
                     Icon(
                         imageVector = Icons.Filled.BeachAccess,
                         contentDescription = "يوم إجازة",
-                        tint = if (isOffDay) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = if (isOffDay) ColorOffDay else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -367,7 +368,7 @@ fun AddEditRecordScreen(
                             text = "يوم إجازة (OFF)",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = if (isOffDay) ColorOffDay else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = if (isOffDay) "عطلة رسمية / إجازة بدون ساعات عمل وتوقيت" else "تحديد هذا اليوم كإجازة بدون مواعيد حضور وانصراف",
@@ -377,7 +378,11 @@ fun AddEditRecordScreen(
                     }
                     Switch(
                         checked = isOffDay,
-                        onCheckedChange = { isOffDay = it }
+                        onCheckedChange = { isOffDay = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = androidx.compose.ui.graphics.Color.White,
+                            checkedTrackColor = ColorOffDay
+                        )
                     )
                 }
             }
@@ -390,6 +395,7 @@ fun AddEditRecordScreen(
                     minute = checkInMinute,
                     label = "وقت الدخول",
                     icon = Icons.Filled.Fingerprint,
+                    iconTint = ColorFingerprint,
                     is24Hour = settingsState.is24Hour,
                     onClick = { showCheckInPicker = true }
                 )
@@ -413,6 +419,7 @@ fun AddEditRecordScreen(
                         minute = checkOutMinute,
                         label = "وقت الانصراف",
                         icon = Icons.Filled.Logout,
+                        iconTint = ColorLogout,
                         is24Hour = settingsState.is24Hour,
                         onClick = { showCheckOutPicker = true }
                     )
@@ -633,6 +640,7 @@ private fun TimePickerRow(
     minute: Int,
     label: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconTint: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.primary,
     is24Hour: Boolean = false,
     onClick: () -> Unit
 ) {
@@ -653,7 +661,7 @@ private fun TimePickerRow(
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(icon, contentDescription = null, tint = iconTint)
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = timeDisplay,

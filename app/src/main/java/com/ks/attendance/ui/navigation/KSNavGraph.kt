@@ -21,14 +21,12 @@ import com.ks.attendance.ui.screens.attendance.AttendanceListScreen
 import com.ks.attendance.ui.screens.calendar.CalendarScreen
 import com.ks.attendance.ui.screens.home.HomeScreen
 import com.ks.attendance.ui.screens.record.AddEditRecordScreen
-import com.ks.attendance.ui.screens.reports.ReportScreen
 import com.ks.attendance.ui.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String, val labelAr: String, val icon: ImageVector) {
     object Home      : Screen("home",     "الرئيسية",   Icons.Filled.Home)
     object List      : Screen("list",     "السجلات",    Icons.Filled.List)
     object Calendar  : Screen("calendar", "التقويم",    Icons.Filled.CalendarMonth)
-    object Reports   : Screen("reports",  "التقارير",   Icons.Filled.BarChart)
     object Settings  : Screen("settings", "الإعدادات",  Icons.Filled.Settings)
 }
 
@@ -112,9 +110,6 @@ fun KSNavGraph(
                         navController.navigate("record/-1?date=$date")
                     }
                 )
-            }
-            composable(Screen.Reports.route) {
-                ReportScreen(viewModel = viewModel)
             }
             composable(Screen.Settings.route) {
                 SettingsScreen(

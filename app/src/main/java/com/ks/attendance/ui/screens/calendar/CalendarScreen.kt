@@ -120,7 +120,7 @@ fun CalendarScreen(
                         confirmDeleteDay = false
                         showSheet = false
                     },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.textButtonColors(contentColor = ColorDelete)
                 ) { Text("حذف اليوم", fontWeight = FontWeight.Bold) }
             },
             dismissButton = {
@@ -431,7 +431,7 @@ private fun DayBottomSheet(
                         Icon(
                             Icons.Filled.Fingerprint,
                             contentDescription = "حضور",
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = ColorFingerprint,
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
@@ -447,7 +447,7 @@ private fun DayBottomSheet(
                             Icon(
                                 Icons.Filled.Logout,
                                 contentDescription = "انصراف",
-                                tint = MaterialTheme.colorScheme.secondary,
+                                tint = ColorLogout,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -500,7 +500,7 @@ private fun DayBottomSheet(
                                 Icons.Filled.DeleteOutline,
                                 contentDescription = "حذف هذا السجل",
                                 modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
+                                tint = ColorDelete
                             )
                         }
                     }
@@ -589,7 +589,7 @@ private fun DayBottomSheet(
                             style = MaterialTheme.typography.bodyMedium)
                         IconButton(onClick = { onDeleteNote(note) }, modifier = Modifier.size(28.dp)) {
                             Icon(Icons.Filled.Delete, contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(16.dp))
+                                tint = ColorDelete, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
