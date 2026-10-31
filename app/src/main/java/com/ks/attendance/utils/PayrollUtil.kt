@@ -23,14 +23,23 @@ object PayrollUtil {
     const val CYCLE_CUSTOM_RANGE   = "CUSTOM_RANGE"
 
     /**
-     * Resolves the period according to [cycleType], [startDay], or explicit [customStart] and [customEnd].
+     * Resolves the period according to [cycleType] and [startDay].
      * Defaults to the calendar-accurate [CYCLE_29_TO_28] (day 29 to day 28).
      */
     fun resolvePeriod(
         cycleType: String = CYCLE_29_TO_28,
         startDay: Int = 29,
-        customStart: String? = null,
-        customEnd: String? = null,
+        referenceDate: Date = Date()
+    ): Pair<String, String> = resolvePeriod(cycleType, startDay, null, null, referenceDate)
+
+    /**
+     * Resolves the period according to [cycleType], [startDay], or explicit [customStart] and [customEnd].
+     */
+    fun resolvePeriod(
+        cycleType: String,
+        startDay: Int,
+        customStart: String?,
+        customEnd: String?,
         referenceDate: Date = Date()
     ): Pair<String, String> {
         return when (cycleType) {

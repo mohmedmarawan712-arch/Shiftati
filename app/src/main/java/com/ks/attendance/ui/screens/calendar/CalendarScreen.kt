@@ -96,6 +96,7 @@ fun CalendarScreen(
                     }
                 },
                 onDeleteNote = { viewModel.deleteNote(it) },
+                onDeleteRecord = { viewModel.deleteRecord(it) },
                 onDeleteDay = { confirmDeleteDay = true },
                 onNavigateAddRecord = {
                     showSheet = false
@@ -356,6 +357,7 @@ private fun DayBottomSheet(
     onToggleNoteInput: () -> Unit,
     onSaveNote: () -> Unit,
     onDeleteNote: (DayNote) -> Unit,
+    onDeleteRecord: (AttendanceRecord) -> Unit = {},
     onDeleteDay: () -> Unit,
     onNavigateAddRecord: () -> Unit
 ) {
@@ -483,7 +485,7 @@ private fun DayBottomSheet(
                         }
                         // Delete single record button
                         IconButton(
-                            onClick = { viewModel.deleteRecord(record) },
+                            onClick = { onDeleteRecord(record) },
                             modifier = Modifier.size(30.dp)
                         ) {
                             Icon(

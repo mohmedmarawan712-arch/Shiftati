@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
+import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.EmptyState
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
