@@ -1,0 +1,77 @@
+package com.ks.attendance.utils
+
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ks_prefs")
+
+/**
+ * PrefsUtil — typed access to DataStore preferences.
+ */
+class PrefsUtil(private val context: Context) {
+
+    companion object {
+        val KEY_HOURLY_RATE     = doublePreferencesKey("hourly_rate")
+        val KEY_PAYROLL_START   = intPreferencesKey("payroll_start_day")
+        val KEY_LANGUAGE        = stringPreferencesKey("language")   // "ar" | "en"
+        val KEY_ESS_EMAIL       = stringPreferencesKey("ess_email")
+        val KEY_DARK_MODE       = booleanPreferencesKey("dark_mode")
+        val KEY_EMPLOYEE_NAME   = stringPreferencesKey("employee_name")
+
+        const val DEFAULT_HOURLY_RATE   = 30.0
+        const val DEFAULT_PAYROLL_START = 1
+        const val DEFAULT_LANGUAGE      = "ar"
+    }
+
+    val hourlyRate: Flow<Double> = context.dataStore.data.map {
+        it[KEY_HOURLY_RATE] ?: DEFAULT_HOURLY_RATE
+    }
+
+    val payrollStartDay: Flow<Int> = context.dataStore.data.map {
+        it[KEY_PAYROLL_START] ?: DEFAULT_PAYROLL_START
+    }
+
+    val language: Flow<String> = context.dataStore.data.map {
+        it[KEY_LANGUAGE] ?: DEFAULT_LANGUAGE
+    }
+
+    val essEmail: Flow<String> = context.dataStore.data.map {
+        it[KEY_ESS_EMAIL] ?: ""
+    }
+
+    val darkMode: Flow<Boolean> = context.dataStore.data.map {
+        it[KEY_DARK_MODE] ?: false
+    }
+
+    val employeeName: Flow<String> = context.dataStore.data.map {
+        it[KEY_EMPLOYEE_NAME] ?: ""
+    }
+
+    suspend fun setHourlyRate(value: Double) {
+        context.dataStore.edit { it[KEY_HOURLY_RATE] = value }
+    }
+
+    suspend fun setPayrollStartDay(day: Int) {
+        context.dataStore.edit { it[KEY_PAYROLL_START] = day }
+    }
+
+    suspend fun setLanguage(lang: String) {
+        context.dataStore.edit { it[KEY_LANGUAGE] = lang }
+    }
+
+    suspend fun setEssEmail(email: String) {
+        context.dataStore.edit { it[KEY_ESS_EMAIL] = email }
+    }
+
+    suspend fun setDarkMode(enabled: Boolean) {
+        context.dataStore.edit { it[KEY_DARK_MODE] = enabled }
+    }
+
+    suspend fun setEmployeeName(name: String) {
+        context.dataStore.edit { it[KEY_EMPLOYEE_NAME] = name }
+    }
+}

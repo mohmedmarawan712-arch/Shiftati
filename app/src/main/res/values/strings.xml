@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">KS Attendance</string>
+
+    <!-- Home -->
+    <string name="home">الرئيسية</string>
+    <string name="clock_in">تسجيل الدخول</string>
+    <string name="clock_out">تسجيل الانصراف</string>
+    <string name="today_hours">ساعات اليوم</string>
+    <string name="month_hours">ساعات الشهر</string>
+    <string name="estimated_salary">الراتب التقديري</string>
+    <string name="period_from">الفترة من</string>
+    <string name="period_to">إلى</string>
+    <string name="no_records_today">لا توجد سجلات اليوم</string>
+    <string name="add_record">إضافة سجل</string>
+    <string name="session_active">جلسة نشطة</string>
+    <string name="elapsed">المنقضي</string>
+
+    <!-- Records -->
+    <string name="records">السجلات</string>
+    <string name="check_in">دخول</string>
+    <string name="check_out">خروج</string>
+    <string name="hours_worked">ساعات العمل</string>
+    <string name="open_session">مفتوح</string>
+    <string name="source_manual">يدوي</string>
+    <string name="source_ess">ESS</string>
+    <string name="delete_confirm">هل تريد حذف هذا السجل؟</string>
+    <string name="no_records">لا توجد سجلات</string>
+
+    <!-- Add/Edit -->
+    <string name="add_record_title">إضافة سجل</string>
+    <string name="edit_record_title">تعديل السجل</string>
+    <string name="select_date">اختر التاريخ</string>
+    <string name="check_in_time">وقت الدخول</string>
+    <string name="check_out_time">وقت الانصراف</string>
+    <string name="note">ملاحظة</string>
+    <string name="save">حفظ</string>
+    <string name="cancel">إلغاء</string>
+    <string name="computed_hours">الساعات المحسوبة</string>
+    <string name="optional">اختياري</string>
+
+    <!-- Calendar -->
+    <string name="calendar">التقويم</string>
+    <string name="add_note">إضافة ملاحظة</string>
+    <string name="notes">الملاحظات</string>
+    <string name="no_notes">لا توجد ملاحظات</string>
+
+    <!-- Reports -->
+    <string name="reports">التقارير</string>
+    <string name="total_hours">إجمالي الساعات</string>
+    <string name="worked_days">أيام العمل</string>
+    <string name="salary_egp">الراتب (ج.م)</string>
+    <string name="export_csv">تصدير CSV</string>
+    <string name="sync_ess">مزامنة ESS</string>
+    <string name="current_period">الفترة الحالية</string>
+    <string name="export_success">تم التصدير بنجاح</string>
+    <string name="synced_records">سجل تم مزامنته</string>
+
+    <!-- Settings -->
+    <string name="settings">الإعدادات</string>
+    <string name="employee_name">الاسم</string>
+    <string name="hourly_rate">سعر الساعة (ج.م)</string>
+    <string name="payroll_start">يوم بداية الراتب</string>
+    <string name="language">اللغة</string>
+    <string name="dark_mode">الوضع الليلي</string>
+    <string name="ess_section">ESS (اختياري)</string>
+    <string name="ess_email">البريد الإلكتروني</string>
+    <string name="ess_password">كلمة المرور</string>
+    <string name="ess_login">تسجيل الدخول لـ ESS</string>
+    <string name="ess_logout">تسجيل الخروج من ESS</string>
+    <string name="ess_logged_in">متصل بـ ESS</string>
+    <string name="ess_not_logged_in">غير متصل</string>
+    <string name="clear_data">مسح جميع البيانات</string>
+    <string name="clear_data_confirm">سيتم حذف جميع سجلات الحضور والملاحظات نهائياً. هل تريد المتابعة؟</string>
+    <string name="app_version">إصدار التطبيق</string>
+    <string name="arabic">عربي</string>
+    <string name="english">English</string>
+    <string name="section_profile">الملف الشخصي</string>
+    <string name="section_salary">إعدادات الراتب</string>
+    <string name="section_appearance">المظهر</string>
+    <string name="section_ess">الاتصال بـ ESS</string>
+    <string name="section_about">عن التطبيق</string>
+    <string name="select_instance">اختر الحساب</string>
+
+    <!-- Days -->
+    <string name="day_sat">السبت</string>
+    <string name="day_sun">الأحد</string>
+    <string name="day_mon">الاثنين</string>
+    <string name="day_tue">الثلاثاء</string>
+    <string name="day_wed">الأربعاء</string>
+    <string name="day_thu">الخميس</string>
+    <string name="day_fri">الجمعة</string>
+
+    <!-- Errors -->
+    <string name="error_generic">حدث خطأ</string>
+    <string name="error_checkout_before_checkin">وقت الخروج يجب أن يكون بعد وقت الدخول</string>
+    <string name="error_no_open_session">لا توجد جلسة مفتوحة</string>
+    <string name="error_session_exists">يوجد جلسة مفتوحة بالفعل</string>
+</resources>
