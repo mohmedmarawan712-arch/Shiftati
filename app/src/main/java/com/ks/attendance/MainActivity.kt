@@ -8,9 +8,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
@@ -31,7 +29,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val settings by viewModel.settingsState.collectAsState()
             val layoutDirection = if (settings.language == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
-            var showSplash by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(true) }
+            var showSplash by remember { mutableStateOf(true) }
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 KSAttendanceTheme(darkTheme = settings.darkMode) {
