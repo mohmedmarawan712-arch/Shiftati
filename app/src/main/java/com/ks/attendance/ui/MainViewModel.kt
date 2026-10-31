@@ -55,6 +55,7 @@ data class SettingsState(
     val payrollCycleType: String = PayrollUtil.CYCLE_29_TO_28,
     val language: String = "ar",
     val darkMode: Boolean = true,
+    val themeMode: String = "system", // "system" | "dark" | "light"
     val timeFormat: String = "12h",
     val essEmail: String = "",
     val essPassword: String = "",
@@ -136,6 +137,7 @@ class MainViewModel(
                 val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_29_TO_28
                 val lang = p[PrefsUtil.KEY_LANGUAGE] ?: PrefsUtil.DEFAULT_LANGUAGE
                 val dark = p[PrefsUtil.KEY_DARK_MODE] ?: true
+                val theme = p[PrefsUtil.KEY_THEME_MODE] ?: PrefsUtil.DEFAULT_THEME_MODE
                 val timeFmt = p[PrefsUtil.KEY_TIME_FORMAT] ?: PrefsUtil.DEFAULT_TIME_FORMAT
                 val email = p[PrefsUtil.KEY_ESS_EMAIL] ?: ""
                 val pass = p[PrefsUtil.KEY_ESS_PASSWORD] ?: ""
@@ -150,6 +152,7 @@ class MainViewModel(
                     payrollCycleType = cycleType,
                     language = lang,
                     darkMode = dark,
+                    themeMode = theme,
                     timeFormat = timeFmt,
                     essEmail = email,
                     essPassword = pass,
@@ -508,6 +511,12 @@ class MainViewModel(
 
     fun setLanguage(lang: String) {
         viewModelScope.launch { prefs.setLanguage(lang) }
+    }
+
+    fun setThemeMode(mode: String) {
+        viewModelScope.launch {
+            prefs.setThemeMode(mode)
+        }
     }
 
     fun setDarkMode(enabled: Boolean) {

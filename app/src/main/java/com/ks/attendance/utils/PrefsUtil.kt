@@ -24,6 +24,7 @@ class PrefsUtil(private val context: Context) {
         val KEY_ESS_PASSWORD      = stringPreferencesKey("ess_password")
         val KEY_ESS_SAVE_CREDS    = booleanPreferencesKey("ess_save_creds")
         val KEY_DARK_MODE         = booleanPreferencesKey("dark_mode")
+        val KEY_THEME_MODE        = stringPreferencesKey("theme_mode") // "system" | "dark" | "light"
         val KEY_EMPLOYEE_NAME     = stringPreferencesKey("employee_name")
         val KEY_TIME_FORMAT       = stringPreferencesKey("time_format") // "12h" | "24h"
         val KEY_CUSTOM_START_DATE = stringPreferencesKey("custom_start_date")
@@ -33,6 +34,10 @@ class PrefsUtil(private val context: Context) {
         const val DEFAULT_PAYROLL_START = 29
         const val DEFAULT_LANGUAGE      = "ar"
         const val DEFAULT_TIME_FORMAT   = "12h"
+        const val THEME_SYSTEM          = "system"
+        const val THEME_DARK            = "dark"
+        const val THEME_LIGHT           = "light"
+        const val DEFAULT_THEME_MODE    = THEME_SYSTEM
     }
 
     val allPreferences: Flow<Preferences> = context.dataStore.data
@@ -73,6 +78,10 @@ class PrefsUtil(private val context: Context) {
         it[KEY_DARK_MODE] ?: true // Default to true (AMOLED looks gorgeous)
     }
 
+    val themeMode: Flow<String> = context.dataStore.data.map {
+        it[KEY_THEME_MODE] ?: DEFAULT_THEME_MODE
+    }
+
     val employeeName: Flow<String> = context.dataStore.data.map {
         it[KEY_EMPLOYEE_NAME] ?: ""
     }
@@ -105,8 +114,15 @@ class PrefsUtil(private val context: Context) {
         }
     }
 
+    suspend fun setThemeMode(mode: String) {
+        context.dataStore.edit {
+            it[KEY_THEME_MODE] = mode
+            it[KEY_DARK_MODE] = (mode == THEME_DARK)
+        }
+    }
+
     suspend fun setDarkMode(enabled: Boolean) {
-        context.dataStore.edit { it[KEY_DARK_MODE] = enabled }
+        setThemeMode(if (enabled) THEME_DARK else THEME_LIGHT)
     }
 
     suspend fun setEmployeeName(name: String) {
@@ -146,6 +162,7 @@ class PrefsUtil(private val context: Context) {
             "ess_password" to (prefs[KEY_ESS_PASSWORD] ?: ""),
             "ess_save_creds" to (prefs[KEY_ESS_SAVE_CREDS] ?: false),
             "dark_mode" to (prefs[KEY_DARK_MODE] ?: true),
+            "theme_mode" to (prefs[KEY_THEME_MODE] ?: DEFAULT_THEME_MODE),
             "employee_name" to (prefs[KEY_EMPLOYEE_NAME] ?: ""),
             "custom_start_date" to (prefs[KEY_CUSTOM_START_DATE] ?: ""),
             "custom_end_date" to (prefs[KEY_CUSTOM_END_DATE] ?: "")
@@ -163,6 +180,7 @@ class PrefsUtil(private val context: Context) {
             (map["ess_password"] as? String)?.let { p[KEY_ESS_PASSWORD] = it }
             (map["ess_save_creds"] as? Boolean)?.let { p[KEY_ESS_SAVE_CREDS] = it }
             (map["dark_mode"] as? Boolean)?.let { p[KEY_DARK_MODE] = it }
+            (map["theme_mode"] as? String)?.let { p[KEY_THEME_MODE] = it }
             (map["employee_name"] as? String)?.let { p[KEY_EMPLOYEE_NAME] = it }
             (map["custom_start_date"] as? String)?.let { p[KEY_CUSTOM_START_DATE] = it }
             (map["custom_end_date"] as? String)?.let { p[KEY_CUSTOM_END_DATE] = it }

@@ -33,6 +33,8 @@ import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.PayrollUtil
+import com.ks.attendance.utils.PrefsUtil
+import androidx.compose.ui.graphics.Color
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,6 +60,7 @@ fun SettingsScreen(
     }
     var showStartDatePicker by remember { mutableStateOf(false) }
     var showEndDatePicker by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     // ESS states
     var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
@@ -420,17 +423,77 @@ fun SettingsScreen(
                 }
             }
 
-            // ─── 4. Appearance & Time Format (Pure AMOLED & 24h Without Subtitle) ─
+            // ─── 4. Appearance & Time Format (Mihon-Style Theme Selector & 24h) ───
             SlateCard(
                 title = stringResource(R.string.section_appearance),
                 icon = Icons.Filled.Tune
             ) {
-                // AMOLED Switch (Only Title + Switch)
-                SlateCleanToggleRow(
-                    title = stringResource(R.string.amoled_dark_mode),
-                    checked = state.darkMode,
-                    onCheckedChange = { viewModel.setDarkMode(it) }
-                )
+                // Theme Selection Row (Clickable Item with current mode subtitle)
+                val currentThemeTitle = when (state.themeMode) {
+                    PrefsUtil.THEME_LIGHT -> "الوضع الفاتح"
+                    PrefsUtil.THEME_DARK  -> "الوضع الداكن (AMOLED)"
+                    else                  -> "تلقائي (حسب النظام)"
+                }
+                val currentThemeIcon = when (state.themeMode) {
+                    PrefsUtil.THEME_LIGHT -> Icons.Filled.LightMode
+                    PrefsUtil.THEME_DARK  -> Icons.Filled.DarkMode
+                    else                  -> Icons.Filled.BrightnessAuto
+                }
+
+                Surface(
+                    onClick = { showThemeDialog = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.Transparent,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = currentThemeIcon,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "المظهر",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                Text(
+                                    text = currentThemeTitle,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Filled.ChevronLeft,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 12.dp),
@@ -523,6 +586,70 @@ fun SettingsScreen(
                     viewModel.setCustomPeriodRange(customStartDate, formatted)
                 },
                 onDismiss = { showEndDatePicker = false }
+            )
+        }
+
+        // Theme Selection Dialog (Mihon Style)
+        if (showThemeDialog) {
+            AlertDialog(
+                onDismissRequest = { showThemeDialog = false },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Filled.Palette,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "اختر مظهر التطبيق",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ThemeOptionItem(
+                            title = "تلقائي (حسب النظام)",
+                            subtitle = "يتكيف تلقائياً مع مظهر الهاتف العام",
+                            icon = Icons.Filled.BrightnessAuto,
+                            isSelected = state.themeMode == PrefsUtil.THEME_SYSTEM,
+                            onClick = {
+                                viewModel.setThemeMode(PrefsUtil.THEME_SYSTEM)
+                                showThemeDialog = false
+                            }
+                        )
+                        ThemeOptionItem(
+                            title = "الوضع الداكن (AMOLED)",
+                            subtitle = "أسود داكن نقي ومريح للعين ويوفر البطارية",
+                            icon = Icons.Filled.DarkMode,
+                            isSelected = state.themeMode == PrefsUtil.THEME_DARK,
+                            onClick = {
+                                viewModel.setThemeMode(PrefsUtil.THEME_DARK)
+                                showThemeDialog = false
+                            }
+                        )
+                        ThemeOptionItem(
+                            title = "الوضع الفاتح",
+                            subtitle = "مظهر نهاري كلاسيكي مشرق وواضح",
+                            icon = Icons.Filled.LightMode,
+                            isSelected = state.themeMode == PrefsUtil.THEME_LIGHT,
+                            onClick = {
+                                viewModel.setThemeMode(PrefsUtil.THEME_LIGHT)
+                                showThemeDialog = false
+                            }
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showThemeDialog = false }) {
+                        Text("إلغاء", fontWeight = FontWeight.Bold)
+                    }
+                },
+                shape = RoundedCornerShape(22.dp),
+                containerColor = MaterialTheme.colorScheme.surface
             )
         }
     }
@@ -631,5 +758,60 @@ private fun SlateCleanToggleRow(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+private fun ThemeOptionItem(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+        border = androidx.compose.foundation.BorderStroke(
+            width = if (isSelected) 1.dp else 0.5.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.outline.copy(alpha = 0.15f)
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RadioButton(
+                selected = isSelected,
+                onClick = onClick,
+                colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary),
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }
