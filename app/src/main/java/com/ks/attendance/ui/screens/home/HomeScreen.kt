@@ -42,8 +42,6 @@ fun HomeScreen(
     onNavigate: (String) -> Unit
 ) {
     val homeState by viewModel.homeState.collectAsState()
-    // Live elapsed timer for active session
-    var elapsedSeconds by remember { mutableLongStateOf(0L) }
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
@@ -53,20 +51,6 @@ fun HomeScreen(
     var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
     var showAddAccountDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(homeState.openSession) {
-        val session = homeState.openSession
-        if (session != null) {
-            while (true) {
-                elapsedSeconds = (System.currentTimeMillis() - session.checkInTime) / 1000L
-                delay(1000L)
-            }
-        } else {
-            elapsedSeconds = 0L
-        }
-    }
-
-    val isClockedIn = homeState.openSession != null
 
     Scaffold(
         topBar = {
@@ -153,18 +137,6 @@ fun HomeScreen(
                         } else {
                             showAddAccountDialog = true
                         }
-                    }
-                )
-            }
-
-            // ─── Hero Clock In/Out Card ───────────────────────────────────────
-            item {
-                HeroClockCard(
-                    isClockedIn = isClockedIn,
-                    elapsedSeconds = elapsedSeconds,
-                    checkInTime = homeState.openSession?.checkInTime,
-                    onClockToggle = {
-                        if (isClockedIn) viewModel.clockOut() else viewModel.clockIn()
                     }
                 )
             }
@@ -518,145 +490,6 @@ fun HomeScreen(
                     viewModel.addNewAccount(email, pass, onResult)
                 }
             )
-        }
-    }
-}
-
-@Composable
-private fun HeroClockCard(
-    isClockedIn: Boolean,
-    elapsedSeconds: Long,
-    checkInTime: Long?,
-    onClockToggle: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.4f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1200, easing = EaseInOutQuad),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "alpha"
-    )
-
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = if (isClockedIn)
-                    ColorWorked.copy(alpha = 0.6f)
-                else
-                    MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(20.dp)
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Status Tag
-            Surface(
-                shape = RoundedCornerShape(20.dp),
-                color = if (isClockedIn) ColorWorked.copy(alpha = 0.15f)
-                        else MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (isClockedIn) ColorWorked.copy(alpha = pulseAlpha)
-                                else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = if (isClockedIn) "الوردية جارية الآن" else "خارج أوقات العمل",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = if (isClockedIn) ColorWorked else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Timer display
-            val hours = elapsedSeconds / 3600
-            val minutes = (elapsedSeconds % 3600) / 60
-            val seconds = elapsedSeconds % 60
-            val timeText = if (isClockedIn)
-                "%02d:%02d:%02d".format(hours, minutes, seconds)
-            else
-                "00:00:00"
-
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.displayMedium.copy(
-                    fontSize = 44.sp,
-                    letterSpacing = 2.sp
-                ),
-                fontWeight = FontWeight.Black,
-                color = if (isClockedIn) ColorWorked else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            if (isClockedIn && checkInTime != null) {
-                Text(
-                    text = "بدأت في: ${PayrollUtil.formatTime(checkInTime)}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // High-End Modern Action Trigger Button
-            Button(
-                onClick = onClockToggle,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(64.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isClockedIn) ColorLogout else ColorFingerprint,
-                    contentColor = Color.White
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp, pressedElevation = 1.dp)
-            ) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.2f),
-                    modifier = Modifier.size(38.dp)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = if (isClockedIn) Icons.Filled.Logout else Icons.Filled.Fingerprint,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = if (isClockedIn) "تسجيل انصراف" else "تسجيل حضور",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold
-                )
-            }
-
         }
     }
 }

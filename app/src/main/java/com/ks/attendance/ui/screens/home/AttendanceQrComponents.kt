@@ -63,17 +63,6 @@ fun AttendanceQrDialog(
     var clockTime by remember { mutableStateOf(Date()) }
     var selectedAccount by remember(account) { mutableStateOf(account) }
     var showAccountMenu by remember { mutableStateOf(false) }
-    var isLiveClock by remember { mutableStateOf(true) }
-
-    // Live clock ticker
-    LaunchedEffect(isLiveClock) {
-        if (isLiveClock) {
-            while (true) {
-                clockTime = Date()
-                delay(500L)
-            }
-        }
-    }
 
     val timeFormatter = remember { SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS", Locale.US) }
     val displayTimeFormatter = remember { SimpleDateFormat("yyyy/MM/dd - hh:mm:ss a", Locale.US) }
@@ -395,9 +384,9 @@ fun AttendanceQrDialog(
                     ) {
                         Column {
                             Text(
-                                text = if (isLiveClock) "الوقت الحالي (مباشر)" else "الوقت المحدد",
+                                text = "وقت تسجيل البصمة",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = if (isLiveClock) ColorWorked else MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
@@ -410,16 +399,15 @@ fun AttendanceQrDialog(
                         // Button to refresh / reset to current live time
                         FilledTonalButton(
                             onClick = {
-                                isLiveClock = true
                                 clockTime = Date()
-                                Toast.makeText(context, "تم التحديث بالوقت الحالي", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "تم التحديث بالوقت الحالي ✓", Toast.LENGTH_SHORT).show()
                             },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Icon(Icons.Filled.Update, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تحديث الآن", style = MaterialTheme.typography.labelSmall)
+                            Text("تحديث للوقت الحالي", style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
