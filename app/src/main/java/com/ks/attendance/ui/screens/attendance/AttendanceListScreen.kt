@@ -148,7 +148,7 @@ fun AttendanceListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (homeState.isFixedEmployment) {
-                                // 1. Base regular hours
+                                // 1. Base regular hours & price
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = "%.0f س".format(homeState.regularHours),
@@ -157,7 +157,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الأساسي",
+                                        text = "الأساسي (${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج)",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -171,7 +171,7 @@ fun AttendanceListScreen(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 2. Overtime hours
+                                // 2. Overtime hours & price
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = "+%.1f س".format(homeState.overtimeHours),
@@ -180,9 +180,10 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "الإضافي",
+                                        text = "إضافي (+${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج)",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
 
@@ -217,7 +218,7 @@ fun AttendanceListScreen(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 4. Estimated Salary
+                                // 4. Total Salary
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
@@ -226,7 +227,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الراتب",
+                                        text = "إجمالي الراتب",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -374,6 +375,7 @@ fun AttendanceListScreen(
                             record = record,
                             is24Hour = settingsState.is24Hour,
                             isFixedEmployment = homeState.isFixedEmployment,
+                            hourlyRate = homeState.hourlyRate,
                             onDelete = { recordToDelete = record },
                             onEdit = { onNavigate("record/${record.id}") },
                             onRevert = { recordToRevert = record }
@@ -559,6 +561,7 @@ private fun RecordRow(
     record: AttendanceRecord,
     is24Hour: Boolean = false,
     isFixedEmployment: Boolean = false,
+    hourlyRate: Double = 30.0,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onRevert: (() -> Unit)? = null
@@ -690,12 +693,14 @@ private fun RecordRow(
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             if (isFixedEmployment && record.hoursWorked > 9.0) {
+                                val ot = record.hoursWorked - 9.0
+                                val otEarnings = ot * hourlyRate
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
                                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                                 ) {
                                     Text(
-                                        text = "+%.1f س إضافي".format(record.hoursWorked - 9.0),
+                                        text = "+%.1f س (+%.0f ج.م)".format(ot, otEarnings),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary,

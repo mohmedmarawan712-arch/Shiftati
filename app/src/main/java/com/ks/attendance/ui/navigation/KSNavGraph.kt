@@ -25,7 +25,7 @@ import com.ks.attendance.ui.screens.settings.SettingsScreen
 
 sealed class Screen(val route: String, val labelAr: String, val icon: ImageVector) {
     object Home      : Screen("home",     "الرئيسية",   Icons.Filled.Home)
-    object List      : Screen("list",     "السجلات",    Icons.Filled.List)
+    object List      : Screen("list",     "السجلات",    Icons.Filled.FormatListBulleted)
     object Calendar  : Screen("calendar", "التقويم",    Icons.Filled.CalendarMonth)
     object Settings  : Screen("settings", "الإعدادات",  Icons.Filled.Settings)
 }

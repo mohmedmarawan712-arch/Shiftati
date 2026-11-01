@@ -37,7 +37,11 @@ data class HomeState(
     val isFixedEmployment: Boolean = false,
     val standardShiftHours: Double = 9.0,
     val regularHours: Double = 0.0,
-    val overtimeHours: Double = 0.0
+    val overtimeHours: Double = 0.0,
+    val regularSalary: Double = 0.0,
+    val overtimeSalary: Double = 0.0,
+    val hourlyRate: Double = 30.0,
+    val hasChosenEmployment: Boolean = true
 )
 
 data class ReportState(
@@ -73,7 +77,8 @@ data class SettingsState(
     val isEssLoggedIn: Boolean = false,
     val essInstances: List<EssInstance> = emptyList(),
     val isFixedEmployment: Boolean = false,
-    val standardShiftHours: Double = 9.0
+    val standardShiftHours: Double = 9.0,
+    val hasChosenEmployment: Boolean = true
 ) {
     val is24Hour: Boolean get() = timeFormat == "24h"
 }
@@ -156,6 +161,7 @@ class MainViewModel(
                 val customEnd = p[PrefsUtil.KEY_CUSTOM_END_DATE] ?: ""
                 val isFixed = p[PrefsUtil.KEY_FIXED_EMPLOYMENT] ?: PrefsUtil.DEFAULT_FIXED_EMPLOYMENT
                 val stdShift = p[PrefsUtil.KEY_STANDARD_SHIFT_HOURS] ?: PrefsUtil.DEFAULT_STANDARD_SHIFT_HOURS
+                val hasChosen = p[PrefsUtil.KEY_HAS_CHOSEN_EMPLOYMENT] ?: false
 
                 _settingsState.value = SettingsState(
                     hourlyRate = rate,
@@ -173,13 +179,16 @@ class MainViewModel(
                     customStartDate = customStart,
                     customEndDate = customEnd,
                     isFixedEmployment = isFixed,
-                    standardShiftHours = stdShift
+                    standardShiftHours = stdShift,
+                    hasChosenEmployment = hasChosen
                 )
                 _homeState.value = _homeState.value.copy(
                     employeeName = name,
                     is24Hour = (timeFmt == "24h"),
                     isFixedEmployment = isFixed,
-                    standardShiftHours = stdShift
+                    standardShiftHours = stdShift,
+                    hourlyRate = rate,
+                    hasChosenEmployment = hasChosen
                 )
                 refreshHome()
             }
@@ -203,6 +212,7 @@ class MainViewModel(
             val customEnd = prefs.customEndDate.first()
             val isFixed = prefs.fixedEmploymentEnabled.first()
             val stdShift = prefs.standardShiftHours.first()
+            val hasChosen = prefs.hasChosenEmployment.first()
 
             val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(
                 cycleType = cycleType,
@@ -229,8 +239,10 @@ class MainViewModel(
                 }
             }
             val regularHours = if (isFixed) (workedDays * stdShift) else monthHours
+            val regularSalary = regularHours * rate
+            val overtimeSalary = overtimeHours * rate
             val monthSalary = if (isFixed) {
-                (regularHours + overtimeHours) * rate
+                regularSalary + overtimeSalary
             } else {
                 monthHours * rate
             }
@@ -246,8 +258,21 @@ class MainViewModel(
                 isFixedEmployment = isFixed,
                 standardShiftHours = stdShift,
                 regularHours = regularHours,
-                overtimeHours = overtimeHours
+                overtimeHours = overtimeHours,
+                regularSalary = regularSalary,
+                overtimeSalary = overtimeSalary,
+                hourlyRate = rate,
+                hasChosenEmployment = hasChosen
             )
+        }
+    }
+
+    fun selectInitialEmploymentType(isFixed: Boolean) {
+        viewModelScope.launch {
+            prefs.setFixedEmployment(isFixed)
+            prefs.setHasChosenEmployment(true)
+            refreshHome()
+            loadReport()
         }
     }
 

@@ -35,24 +35,26 @@ fun SplashScreen(
     isDark: Boolean,
     onSplashFinished: () -> Unit
 ) {
-    val scale = remember { Animatable(0.75f) }
+    val scale = remember { Animatable(0.88f) }
     val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        // Animate entrance
-        scale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-        alpha.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(500, easing = FastOutSlowInEasing)
-        )
-        // Keep visible for pleasant brand perception
-        delay(950L)
+        // Run entrance animations simultaneously for a quick, snappy splash
+        kotlinx.coroutines.coroutineScope {
+            kotlinx.coroutines.launch {
+                scale.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(280, easing = FastOutSlowInEasing)
+                )
+            }
+            kotlinx.coroutines.launch {
+                alpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(240, easing = FastOutSlowInEasing)
+                )
+            }
+        }
+        delay(320L)
         onSplashFinished()
     }
 

@@ -129,6 +129,179 @@ fun HomeScreen(
                 )
             }
 
+            // ─── Period Summary Card ──────────────────────────────────────────
+            item {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                ) {
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (homeState.isFixedEmployment) Icons.Filled.Badge else Icons.Filled.Schedule,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = if (homeState.isFixedEmployment) "ملخص التعيين والإضافي" else "ملخص فترة الساعات",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            if (homeState.periodStart.isNotBlank()) {
+                                Text(
+                                    text = "${homeState.periodStart} → ${homeState.periodEnd}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (homeState.isFixedEmployment) {
+                                // 1. Base regular hours & price
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "%.0f س".format(homeState.regularHours),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "الأساسي (${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(30.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+
+                                // 2. Overtime hours with money
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "+%.1f س".format(homeState.overtimeHours),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = "إضافي (+${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج)",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(30.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+
+                                // 3. Total salary
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "إجمالي الراتب",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                // Hourly mode (All hours worked as before)
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "%.1f س".format(homeState.monthHours),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "الساعات",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(30.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${homeState.workedDays} يوم",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "أيام العمل",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .width(1.dp)
+                                        .height(30.dp)
+                                        .background(MaterialTheme.colorScheme.outlineVariant)
+                                )
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "الراتب",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ─── Today's Log Header ───────────────────────────────────────────
             item {
                 Row(
@@ -158,6 +331,8 @@ fun HomeScreen(
                     CompactRecordCard(
                         record = record,
                         is24Hour = homeState.is24Hour,
+                        isFixedEmployment = homeState.isFixedEmployment,
+                        hourlyRate = homeState.hourlyRate,
                         onClick = { onNavigate("record/${record.id}") },
                         onDelete = { recordToDelete = record },
                         onRevert = { recordToRevert = record }
@@ -239,6 +414,16 @@ fun HomeScreen(
                     ) {
                         Text("إلغاء")
                     }
+                }
+            )
+        }
+
+        // ─── First-Launch Employment Type Selection Dialog ────────────────────
+        if (!homeState.hasChosenEmployment) {
+            EmploymentTypeDialog(
+                initialIsFixed = homeState.isFixedEmployment,
+                onConfirm = { isFixed ->
+                    viewModel.selectInitialEmploymentType(isFixed)
                 }
             )
         }
@@ -394,6 +579,8 @@ private fun HeroClockCard(
 private fun CompactRecordCard(
     record: AttendanceRecord,
     is24Hour: Boolean = false,
+    isFixedEmployment: Boolean = false,
+    hourlyRate: Double = 30.0,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onRevert: (() -> Unit)? = null
@@ -556,6 +743,23 @@ private fun CompactRecordCard(
                 }
                 Spacer(modifier = Modifier.width(6.dp))
             } else if (record.hoursWorked > 0) {
+                if (isFixedEmployment && record.hoursWorked > 9.0) {
+                    val ot = record.hoursWorked - 9.0
+                    val otMoney = ot * hourlyRate
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                    ) {
+                        Text(
+                            text = "+%.1f س (+%.0f ج.م)".format(ot, otMoney),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
@@ -564,7 +768,7 @@ private fun CompactRecordCard(
                         text = PayrollUtil.formatHours(record.hoursWorked),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -585,4 +789,157 @@ private fun CompactRecordCard(
             }
         }
     }
+}
+
+@Composable
+fun EmploymentTypeDialog(
+    initialIsFixed: Boolean = false,
+    onConfirm: (isFixed: Boolean) -> Unit
+) {
+    var selectedIsFixed by remember { mutableStateOf(initialIsFixed) }
+
+    AlertDialog(
+        onDismissRequest = { /* Cannot dismiss without choosing */ },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = MaterialTheme.colorScheme.surface,
+        title = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                    modifier = Modifier.size(54.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Filled.WorkOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Text(
+                    text = "اختر نظام العمل",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "حدد طريقة احتساب ساعاتك وراتبك للبدء في استخدام التطبيق:",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Option 1: Fixed employment (تعيين)
+                Surface(
+                    onClick = { selectedIsFixed = true },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (selectedIsFixed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (selectedIsFixed) 2.dp else 1.dp,
+                        color = if (selectedIsFixed) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedIsFixed,
+                            onClick = { selectedIsFixed = true },
+                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "نظام التعيين (أوفر تايم)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "• وردية أساسية 9 ساعات\n• احتساب الساعات الزائدة كإضافي بسعرها\n• اليوم الأقل من 9 س يُحسب كيوم كامل",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+
+                // Option 2: Hourly (بالساعة)
+                Surface(
+                    onClick = { selectedIsFixed = false },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (!selectedIsFixed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (!selectedIsFixed) 2.dp else 1.dp,
+                        color = if (!selectedIsFixed) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = !selectedIsFixed,
+                            onClick = { selectedIsFixed = false },
+                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "نظام الساعة (عادي)",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "• احتساب إجمالي الساعات الفعلية المنجزة\n• الراتب = مجموع الساعات × سعر الساعة\n• مناسب للعمل الحر والبارت تايم",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                lineHeight = 16.sp
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(selectedIsFixed) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text(
+                    text = "تأكيد وبدء العمل",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+    )
 }
