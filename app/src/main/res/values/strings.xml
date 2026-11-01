@@ -83,10 +83,11 @@
     <string name="select_end_date">End Date</string>
     <string name="active_period_banner">Active Period: %1$s to %2$s</string>
 
-    <string name="section_employment_type">Fixed Employment &amp; Overtime</string>
-    <string name="fixed_employment_toggle">Fixed Employment (Overtime)</string>
-    <string name="fixed_employment_desc">Base 9-hour shift. Hours over 9 count as Overtime.</string>
+    <string name="section_employment_type">Employment Mode</string>
+    <string name="fixed_employment_toggle">Salaried Mode</string>
+    <string name="fixed_employment_desc">Calculate overtime compensation for hours over 9</string>
     <string name="overtime_hours">Overtime</string>
+
     <string name="regular_hours">Base Hours</string>
 
     <string name="section_appearance">Appearance &amp; Time</string>

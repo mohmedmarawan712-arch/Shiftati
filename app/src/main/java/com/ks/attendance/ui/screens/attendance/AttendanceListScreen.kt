@@ -166,7 +166,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الأساسي",
+                                        text = "ساعات أساسية",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -192,7 +192,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "إضافي",
+                                        text = "ساعات إضافية",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -207,19 +207,19 @@ fun AttendanceListScreen(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 3. Total Salary
+                                // 3. Total overtime compensation (only overtime price!)
                                 Column(
                                     modifier = Modifier.weight(1f),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "إجمالي الراتب",
+                                        text = "مستحق الإضافي",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -295,34 +295,6 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                            }
-                        }
-
-                        if (homeState.isFixedEmployment) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "أساسي: ${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = "إضافي: +${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    text = "العمل: ${homeState.workedDays} يوم",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
                             }
                         }
                     }
@@ -477,7 +449,7 @@ fun AttendanceListScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
-                        Text("استعادة وتحديث")
+                        Text("استعادة")
                     }
                 },
                 dismissButton = {
@@ -495,8 +467,8 @@ fun AttendanceListScreen(
         dayToDelete?.let { date ->
             AlertDialog(
                 onDismissRequest = { dayToDelete = null },
-                title = { Text("حذف يوم العمل بالكامل") },
-                text = { Text("هل أنت متأكد من حذف جميع ورديات يوم $date؟\nلن يمكن استرجاع هذه البيانات.") },
+                title = { Text("حذف ورديات اليوم") },
+                text = { Text("حذف جميع ورديات يوم $date؟") },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -507,7 +479,7 @@ fun AttendanceListScreen(
                             contentColor = ColorDelete
                         )
                     ) {
-                        Text("حذف اليوم بالكامل", fontWeight = FontWeight.Bold)
+                        Text("حذف", fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -517,6 +489,7 @@ fun AttendanceListScreen(
                 }
             )
         }
+
     }
 }
 

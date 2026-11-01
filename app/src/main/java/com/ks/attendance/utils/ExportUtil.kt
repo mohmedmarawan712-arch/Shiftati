@@ -54,10 +54,11 @@ object ExportUtil {
         }
         val regularHours = if (isFixedEmployment) (workedDays * standardShiftHours) else totalHours
         val totalSalary = if (isFixedEmployment) {
-            (regularHours + overtimeHours) * hourlyRate
+            overtimeHours * hourlyRate
         } else {
             totalHours * hourlyRate
         }
+
 
         val html = buildString {
             append("""
@@ -179,9 +180,10 @@ object ExportUtil {
                         <td colspan="$colSpanTail" style="text-align:center;">${"%,.0f".format(hourlyRate)} ج.م</td>
                       </tr>
                       <tr class="total-row">
-                        <td colspan="$colSpanHead" style="text-align:right;">صافي الراتب التقديري:</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">${if (isFixedEmployment) "إجمالي مستحقات الإضافي:" else "صافي الراتب التقديري:"}</td>
                         <td colspan="$colSpanTail" style="text-align:center;">${"%,.0f".format(totalSalary)} ج.م</td>
                       </tr>
+
                     </tfoot>
                   </table>
                 </body>

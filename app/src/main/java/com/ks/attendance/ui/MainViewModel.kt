@@ -239,13 +239,14 @@ class MainViewModel(
                 }
             }
             val regularHours = if (isFixed) (workedDays * stdShift) else monthHours
-            val regularSalary = regularHours * rate
+            val regularSalary = if (isFixed) 0.0 else (regularHours * rate)
             val overtimeSalary = overtimeHours * rate
             val monthSalary = if (isFixed) {
-                regularSalary + overtimeSalary
+                overtimeSalary
             } else {
                 monthHours * rate
             }
+
 
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
@@ -419,10 +420,11 @@ class MainViewModel(
                 }
                 val regularHours = if (isFixed) (workedDays * stdShift) else totalHours
                 val estimatedSalary = if (isFixed) {
-                    (regularHours + overtimeHours) * rate
+                    overtimeHours * rate
                 } else {
                     totalHours * rate
                 }
+
 
                 _reportState.value = ReportState(
                     records = records,
