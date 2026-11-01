@@ -30,6 +30,7 @@ import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
+import com.ks.attendance.utils.qr.QrUtil
 import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.*
@@ -46,6 +47,13 @@ fun HomeScreen(
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
+
+    // Attendance QR & Account Manager states
+    var showQrDialog by remember { mutableStateOf(false) }
+    var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
+    var showAccountsManagerDialog by remember { mutableStateOf(false) }
+    var showAddAccountDialog by remember { mutableStateOf(false) }
+
     LaunchedEffect(homeState.openSession) {
         val session = homeState.openSession
         if (session != null) {
@@ -115,6 +123,38 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+
+            // ─── ESS Account Selector & Status Bar ────────────────────────────
+            item {
+                AccountCardHeaderBar(
+                    activeAccount = homeState.activeAccount,
+                    accountsCount = homeState.allAccounts.size,
+                    onOpenAccountManager = { showAccountsManagerDialog = true },
+                    onQuickAddAccount = { showAddAccountDialog = true }
+                )
+            }
+
+            // ─── Offline QR Attendance Action Buttons (دخول / خروج) ─────────────
+            item {
+                AttendanceQrQuickActionButtons(
+                    onClockInQrClick = {
+                        qrInitialEvent = QrUtil.EVENT_CLOCK_IN
+                        if (homeState.activeAccount != null) {
+                            showQrDialog = true
+                        } else {
+                            showAddAccountDialog = true
+                        }
+                    },
+                    onClockOutQrClick = {
+                        qrInitialEvent = QrUtil.EVENT_CLOCK_OUT
+                        if (homeState.activeAccount != null) {
+                            showQrDialog = true
+                        } else {
+                            showAddAccountDialog = true
+                        }
+                    }
+                )
             }
 
             // ─── Hero Clock In/Out Card ───────────────────────────────────────
@@ -434,6 +474,48 @@ fun HomeScreen(
                 initialIsFixed = homeState.isFixedEmployment,
                 onConfirm = { isFixed ->
                     viewModel.selectInitialEmploymentType(isFixed)
+                }
+            )
+        }
+
+        // ─── Attendance QR Code Dialog ────────────────────────────────────────
+        if (showQrDialog && homeState.activeAccount != null) {
+            AttendanceQrDialog(
+                account = homeState.activeAccount!!,
+                allAccounts = homeState.allAccounts,
+                initialEvent = qrInitialEvent,
+                onDismiss = { showQrDialog = false },
+                onSwitchAccount = { viewModel.switchAccount(it) },
+                onGeneratePayload = { acc, event, date -> viewModel.generateQrPayload(acc, event, date) },
+                onGenerateBitmap = { payload -> viewModel.generateQrBitmap(payload) }
+            )
+        }
+
+        // ─── Accounts Manager Dialog ──────────────────────────────────────────
+        if (showAccountsManagerDialog) {
+            AccountsManagerDialog(
+                accounts = homeState.allAccounts,
+                activeAccount = homeState.activeAccount,
+                onDismiss = { showAccountsManagerDialog = false },
+                onSelectAccount = { acc ->
+                    viewModel.switchAccount(acc)
+                    showAccountsManagerDialog = false
+                },
+                onDeleteAccount = { acc -> viewModel.deleteAccount(acc) },
+                onRefreshActive = { viewModel.refreshActiveAccount() },
+                onOpenAddAccount = {
+                    showAccountsManagerDialog = false
+                    showAddAccountDialog = true
+                }
+            )
+        }
+
+        // ─── Add ESS Account Dialog ───────────────────────────────────────────
+        if (showAddAccountDialog) {
+            AddAccountDialog(
+                onDismiss = { showAddAccountDialog = false },
+                onAddAccount = { email, pass, onResult ->
+                    viewModel.addNewAccount(email, pass, onResult)
                 }
             )
         }

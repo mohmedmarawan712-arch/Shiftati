@@ -53,6 +53,8 @@ class EssApiClient {
     var staffId: String? = null
     var schedulingUnitId: String? = null
     var detectedEmployeeName: String? = null
+    var detectedStaffFullName: String? = null
+    var detectedStaffShortName: String? = null
 
     val isLoggedIn get() = sessionId != null
 
@@ -62,6 +64,8 @@ class EssApiClient {
         staffId = null
         schedulingUnitId = null
         detectedEmployeeName = null
+        detectedStaffFullName = null
+        detectedStaffShortName = null
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -162,9 +166,20 @@ class EssApiClient {
                             val sorted = atts?.sortedByDescending { ((it as? Map<*, *>)?.get("start") as? String) ?: "" }
                             val suIdObj = (sorted?.firstOrNull() as? Map<*, *>)?.get("suId") as? Map<*, *>
                             schedulingUnitId = suIdObj?.get("objectId")?.toString()
-                        } else if (facetName == "StaffDetails" || facetName == "Demographics") {
+                        } else if (facetName == "StaffDetails") {
+                            val map = fd as? Map<*, *>
+                            val fullName = (map?.get("staffName") ?: map?.get("fullName"))?.toString()?.trim()
+                            val shortName = (map?.get("staffShortName") ?: map?.get("shortName"))?.toString()?.trim()
+                            if (!fullName.isNullOrBlank()) {
+                                detectedStaffFullName = fullName
+                                detectedEmployeeName = toTwoTokens(fullName)
+                            }
+                            if (!shortName.isNullOrBlank()) {
+                                detectedStaffShortName = shortName
+                            }
+                        } else if (facetName == "Demographics") {
                             val extracted = findNameInMap(fd)
-                            if (!extracted.isNullOrBlank()) {
+                            if (!extracted.isNullOrBlank() && detectedEmployeeName.isNullOrBlank()) {
                                 detectedEmployeeName = extracted
                             }
                         }
@@ -172,6 +187,42 @@ class EssApiClient {
                 }
             }
         }
+    }
+
+    suspend fun fetchFullProfile(
+        email: String,
+        password: String,
+        preferredInstanceId: String? = null
+    ): Result<EssAccountProfile> = runCatching {
+        val instances = login(email, password).getOrThrow()
+        if (instances.isEmpty()) {
+            throw Exception("لم يتم العثور على أي فرع أو حساب مرتبط بهذا البريد")
+        }
+        val instance = if (preferredInstanceId != null) {
+            instances.find { it.instanceId == preferredInstanceId } ?: instances.first()
+        } else {
+            instances.first()
+        }
+        selectInstance(instance).getOrThrow()
+
+        val finalStaffId = staffId ?: instance.staffId
+        val finalSuId = schedulingUnitId ?: throw Exception("تعذر استخراج معرف وحدة الجدولة (suId)")
+        val fullName = detectedStaffFullName?.takeIf { it.isNotBlank() }
+            ?: detectedEmployeeName
+            ?: email.substringBefore("@")
+        val shortName = detectedStaffShortName?.takeIf { it.isNotBlank() }
+            ?: toTwoTokens(fullName)
+
+        EssAccountProfile(
+            email = email,
+            staffId = finalStaffId,
+            staffName = fullName,
+            staffShortName = shortName,
+            suId = finalSuId,
+            instanceId = instance.instanceId,
+            instanceName = instance.instanceName,
+            sessionId = sessionId ?: ""
+        )
     }
 
     private fun findNameInMap(data: Any?): String? {

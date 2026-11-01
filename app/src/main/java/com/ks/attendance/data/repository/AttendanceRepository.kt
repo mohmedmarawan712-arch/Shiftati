@@ -3,10 +3,13 @@ package com.ks.attendance.data.repository
 import android.content.Context
 import com.ks.attendance.data.local.dao.AttendanceDao
 import com.ks.attendance.data.local.dao.DayNoteDao
+import com.ks.attendance.data.local.dao.EssAccountDao
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
+import com.ks.attendance.data.local.entity.EssAccount
 import com.ks.attendance.data.remote.ClockingParser
 import com.ks.attendance.data.remote.EssApiClient
+import com.ks.attendance.data.remote.EssAccountProfile
 import com.ks.attendance.data.remote.EssInstance
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
@@ -17,6 +20,7 @@ import java.util.*
 class AttendanceRepository(
     private val attendanceDao: AttendanceDao,
     private val dayNoteDao: DayNoteDao,
+    private val essAccountDao: EssAccountDao,
     private val essClient: EssApiClient,
     private val context: Context
 ) {
@@ -257,4 +261,93 @@ class AttendanceRepository(
     val detectedEmployeeName get() = essClient.detectedEmployeeName
 
     fun essLogout() = essClient.logout()
+
+    // ─── Multi-Account & Offline QR ──────────────────────────────────────────
+
+    fun getAllAccounts(): Flow<List<EssAccount>> = essAccountDao.getAllAccounts()
+
+    suspend fun getAllAccountsDirect(): List<EssAccount> = essAccountDao.getAllAccountsDirect()
+
+    fun getActiveAccount(): Flow<EssAccount?> = essAccountDao.getActiveAccount()
+
+    suspend fun getActiveAccountDirect(): EssAccount? = essAccountDao.getActiveAccountDirect()
+
+    suspend fun setActiveAccount(id: Long) {
+        essAccountDao.setActiveAccount(id)
+        val active = essAccountDao.getActiveAccountDirect()
+        if (active != null) {
+            essClient.instanceId = active.instanceId
+            essClient.staffId = active.staffId
+            essClient.schedulingUnitId = active.suId
+            essClient.detectedStaffFullName = active.staffName
+            essClient.detectedStaffShortName = active.staffShortName
+            essClient.detectedEmployeeName = active.staffShortName.ifBlank { active.staffName }
+        }
+    }
+
+    suspend fun deleteAccount(id: Long) {
+        essAccountDao.deleteById(id)
+        val remaining = essAccountDao.getAllAccountsDirect()
+        if (remaining.isNotEmpty() && essAccountDao.getActiveAccountDirect() == null) {
+            setActiveAccount(remaining.first().id)
+        }
+    }
+
+    suspend fun saveOrUpdateAccount(
+        email: String,
+        pass: String,
+        profile: EssAccountProfile,
+        deviceId: String,
+        setAsActive: Boolean = true
+    ): EssAccount {
+        val existing = essAccountDao.getAccountByEmail(email)
+        val account = (existing ?: EssAccount(
+            email = email,
+            password = pass,
+            staffId = profile.staffId,
+            staffName = profile.staffName,
+            staffShortName = profile.staffShortName,
+            suId = profile.suId,
+            instanceId = profile.instanceId,
+            instanceName = profile.instanceName,
+            deviceId = deviceId,
+            isActive = setAsActive,
+            lastSyncTime = System.currentTimeMillis()
+        )).copy(
+            password = pass.ifBlank { existing?.password ?: "" },
+            staffId = profile.staffId,
+            staffName = profile.staffName,
+            staffShortName = profile.staffShortName,
+            suId = profile.suId,
+            instanceId = profile.instanceId,
+            instanceName = profile.instanceName,
+            deviceId = if (deviceId.isNotBlank()) deviceId else existing?.deviceId ?: "b4cfd84c7a095b7f",
+            lastSyncTime = System.currentTimeMillis()
+        )
+
+        val id = essAccountDao.insert(account)
+        val saved = account.copy(id = if (account.id != 0L) account.id else id)
+        if (setAsActive) {
+            essAccountDao.setActiveAccount(saved.id)
+        }
+        return saved
+    }
+
+    suspend fun fetchAndSaveAccount(
+        email: String,
+        pass: String,
+        deviceId: String,
+        preferredInstanceId: String? = null
+    ): Result<EssAccount> = runCatching {
+        val profile = essClient.fetchFullProfile(email, pass, preferredInstanceId).getOrThrow()
+        saveOrUpdateAccount(email, pass, profile, deviceId, setAsActive = true)
+    }
+
+    suspend fun refreshAccount(account: EssAccount): Result<EssAccount> = runCatching {
+        if (account.password.isBlank()) {
+            throw Exception("لا توجد كلمة مرور محفوظة لهذا الحساب")
+        }
+        val profile = essClient.fetchFullProfile(account.email, account.password, account.instanceId).getOrThrow()
+        saveOrUpdateAccount(account.email, account.password, profile, account.deviceId, setAsActive = account.isActive)
+    }
 }

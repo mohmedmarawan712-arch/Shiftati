@@ -230,14 +230,10 @@ fun SettingsScreen(
                         onClick = {
                             if (essEmail.isNotBlank() && essPassword.isNotBlank()) {
                                 isLoggingIn = true
-                                viewModel.essLogin(essEmail.trim(), essPassword, saveCreds) { res ->
+                                viewModel.addNewAccount(essEmail.trim(), essPassword) { res ->
                                     isLoggingIn = false
                                     if (res.isSuccess) {
-                                        val instances = res.getOrDefault(emptyList())
-                                        if (instances.isNotEmpty()) {
-                                            viewModel.essSelectInstance(instances.first())
-                                        }
-                                        loginMessage = "تم تسجيل الدخول بنجاح"
+                                        loginMessage = "تم تسجيل الدخول وحفظ بيانات QR أوفلاين بنجاح ✓"
                                     } else {
                                         loginMessage = "فشل: ${res.exceptionOrNull()?.message}"
                                     }

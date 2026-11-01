@@ -35,3 +35,14 @@ data class ClockingItem(
     @SerializedName("eventType") val eventType: String?,   // "ClockIn" | "ClockOut"
     @SerializedName("status") val status: Any?
 )
+
+data class EssAccountProfile(
+    val email: String,
+    val staffId: String,
+    val staffName: String,
+    val staffShortName: String = "",
+    val suId: String,
+    val instanceId: String,
+    val instanceName: String = "",
+    val sessionId: String = ""
+)

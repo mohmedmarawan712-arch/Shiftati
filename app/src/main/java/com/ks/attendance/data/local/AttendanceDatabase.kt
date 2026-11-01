@@ -6,18 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.ks.attendance.data.local.dao.AttendanceDao
 import com.ks.attendance.data.local.dao.DayNoteDao
+import com.ks.attendance.data.local.dao.EssAccountDao
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
+import com.ks.attendance.data.local.entity.EssAccount
 
 @Database(
-    entities = [AttendanceRecord::class, DayNote::class],
-    version = 1,
+    entities = [AttendanceRecord::class, DayNote::class, EssAccount::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AttendanceDatabase : RoomDatabase() {
 
     abstract fun attendanceDao(): AttendanceDao
     abstract fun dayNoteDao(): DayNoteDao
+    abstract fun essAccountDao(): EssAccountDao
 
     companion object {
         @Volatile private var INSTANCE: AttendanceDatabase? = null

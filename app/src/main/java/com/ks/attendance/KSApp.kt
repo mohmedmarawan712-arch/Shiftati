@@ -13,6 +13,7 @@ class KSApp : Application() {
         AttendanceRepository(
             attendanceDao = database.attendanceDao(),
             dayNoteDao    = database.dayNoteDao(),
+            essAccountDao = database.essAccountDao(),
             essClient     = essClient,
             context       = this
         )

@@ -5,15 +5,18 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
+import com.ks.attendance.data.local.entity.EssAccount
 import com.ks.attendance.data.remote.EssInstance
 import com.ks.attendance.data.repository.AttendanceRepository
 import com.ks.attendance.utils.ExportUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
+import com.ks.attendance.utils.qr.QrUtil
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import com.ks.attendance.utils.BackupUtil
 import java.text.SimpleDateFormat
@@ -41,7 +44,9 @@ data class HomeState(
     val regularSalary: Double = 0.0,
     val overtimeSalary: Double = 0.0,
     val hourlyRate: Double = 30.0,
-    val hasChosenEmployment: Boolean = true
+    val hasChosenEmployment: Boolean = true,
+    val activeAccount: EssAccount? = null,
+    val allAccounts: List<EssAccount> = emptyList()
 )
 
 data class ReportState(
@@ -116,6 +121,14 @@ class MainViewModel(
         repo.getNotesForDay(it)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // ─── Accounts & Multi-Profile ───────────────────────────────────────────
+
+    val allAccounts: StateFlow<List<EssAccount>> = repo.getAllAccounts()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val activeAccount: StateFlow<EssAccount?> = repo.getActiveAccount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     // ─── Report ───────────────────────────────────────────────────────────────
 
     private val _reportState = MutableStateFlow(ReportState())
@@ -130,6 +143,22 @@ class MainViewModel(
         viewModelScope.launch {
             repo.getRecordsForDay(today).collect { records ->
                 _homeState.value = _homeState.value.copy(todayRecords = records)
+            }
+        }
+        viewModelScope.launch {
+            allAccounts.collect { list ->
+                _homeState.value = _homeState.value.copy(allAccounts = list)
+            }
+        }
+        viewModelScope.launch {
+            activeAccount.collect { acc ->
+                if (acc != null) {
+                    val name = acc.staffShortName.ifBlank { acc.staffName }
+                    _homeState.value = _homeState.value.copy(
+                        activeAccount = acc,
+                        employeeName = name
+                    )
+                }
             }
         }
         // Keep home metrics in sync whenever records change
@@ -248,6 +277,10 @@ class MainViewModel(
             }
 
 
+            val activeAcc = repo.getActiveAccountDirect() ?: _homeState.value.activeAccount
+            val allAccs = repo.getAllAccountsDirect().ifEmpty { _homeState.value.allAccounts }
+            val resolvedName = activeAcc?.staffShortName?.ifBlank { activeAcc.staffName } ?: _homeState.value.employeeName
+
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
                 periodStart = periodStart,
@@ -263,7 +296,10 @@ class MainViewModel(
                 regularSalary = regularSalary,
                 overtimeSalary = overtimeSalary,
                 hourlyRate = rate,
-                hasChosenEmployment = hasChosen
+                hasChosenEmployment = hasChosen,
+                activeAccount = activeAcc,
+                allAccounts = allAccs,
+                employeeName = resolvedName
             )
         }
     }
@@ -693,32 +729,138 @@ class MainViewModel(
         hasSyncedOnLaunch = true
         viewModelScope.launch {
             try {
-                val saveCreds = prefs.essSaveCredentials.first()
-                val email = prefs.essEmail.first()
-                val pass = prefs.essPassword.first()
-                if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
-                    if (!repo.isEssLoggedIn) {
-                        val loginRes = repo.essLogin(email.trim(), pass)
-                        if (loginRes.isSuccess) {
-                            val instances = loginRes.getOrDefault(emptyList())
-                            if (instances.isNotEmpty()) {
-                                repo.essSelectInstance(instances.first())
-                            }
-                            _settingsState.value = _settingsState.value.copy(
-                                isEssLoggedIn = true,
-                                essInstances = instances
-                            )
+                var accounts = repo.getAllAccountsDirect()
+                // Legacy migration if DB has no accounts but DataStore has credentials
+                if (accounts.isEmpty()) {
+                    val saveCreds = prefs.essSaveCredentials.first()
+                    val email = prefs.essEmail.first()
+                    val pass = prefs.essPassword.first()
+                    if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
+                        val deviceId = QrUtil.getDeviceId(context)
+                        val res = repo.fetchAndSaveAccount(email.trim(), pass, deviceId)
+                        if (res.isSuccess) {
+                            accounts = listOf(res.getOrThrow())
                         }
-                    } else {
-                        _settingsState.value = _settingsState.value.copy(isEssLoggedIn = true)
+                    }
+                }
+
+                if (accounts.isNotEmpty()) {
+                    val active = repo.getActiveAccountDirect() ?: accounts.first().also {
+                        repo.setActiveAccount(it.id)
                     }
 
-                    if (repo.isEssLoggedIn) {
-                        syncFromEss { /* Silent background sync on launch */ }
-                    }
+                    // Silent background update of active account data on app launch
+                    val refreshRes = repo.refreshAccount(active)
+                    val currentActive = refreshRes.getOrDefault(active)
+                    val name = currentActive.staffShortName.ifBlank { currentActive.staffName }
+                    prefs.setEmployeeName(name)
+
+                    _settingsState.value = _settingsState.value.copy(
+                        isEssLoggedIn = true,
+                        employeeName = name,
+                        essEmail = currentActive.email
+                    )
+                    refreshHome()
+
+                    // Also sync clocking shifts for active account
+                    syncFromEss {}
                 }
             } catch (_: Exception) {}
         }
+    }
+
+    // ─── Account Management & QR Generation ──────────────────────────────────
+
+    fun addNewAccount(
+        email: String,
+        pass: String,
+        onResult: (Result<EssAccount>) -> Unit
+    ) {
+        viewModelScope.launch {
+            val deviceId = QrUtil.getDeviceId(context)
+            val result = repo.fetchAndSaveAccount(email.trim(), pass, deviceId)
+            if (result.isSuccess) {
+                val acc = result.getOrThrow()
+                prefs.setEssCredentials(acc.email, acc.password, true)
+                val name = acc.staffShortName.ifBlank { acc.staffName }
+                prefs.setEmployeeName(name)
+                _settingsState.value = _settingsState.value.copy(
+                    isEssLoggedIn = true,
+                    employeeName = name,
+                    essEmail = acc.email
+                )
+                refreshHome()
+                syncFromEss { count ->
+                    showHomeMessage("تمت إضافة حساب ${name} بنجاح ✓ ومزامنة $count وردية")
+                }
+            }
+            onResult(result)
+        }
+    }
+
+    fun switchAccount(account: EssAccount) {
+        viewModelScope.launch {
+            repo.setActiveAccount(account.id)
+            prefs.setEssCredentials(account.email, account.password, true)
+            val name = account.staffShortName.ifBlank { account.staffName }
+            prefs.setEmployeeName(name)
+            _settingsState.value = _settingsState.value.copy(
+                employeeName = name,
+                essEmail = account.email
+            )
+            refreshHome()
+            showHomeMessage("تم التبديل إلى حساب ${name} ✓")
+            // Silently sync shifts for switched account
+            syncFromEss {}
+        }
+    }
+
+    fun deleteAccount(account: EssAccount) {
+        viewModelScope.launch {
+            repo.deleteAccount(account.id)
+            refreshHome()
+            showHomeMessage("تم حذف الحساب")
+        }
+    }
+
+    fun refreshActiveAccount(onDone: ((Boolean) -> Unit)? = null) {
+        viewModelScope.launch {
+            val active = repo.getActiveAccountDirect()
+            if (active == null) {
+                onDone?.invoke(false)
+                return@launch
+            }
+            val res = repo.refreshAccount(active)
+            if (res.isSuccess) {
+                val updated = res.getOrThrow()
+                val name = updated.staffShortName.ifBlank { updated.staffName }
+                prefs.setEmployeeName(name)
+                refreshHome()
+                syncFromEss {
+                    showHomeMessage("تم تحديث بيانات الحساب والمزامنة بنجاح ✓")
+                    onDone?.invoke(true)
+                }
+            } else {
+                showHomeMessage("تعذر تحديث بيانات الحساب، استخدام البيانات المحفوظة", isError = true)
+                onDone?.invoke(false)
+            }
+        }
+    }
+
+    fun generateQrPayload(account: EssAccount, event: String, timestamp: Date = Date()): String {
+        val deviceId = account.deviceId.ifBlank { QrUtil.getDeviceId(context) }
+        return QrUtil.buildAttendanceQrPayload(
+            staffId = account.staffId,
+            staffName = account.staffName,
+            suId = account.suId,
+            event = event,
+            clockTime = timestamp,
+            deviceId = deviceId
+        )
+    }
+
+    fun generateQrBitmap(payload: String): Bitmap {
+        return QrUtil.generateQrBitmap(payload, sizePx = 600, border = 2)
     }
 
     fun essLogout() {
