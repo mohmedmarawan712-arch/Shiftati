@@ -33,7 +33,11 @@ data class HomeState(
     val workedDays: Int = 0,
     val is24Hour: Boolean = false,
     val isLoading: Boolean = false,
-    val message: UiMessage? = null
+    val message: UiMessage? = null,
+    val isFixedEmployment: Boolean = false,
+    val standardShiftHours: Double = 9.0,
+    val regularHours: Double = 0.0,
+    val overtimeHours: Double = 0.0
 )
 
 data class ReportState(
@@ -46,13 +50,16 @@ data class ReportState(
     val periodEnd: String = "",
     val workedDays: Int = 0,
     val isExporting: Boolean = false,
-    val exportedPath: String? = null
+    val exportedPath: String? = null,
+    val isFixedEmployment: Boolean = false,
+    val regularHours: Double = 0.0,
+    val overtimeHours: Double = 0.0
 )
 
 data class SettingsState(
     val hourlyRate: Double = 30.0,
-    val payrollStartDay: Int = 29,
-    val payrollCycleType: String = PayrollUtil.CYCLE_29_TO_28,
+    val payrollStartDay: Int = 16,
+    val payrollCycleType: String = PayrollUtil.CYCLE_16_TO_15,
     val language: String = "ar",
     val darkMode: Boolean = true,
     val themeMode: String = "system", // "system" | "dark" | "light"
@@ -64,7 +71,9 @@ data class SettingsState(
     val customStartDate: String = "",
     val customEndDate: String = "",
     val isEssLoggedIn: Boolean = false,
-    val essInstances: List<EssInstance> = emptyList()
+    val essInstances: List<EssInstance> = emptyList(),
+    val isFixedEmployment: Boolean = false,
+    val standardShiftHours: Double = 9.0
 ) {
     val is24Hour: Boolean get() = timeFormat == "24h"
 }
@@ -134,7 +143,7 @@ class MainViewModel(
             prefs.allPreferences.collect { p ->
                 val rate = p[PrefsUtil.KEY_HOURLY_RATE] ?: PrefsUtil.DEFAULT_HOURLY_RATE
                 val startDay = p[PrefsUtil.KEY_PAYROLL_START] ?: PrefsUtil.DEFAULT_PAYROLL_START
-                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_29_TO_28
+                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_16_TO_15
                 val lang = p[PrefsUtil.KEY_LANGUAGE] ?: PrefsUtil.DEFAULT_LANGUAGE
                 val dark = p[PrefsUtil.KEY_DARK_MODE] ?: true
                 val theme = p[PrefsUtil.KEY_THEME_MODE] ?: PrefsUtil.DEFAULT_THEME_MODE
@@ -145,6 +154,8 @@ class MainViewModel(
                 val name = p[PrefsUtil.KEY_EMPLOYEE_NAME] ?: ""
                 val customStart = p[PrefsUtil.KEY_CUSTOM_START_DATE] ?: ""
                 val customEnd = p[PrefsUtil.KEY_CUSTOM_END_DATE] ?: ""
+                val isFixed = p[PrefsUtil.KEY_FIXED_EMPLOYMENT] ?: PrefsUtil.DEFAULT_FIXED_EMPLOYMENT
+                val stdShift = p[PrefsUtil.KEY_STANDARD_SHIFT_HOURS] ?: PrefsUtil.DEFAULT_STANDARD_SHIFT_HOURS
 
                 _settingsState.value = SettingsState(
                     hourlyRate = rate,
@@ -160,11 +171,15 @@ class MainViewModel(
                     isEssLoggedIn = repo.isEssLoggedIn,
                     employeeName = name,
                     customStartDate = customStart,
-                    customEndDate = customEnd
+                    customEndDate = customEnd,
+                    isFixedEmployment = isFixed,
+                    standardShiftHours = stdShift
                 )
                 _homeState.value = _homeState.value.copy(
                     employeeName = name,
-                    is24Hour = (timeFmt == "24h")
+                    is24Hour = (timeFmt == "24h"),
+                    isFixedEmployment = isFixed,
+                    standardShiftHours = stdShift
                 )
                 refreshHome()
             }
@@ -186,6 +201,9 @@ class MainViewModel(
             val cycleType = prefs.payrollCycleType.first()
             val customStart = prefs.customStartDate.first()
             val customEnd = prefs.customEndDate.first()
+            val isFixed = prefs.fixedEmploymentEnabled.first()
+            val stdShift = prefs.standardShiftHours.first()
+
             val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(
                 cycleType = cycleType,
                 startDay = startDay,
@@ -198,11 +216,24 @@ class MainViewModel(
             val todayHours = repo.getTotalHoursInRange(today, today)
             val recordsInRange = repo.getRecordsInRangeDirect(periodStart, periodEnd)
             val monthHours = recordsInRange.sumOf { it.hoursWorked }
-            val workedDays = recordsInRange
-                .filter { it.hoursWorked > 0.0 }
-                .map { it.workDate }
-                .distinct()
-                .size
+
+            val workedRecords = recordsInRange.filter { it.hoursWorked > 0.0 }
+            val dayGroups = workedRecords.groupBy { it.workDate }
+            val workedDays = dayGroups.keys.size
+
+            var overtimeHours = 0.0
+            dayGroups.forEach { (_, dayRecs) ->
+                val daySum = dayRecs.sumOf { it.hoursWorked }
+                if (daySum > stdShift) {
+                    overtimeHours += (daySum - stdShift)
+                }
+            }
+            val regularHours = if (isFixed) (workedDays * stdShift) else monthHours
+            val monthSalary = if (isFixed) {
+                (regularHours + overtimeHours) * rate
+            } else {
+                monthHours * rate
+            }
 
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
@@ -210,8 +241,12 @@ class MainViewModel(
                 periodEnd = periodEnd,
                 todayHours = todayHours,
                 monthHours = monthHours,
-                monthSalary = monthHours * rate,
-                workedDays = workedDays
+                monthSalary = monthSalary,
+                workedDays = workedDays,
+                isFixedEmployment = isFixed,
+                standardShiftHours = stdShift,
+                regularHours = regularHours,
+                overtimeHours = overtimeHours
             )
         }
     }
@@ -332,6 +367,9 @@ class MainViewModel(
             val cycleType = prefs.payrollCycleType.first()
             val customStart = prefs.customStartDate.first()
             val customEnd = prefs.customEndDate.first()
+            val isFixed = prefs.fixedEmploymentEnabled.first()
+            val stdShift = prefs.standardShiftHours.first()
+
             val (ps, pe) = if (start != null && end != null) start to end
                            else PayrollUtil.resolvePeriod(
                                cycleType = cycleType,
@@ -343,15 +381,35 @@ class MainViewModel(
 
             repo.getRecordsInRange(ps, pe).collect { records ->
                 val totalHours = records.sumOf { it.hoursWorked }
-                val workedDays = records.map { it.workDate }.toSet().size
+                val workedRecords = records.filter { it.hoursWorked > 0.0 }
+                val dayGroups = workedRecords.groupBy { it.workDate }
+                val workedDays = dayGroups.keys.size
+
+                var overtimeHours = 0.0
+                dayGroups.forEach { (_, dayRecs) ->
+                    val daySum = dayRecs.sumOf { it.hoursWorked }
+                    if (daySum > stdShift) {
+                        overtimeHours += (daySum - stdShift)
+                    }
+                }
+                val regularHours = if (isFixed) (workedDays * stdShift) else totalHours
+                val estimatedSalary = if (isFixed) {
+                    (regularHours + overtimeHours) * rate
+                } else {
+                    totalHours * rate
+                }
+
                 _reportState.value = ReportState(
                     records = records,
                     totalHours = totalHours,
-                    estimatedSalary = totalHours * rate,
+                    estimatedSalary = estimatedSalary,
                     hourlyRate = rate,
                     periodStart = ps,
                     periodEnd = pe,
-                    workedDays = workedDays
+                    workedDays = workedDays,
+                    isFixedEmployment = isFixed,
+                    regularHours = regularHours,
+                    overtimeHours = overtimeHours
                 )
             }
         }
@@ -408,7 +466,9 @@ class MainViewModel(
                     notes = emptyList(),
                     periodStart = ps,
                     periodEnd = pe,
-                    hourlyRate = rate
+                    hourlyRate = rate,
+                    isFixedEmployment = prefs.fixedEmploymentEnabled.first(),
+                    standardShiftHours = prefs.standardShiftHours.first()
                 )
                 _reportState.value = _reportState.value.copy(isExporting = false)
 
@@ -532,6 +592,22 @@ class MainViewModel(
 
     fun setEmployeeName(name: String) {
         viewModelScope.launch { prefs.setEmployeeName(name) }
+    }
+
+    fun setFixedEmployment(enabled: Boolean) {
+        viewModelScope.launch {
+            prefs.setFixedEmployment(enabled)
+            refreshHome()
+            loadReport()
+        }
+    }
+
+    fun setStandardShiftHours(hours: Double) {
+        viewModelScope.launch {
+            prefs.setStandardShiftHours(hours)
+            refreshHome()
+            loadReport()
+        }
     }
 
     // ─── ESS ──────────────────────────────────────────────────────────────────

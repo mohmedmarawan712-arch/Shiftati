@@ -15,6 +15,7 @@ object PayrollUtil {
 
     private val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
+    const val CYCLE_16_TO_15       = "CYCLE_16_TO_15"
     const val CYCLE_29_TO_28       = "CYCLE_29_TO_28"
     const val CYCLE_CURRENT_MONTH  = "CURRENT_MONTH"
     const val CYCLE_PREVIOUS_MONTH = "PREVIOUS_MONTH"
@@ -24,11 +25,11 @@ object PayrollUtil {
 
     /**
      * Resolves the period according to [cycleType] and [startDay].
-     * Defaults to the calendar-accurate [CYCLE_29_TO_28] (day 29 to day 28).
+     * Defaults to the automated [CYCLE_16_TO_15] (day 16 to day 15).
      */
     fun resolvePeriod(
-        cycleType: String = CYCLE_29_TO_28,
-        startDay: Int = 29,
+        cycleType: String = CYCLE_16_TO_15,
+        startDay: Int = 16,
         referenceDate: Date = Date()
     ): Pair<String, String> = resolvePeriod(cycleType, startDay, null, null, referenceDate)
 
@@ -47,15 +48,37 @@ object PayrollUtil {
                 if (!customStart.isNullOrBlank() && !customEnd.isNullOrBlank()) {
                     customStart to customEnd
                 } else {
-                    getPayrollPeriod29to28(referenceDate)
+                    getPayrollPeriod16to15(referenceDate)
                 }
             }
+            CYCLE_16_TO_15       -> getPayrollPeriod16to15(referenceDate)
+            CYCLE_29_TO_28       -> getPayrollPeriod29to28(referenceDate)
             CYCLE_CURRENT_MONTH  -> getCurrentMonthPeriod(referenceDate)
             CYCLE_PREVIOUS_MONTH -> getPreviousMonthPeriod(referenceDate)
             CYCLE_BOTH_MONTHS    -> getBothMonthsPeriod(referenceDate)
             CYCLE_CUSTOM_DAY     -> getCustomDayPeriod(startDay, referenceDate)
-            else                 -> getPayrollPeriod29to28(referenceDate)
+            else                 -> getPayrollPeriod16to15(referenceDate)
         }
+    }
+
+    /**
+     * Automated default cycle: Day 16 of previous month through Day 15 of current month,
+     * or Day 16 of current month through Day 15 of next month.
+     */
+    fun getPayrollPeriod16to15(referenceDate: Date = Date()): Pair<String, String> {
+        val cal = Calendar.getInstance().apply { time = referenceDate }
+        val day = cal.get(Calendar.DAY_OF_MONTH)
+        if (day < 16) {
+            cal.add(Calendar.MONTH, -1)
+        }
+        cal.set(Calendar.DAY_OF_MONTH, 16)
+        val start = sdf.format(cal.time)
+
+        cal.add(Calendar.MONTH, 1)
+        cal.set(Calendar.DAY_OF_MONTH, 15)
+        val end = sdf.format(cal.time)
+
+        return start to end
     }
 
     /**

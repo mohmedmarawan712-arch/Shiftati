@@ -73,6 +73,7 @@
     <string name="hourly_rate">Hourly Rate</string>
 
     <string name="section_payroll_cycle">Payroll Cycle</string>
+    <string name="cycle_16_15">Auto (16th - 15th)</string>
     <string name="cycle_29_28">Auto (29th - 28th)</string>
     <string name="cycle_current_month">Current Month</string>
     <string name="cycle_previous_month">Previous Month</string>
@@ -81,6 +82,12 @@
     <string name="select_start_date">Start Date</string>
     <string name="select_end_date">End Date</string>
     <string name="active_period_banner">Active Period: %1$s to %2$s</string>
+
+    <string name="section_employment_type">Fixed Employment &amp; Overtime</string>
+    <string name="fixed_employment_toggle">Fixed Employment (Overtime)</string>
+    <string name="fixed_employment_desc">Base 9-hour shift. Hours over 9 count as Overtime.</string>
+    <string name="overtime_hours">Overtime</string>
+    <string name="regular_hours">Base Hours</string>
 
     <string name="section_appearance">Appearance &amp; Time</string>
     <string name="time_format_24h">24-Hour Format</string>

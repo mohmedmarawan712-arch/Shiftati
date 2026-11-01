@@ -29,7 +29,9 @@ object ExportUtil {
         notes: List<DayNote>,
         periodStart: String,
         periodEnd: String,
-        hourlyRate: Double
+        hourlyRate: Double,
+        isFixedEmployment: Boolean = false,
+        standardShiftHours: Double = 9.0
     ): Result<String> = runCatching {
         val notesByDate = notes.groupBy { it.date }
         val dir = getExportDir(context)
@@ -38,9 +40,24 @@ object ExportUtil {
         val file = File(dir, fileName)
 
         val totalHours = records.sumOf { it.hoursWorked }
-        val totalSalary = totalHours * hourlyRate
-        val workedDays = records.filter { it.hoursWorked > 0.0 }.map { it.workDate }.distinct().size
+        val workedRecords = records.filter { it.hoursWorked > 0.0 }
+        val dayGroups = workedRecords.groupBy { it.workDate }
+        val workedDays = dayGroups.keys.size
         val offDays = records.filter { it.source == "off_day" }.map { it.workDate }.distinct().size
+
+        var overtimeHours = 0.0
+        dayGroups.forEach { (_, dayRecs) ->
+            val daySum = dayRecs.sumOf { it.hoursWorked }
+            if (daySum > standardShiftHours) {
+                overtimeHours += (daySum - standardShiftHours)
+            }
+        }
+        val regularHours = if (isFixedEmployment) (workedDays * standardShiftHours) else totalHours
+        val totalSalary = if (isFixedEmployment) {
+            (regularHours + overtimeHours) * hourlyRate
+        } else {
+            totalHours * hourlyRate
+        }
 
         val html = buildString {
             append("""
@@ -75,7 +92,7 @@ object ExportUtil {
                 </head>
                 <body dir="rtl">
                   <div class="title">تقرير ساعات العمل والراتب (شفتاتي)</div>
-                  <div class="subtitle">الفترة المحتسبة: من $periodStart إلى $periodEnd &nbsp;|&nbsp; تاريخ التصدير: ${sdfDateTime.format(Date())}</div>
+                  <div class="subtitle">الفترة المحتسبة: من $periodStart إلى $periodEnd &nbsp;|&nbsp; تاريخ التصدير: ${sdfDateTime.format(Date())}${if (isFixedEmployment) " &nbsp;|&nbsp; نظام العمل: تعيين (أوفر تايم)" else ""}</div>
                   <table>
                     <thead>
                       <tr>
@@ -84,6 +101,7 @@ object ExportUtil {
                         <th>الحضور</th>
                         <th>الانصراف</th>
                         <th>عدد الساعات</th>
+                        ${if (isFixedEmployment) "<th>الإضافي (أوفرتايم)</th>" else ""}
                         <th>المصدر</th>
                         <th>الملاحظات</th>
                       </tr>
@@ -106,6 +124,14 @@ object ExportUtil {
                     record.source == "ess_online" -> "ESS"
                     else -> "يدوي"
                 }
+                val otCell = if (isFixedEmployment) {
+                    if (isOff || record.hoursWorked <= standardShiftHours) {
+                        "<td>-</td>"
+                    } else {
+                        val ot = record.hoursWorked - standardShiftHours
+                        "<td style=\"font-weight:bold; color:#059669;\">+${"%.2f".format(ot)} س</td>"
+                    }
+                } else ""
                 val rowStyle = if (isOff) "background-color: #fffbeb;" else ""
                 append("""
                       <tr style="$rowStyle">
@@ -114,34 +140,47 @@ object ExportUtil {
                         <td style="color:${if (isOff) "#b45309" else "#059669"}; font-weight:bold;">$checkIn</td>
                         <td style="color:${if (isOff) "#b45309" else "#2563eb"}; font-weight:bold;">$checkOut</td>
                         <td style="font-weight:bold; color:${if (isOff) "#b45309" else "#047857"};">$hoursText ($hoursDec)</td>
+                        $otCell
                         <td>$source</td>
                         <td style="text-align:right;">$dayNotes</td>
                       </tr>
                 """.trimIndent())
             }
 
+            val colSpanHead = if (isFixedEmployment) 5 else 4
+            val colSpanTail = 3
             append("""
                     </tbody>
                     <tfoot>
                       <tr class="summary-row">
-                        <td colspan="4" style="text-align:right;">إجمالي الساعات المنجزة:</td>
-                        <td colspan="3" style="text-align:center; color:#047857;">${"%.2f".format(totalHours)} ساعة</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">إجمالي الساعات الفعلية:</td>
+                        <td colspan="$colSpanTail" style="text-align:center; color:#047857;">${"%.2f".format(totalHours)} ساعة</td>
+                      </tr>
+                      ${if (isFixedEmployment) """
+                      <tr class="summary-row">
+                        <td colspan="$colSpanHead" style="text-align:right;">الساعات الأساسية المحتسبة ($workedDays يوم × 9 س):</td>
+                        <td colspan="$colSpanTail" style="text-align:center; color:#2563eb; font-weight:bold;">${"%.2f".format(regularHours)} ساعة</td>
                       </tr>
                       <tr class="summary-row">
-                        <td colspan="4" style="text-align:right;">عدد أيام العمل الفعلية:</td>
-                        <td colspan="3" style="text-align:center;">$workedDays يوم</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">إجمالي ساعات الإضافي (الأوفر تايم):</td>
+                        <td colspan="$colSpanTail" style="text-align:center; color:#059669; font-weight:bold;">+${"%.2f".format(overtimeHours)} ساعة</td>
+                      </tr>
+                      """.trimIndent() else ""}
+                      <tr class="summary-row">
+                        <td colspan="$colSpanHead" style="text-align:right;">عدد أيام العمل الفعلية:</td>
+                        <td colspan="$colSpanTail" style="text-align:center;">$workedDays يوم</td>
                       </tr>
                       <tr class="summary-row">
-                        <td colspan="4" style="text-align:right;">عدد أيام الإجازات (OFF):</td>
-                        <td colspan="3" style="text-align:center; color:#b45309;">$offDays يوم</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">عدد أيام الإجازات (OFF):</td>
+                        <td colspan="$colSpanTail" style="text-align:center; color:#b45309;">$offDays يوم</td>
                       </tr>
                       <tr class="summary-row">
-                        <td colspan="4" style="text-align:right;">سعر الساعة:</td>
-                        <td colspan="3" style="text-align:center;">${"%,.0f".format(hourlyRate)} ج.م</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">سعر الساعة:</td>
+                        <td colspan="$colSpanTail" style="text-align:center;">${"%,.0f".format(hourlyRate)} ج.م</td>
                       </tr>
                       <tr class="total-row">
-                        <td colspan="4" style="text-align:right;">صافي الراتب التقديري:</td>
-                        <td colspan="3" style="text-align:center;">${"%,.0f".format(totalSalary)} ج.م</td>
+                        <td colspan="$colSpanHead" style="text-align:right;">صافي الراتب التقديري:</td>
+                        <td colspan="$colSpanTail" style="text-align:center;">${"%,.0f".format(totalSalary)} ج.م</td>
                       </tr>
                     </tfoot>
                   </table>

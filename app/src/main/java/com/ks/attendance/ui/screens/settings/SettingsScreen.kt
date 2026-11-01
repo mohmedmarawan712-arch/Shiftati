@@ -329,15 +329,15 @@ fun SettingsScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // The 2 clean options: Standard automated (29-28) or Custom Date Range
+                // The 2 clean options: Standard automated (16-15) or Custom Date Range
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Option 1: Automated 29 to 28
+                    // Option 1: Automated 16 to 15
                     SlateOptionRow(
-                        title = stringResource(R.string.cycle_29_28),
+                        title = stringResource(R.string.cycle_16_15),
                         isSelected = selectedCycle != PayrollUtil.CYCLE_CUSTOM_RANGE,
                         onClick = {
-                            selectedCycle = PayrollUtil.CYCLE_29_TO_28
-                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_29_TO_28)
+                            selectedCycle = PayrollUtil.CYCLE_16_TO_15
+                            viewModel.setPayrollCycleType(PayrollUtil.CYCLE_16_TO_15)
                         }
                     )
 
@@ -423,7 +423,22 @@ fun SettingsScreen(
                 }
             }
 
-            // ─── 4. Appearance & Time Format (Mihon-Style Theme Selector & 24h) ───
+            // ─── 4. Fixed Employment & Overtime Card ───────────────────────────
+            SlateCard(
+                title = stringResource(R.string.section_employment_type),
+                icon = Icons.Filled.Badge
+            ) {
+                SlateCleanToggleRow(
+                    title = stringResource(R.string.fixed_employment_toggle),
+                    subtitle = stringResource(R.string.fixed_employment_desc),
+                    checked = state.isFixedEmployment,
+                    onCheckedChange = { checked ->
+                        viewModel.setFixedEmployment(checked)
+                    }
+                )
+            }
+
+            // ─── 5. Appearance & Time Format (Mihon-Style Theme Selector & 24h) ───
             SlateCard(
                 title = stringResource(R.string.section_appearance),
                 icon = Icons.Filled.Tune
@@ -735,6 +750,7 @@ private fun SlateOptionRow(
 @Composable
 private fun SlateCleanToggleRow(
     title: String,
+    subtitle: String? = null,
     checked: Boolean,
     onCheckedChange: (Boolean) -> Unit
 ) {
@@ -743,12 +759,26 @@ private fun SlateCleanToggleRow(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (!subtitle.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange

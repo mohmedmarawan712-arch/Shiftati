@@ -73,6 +73,7 @@
     <string name="hourly_rate">سعر الساعة</string>
 
     <string name="section_payroll_cycle">دورة الراتب</string>
+    <string name="cycle_16_15">تلقائي (16 - 15)</string>
     <string name="cycle_29_28">تلقائي (29 - 28)</string>
     <string name="cycle_current_month">الشهر الحالي</string>
     <string name="cycle_previous_month">الشهر السابق</string>
@@ -81,6 +82,12 @@
     <string name="select_start_date">تاريخ البداية</string>
     <string name="select_end_date">تاريخ النهاية</string>
     <string name="active_period_banner">الفترة الحالية: من %1$s إلى %2$s</string>
+
+    <string name="section_employment_type">نظام التعيين والإضافي</string>
+    <string name="fixed_employment_toggle">نظام التعيين (أوفر تايم)</string>
+    <string name="fixed_employment_desc">الوردية الأساسية 9 ساعات - احتساب الساعات الزائدة كإضافي</string>
+    <string name="overtime_hours">ساعات الإضافي</string>
+    <string name="regular_hours">الساعات الأساسية</string>
 
     <string name="section_appearance">المظهر ونظام الوقت</string>
     <string name="time_format_24h">تنسيق 24 ساعة</string>
