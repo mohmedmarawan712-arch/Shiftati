@@ -176,12 +176,14 @@ fun HomeScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (homeState.isFixedEmployment) {
-                                // 1. Base regular hours & price
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // 1. Base regular hours
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "%.0f س".format(homeState.regularHours),
                                         style = MaterialTheme.typography.titleMedium,
@@ -189,7 +191,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الأساسي (${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج)",
+                                        text = "الأساسي",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -198,12 +200,15 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(30.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 2. Overtime hours with money
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // 2. Overtime hours
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "+%.1f س".format(homeState.overtimeHours),
                                         style = MaterialTheme.typography.titleMedium,
@@ -211,7 +216,7 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "إضافي (+${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج)",
+                                        text = "إضافي",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -221,14 +226,17 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(30.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
                                 // 3. Total salary
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -241,7 +249,10 @@ fun HomeScreen(
                                 }
                             } else {
                                 // Hourly mode (All hours worked as before)
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "%.1f س".format(homeState.monthHours),
                                         style = MaterialTheme.typography.titleMedium,
@@ -258,11 +269,14 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(30.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "${homeState.workedDays} يوم",
                                         style = MaterialTheme.typography.titleMedium,
@@ -279,13 +293,16 @@ fun HomeScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(30.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -296,6 +313,34 @@ fun HomeScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            }
+                        }
+
+                        if (homeState.isFixedEmployment) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "أساسي: ${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "إضافي: +${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "العمل: ${homeState.workedDays} يوم",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -588,7 +633,7 @@ private fun CompactRecordCard(
     val isOffDay = (record.source == "off_day")
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceLabel = when {
-        isOffDay -> "إجازة"
+        isOffDay -> "يدوي"
         isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
@@ -717,6 +762,24 @@ private fun CompactRecordCard(
                         }
                     }
 
+                    // Display overtime chip cleanly on Line 2 without expanding right column or wrapping
+                    if (isFixedEmployment && record.hoursWorked > 9.0) {
+                        val ot = record.hoursWorked - 9.0
+                        val otMoney = ot * hourlyRate
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        ) {
+                            Text(
+                                text = "+%.1f س إضافي (+%.0f ج)".format(ot, otMoney),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
                     if (record.note.isNotBlank() && (!isOffDay || record.note != "إجازة (OFF)")) {
                         Text(
                             text = "• ${record.note}",
@@ -743,23 +806,6 @@ private fun CompactRecordCard(
                 }
                 Spacer(modifier = Modifier.width(6.dp))
             } else if (record.hoursWorked > 0) {
-                if (isFixedEmployment && record.hoursWorked > 9.0) {
-                    val ot = record.hoursWorked - 9.0
-                    val otMoney = ot * hourlyRate
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                    ) {
-                        Text(
-                            text = "+%.1f س (+%.0f ج.م)".format(ot, otMoney),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
@@ -810,18 +856,18 @@ fun EmploymentTypeDialog(
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-                    modifier = Modifier.size(54.dp)
+                    modifier = Modifier.size(52.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             imageVector = Icons.Filled.WorkOutline,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(28.dp)
+                            modifier = Modifier.size(26.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "اختر نظام العمل",
                     style = MaterialTheme.typography.titleLarge,
@@ -831,7 +877,7 @@ fun EmploymentTypeDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "حدد طريقة احتساب ساعاتك وراتبك للبدء في استخدام التطبيق:",
+                    text = "يمكنك تغيير هذا الخيار لاحقاً من الإعدادات",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -868,17 +914,16 @@ fun EmploymentTypeDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "نظام التعيين (أوفر تايم)",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "نظام التعيين",
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "• وردية أساسية 9 ساعات\n• احتساب الساعات الزائدة كإضافي بسعرها\n• اليوم الأقل من 9 س يُحسب كيوم كامل",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
+                                text = "ورديات 9 ساعات واحتساب الساعات الإضافية (أوفر تايم)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -909,17 +954,16 @@ fun EmploymentTypeDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "نظام الساعة (عادي)",
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = "نظام بالساعة",
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "• احتساب إجمالي الساعات الفعلية المنجزة\n• الراتب = مجموع الساعات × سعر الساعة\n• مناسب للعمل الحر والبارت تايم",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                lineHeight = 16.sp
+                                text = "حساب الراتب بناءً على إجمالي ساعات العمل الفعلية",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -943,3 +987,4 @@ fun EmploymentTypeDialog(
         }
     )
 }
+

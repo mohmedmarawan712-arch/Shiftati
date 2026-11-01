@@ -837,6 +837,27 @@ class MainViewModel(
         }
     }
 
+    /**
+     * Scans the current period and creates OFF (manual) days for any missing dates.
+     */
+    fun fillMissingDaysAsOff(onResult: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val start = _homeState.value.periodStart
+            val end = _homeState.value.periodEnd
+            if (start.isNotBlank() && end.isNotBlank()) {
+                val count = repo.fillMissingDaysAsOff(start, end)
+                refreshHome()
+                if (count > 0) {
+                    showHomeMessage("تم تسجيل $count يوم إجازة (OFF) مفقود بنجاح ✓")
+                } else {
+                    showHomeMessage("جميع الأيام مسجلة بالفعل ولا توجد أيام مفقودة")
+                }
+                onResult(count)
+            }
+        }
+    }
+
+
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     fun showHomeMessage(text: String, isError: Boolean = false) {

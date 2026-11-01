@@ -244,4 +244,30 @@ object PayrollUtil {
             else -> "${h}h ${m}m"
         }
     }
+
+    /**
+     * Converts "yyyy-MM-dd" + hour + minute to epoch millis.
+     */
+    fun dateTimeToMillis(date: String, hour: Int, minute: Int): Long {
+        val cal = Calendar.getInstance()
+        val parts = date.split("-").map { it.toInt() }
+        cal.set(parts[0], parts[1] - 1, parts[2], hour, minute, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
+    /**
+     * Returns an ordered list of "yyyy-MM-dd" strings from [startStr] through [endStr] inclusive.
+     */
+    fun getDatesInRange(startStr: String, endStr: String): List<String> {
+        val list = mutableListOf<String>()
+        val startCal = Calendar.getInstance().apply { time = parseDate(startStr) }
+        val endCal = Calendar.getInstance().apply { time = parseDate(endStr) }
+        while (!startCal.after(endCal)) {
+            list.add(sdf.format(startCal.time))
+            startCal.add(Calendar.DAY_OF_MONTH, 1)
+        }
+        return list
+    }
 }
+

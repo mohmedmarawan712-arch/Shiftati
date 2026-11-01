@@ -70,6 +70,13 @@ fun AttendanceListScreen(
                 title = "سجل الحضور",
                 onBack = null,
                 actions = {
+                    IconButton(onClick = { viewModel.fillMissingDaysAsOff() }) {
+                        Icon(
+                            Icons.Filled.BeachAccess,
+                            contentDescription = "إكمال أيام الإجازات (OFF) المفقودة",
+                            tint = ColorOffDay
+                        )
+                    }
                     IconButton(onClick = { viewModel.exportExcel(onlyCurrentPeriod = filterByPeriod) }) {
                         Icon(
                             Icons.Filled.FileDownload,
@@ -120,7 +127,7 @@ fun AttendanceListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "ملخص النفخ",
+                                text = if (homeState.isFixedEmployment) "ملخص التعيين والإضافي" else "ملخص الساعات",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -144,12 +151,14 @@ fun AttendanceListScreen(
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceAround,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             if (homeState.isFixedEmployment) {
-                                // 1. Base regular hours & price
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // 1. Base regular hours
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "%.0f س".format(homeState.regularHours),
                                         style = MaterialTheme.typography.titleMedium,
@@ -157,7 +166,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الأساسي (${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج)",
+                                        text = "الأساسي",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -167,12 +176,15 @@ fun AttendanceListScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(32.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 2. Overtime hours & price
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // 2. Overtime hours
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
                                         text = "+%.1f س".format(homeState.overtimeHours),
                                         style = MaterialTheme.typography.titleMedium,
@@ -180,7 +192,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "إضافي (+${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج)",
+                                        text = "إضافي",
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -191,37 +203,17 @@ fun AttendanceListScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(32.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // 3. Worked days
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                // 3. Total Salary
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "${homeState.workedDays}",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "أيام العمل",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                // Vertical divider
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(32.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
-                                )
-
-                                // 4. Total Salary
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -235,10 +227,13 @@ fun AttendanceListScreen(
                             } else {
                                 // Standard Hourly Mode
                                 // Total hours
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "%.1f".format(homeState.monthHours),
-                                        style = MaterialTheme.typography.titleLarge,
+                                        text = "%.1f س".format(homeState.monthHours),
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -253,15 +248,18 @@ fun AttendanceListScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(36.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
                                 // Worked days
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "${homeState.workedDays}",
-                                        style = MaterialTheme.typography.titleLarge,
+                                        text = "${homeState.workedDays} يوم",
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -276,15 +274,18 @@ fun AttendanceListScreen(
                                 Box(
                                     modifier = Modifier
                                         .width(1.dp)
-                                        .height(36.dp)
+                                        .height(28.dp)
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
                                 // Estimated Salary
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
                                     Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج.م",
-                                        style = MaterialTheme.typography.titleLarge,
+                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
@@ -294,6 +295,34 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                            }
+                        }
+
+                        if (homeState.isFixedEmployment) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "أساسي: ${NumberFormat.getNumberInstance(Locale.US).format(homeState.regularSalary.toLong())} ج",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "إضافي: +${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = "العمل: ${homeState.workedDays} يوم",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -572,7 +601,7 @@ private fun RecordRow(
     val isOpen = !isOffDay && record.checkOutTime == null
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceBadge = when {
-        isOffDay -> "إجازة"
+        isOffDay -> "يدوي"
         isModified -> "معدل"
         record.source == "ess_online" -> "ESS"
         else -> "يدوي"
@@ -688,43 +717,19 @@ private fun RecordRow(
 
                     // Hours duration chip
                     if (!isOpen) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
-                            if (isFixedEmployment && record.hoursWorked > 9.0) {
-                                val ot = record.hoursWorked - 9.0
-                                val otEarnings = ot * hourlyRate
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
-                                ) {
-                                    Text(
-                                        text = "+%.1f س (+%.0f ج.م)".format(ot, otEarnings),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                        maxLines = 1,
-                                        softWrap = false
-                                    )
-                                }
-                            }
-
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
-                            ) {
-                                Text(
-                                    text = PayrollUtil.formatHours(record.hoursWorked),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
-                                    maxLines = 1,
-                                    softWrap = false
-                                )
-                            }
+                            Text(
+                                text = PayrollUtil.formatHours(record.hoursWorked),
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 3.dp),
+                                maxLines = 1,
+                                softWrap = false
+                            )
                         }
                     }
                 }
@@ -732,13 +737,13 @@ private fun RecordRow(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Line 2: Source badge + Note + Action icons (Edit & Delete)
+            // Line 2: Source badge + Overtime Pill + Note + Action icons (Edit & Delete)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Left side: Source badge and optional Note
+                // Left side: Source badge, Overtime pill, and optional Note
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -772,9 +777,29 @@ private fun RecordRow(
                         }
                     }
 
-                    if (record.note.isNotBlank()) {
+                    // Overtime pill on Line 2
+                    if (isFixedEmployment && record.hoursWorked > 9.0) {
+                        val ot = record.hoursWorked - 9.0
+                        val otEarnings = ot * hourlyRate
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+                        ) {
+                            Text(
+                                text = "+%.1f س إضافي (+%.0f ج)".format(ot, otEarnings),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
+                    }
+
+                    if (record.note.isNotBlank() && (!isOffDay || record.note != "إجازة (OFF)")) {
                         Text(
-                            text = record.note,
+                            text = "• ${record.note}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
@@ -782,6 +807,7 @@ private fun RecordRow(
                         )
                     }
                 }
+
 
                 // Right side: Action buttons
                 Row(

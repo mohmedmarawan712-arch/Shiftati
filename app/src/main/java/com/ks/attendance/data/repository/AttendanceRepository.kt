@@ -139,9 +139,54 @@ class AttendanceRepository(
             attendanceDao.insert(record)
             inserted++
         }
+
+        // Auto-fill missing days from ESS as OFF (manual) days:
+        // Employees do not punch on OFF days, so ESS has no records on those dates.
+        if (shifts.isNotEmpty()) {
+            val todayStr = sdfDate.format(Date())
+            val minDate = shifts.minOf { it.workDate }
+            val maxDate = if (shifts.maxOf { it.workDate } < todayStr) shifts.maxOf { it.workDate } else todayStr
+            fillMissingDaysAsOff(minDate, maxDate)
+        }
+
         deduplicateRecords()
         inserted
     }
+
+    /**
+     * Checks all calendar days between [startStr] and [endStr] (bounded by today).
+     * Any day without an attendance record is created as an off day ("off_day") with note "إجازة (OFF)"
+     * and isFromServer = false (so it appears as "يدوي").
+     */
+    suspend fun fillMissingDaysAsOff(startStr: String, endStr: String): Int {
+        val todayStr = sdfDate.format(Date())
+        val boundedEnd = if (endStr > todayStr) todayStr else endStr
+        if (startStr > boundedEnd) return 0
+
+        val allDates = PayrollUtil.getDatesInRange(startStr, boundedEnd)
+        val existing = attendanceDao.getRecordsInRangeDirect(startStr, boundedEnd)
+        val recordedDates = existing.map { it.workDate }.toSet()
+        var added = 0
+
+        for (d in allDates) {
+            if (d !in recordedDates) {
+                val inMillis = PayrollUtil.dateTimeToMillis(d, 0, 0)
+                val offRecord = AttendanceRecord(
+                    workDate = d,
+                    checkInTime = inMillis,
+                    checkOutTime = inMillis,
+                    hoursWorked = 0.0,
+                    source = "off_day",
+                    note = "إجازة (OFF)",
+                    isFromServer = false
+                )
+                attendanceDao.insert(offRecord)
+                added++
+            }
+        }
+        return added
+    }
+
 
     /**
      * Reverts a user-modified record back to official ESS server times
