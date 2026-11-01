@@ -28,7 +28,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ks.attendance.R
 import com.ks.attendance.ui.theme.ColorWorked
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @Composable
 fun SplashScreen(
@@ -40,14 +42,14 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         // Run entrance animations simultaneously for a quick, snappy splash
-        kotlinx.coroutines.coroutineScope {
-            kotlinx.coroutines.launch {
+        coroutineScope {
+            launch {
                 scale.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(280, easing = FastOutSlowInEasing)
                 )
             }
-            kotlinx.coroutines.launch {
+            launch {
                 alpha.animateTo(
                     targetValue = 1f,
                     animationSpec = tween(240, easing = FastOutSlowInEasing)
