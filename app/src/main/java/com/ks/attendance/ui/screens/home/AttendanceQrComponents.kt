@@ -122,7 +122,7 @@ fun AttendanceQrDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (isClockIn) "كود تسجيل الحضور" else "كود تسجيل الانصراف",
+                                text = if (isClockIn) "تسجيل الحضور" else "تسجيل الانصراف",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -136,7 +136,7 @@ fun AttendanceQrDialog(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "أوفلاين بدون إنترنت ✓",
+                                    text = "أوفلاين",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorWorked,
                                     fontWeight = FontWeight.Medium
@@ -183,7 +183,7 @@ fun AttendanceQrDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "دخول (ClockIn)",
+                                text = "دخول",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isClockIn) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isClockIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -213,7 +213,7 @@ fun AttendanceQrDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "خروج (ClockOut)",
+                                text = "خروج",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (!isClockIn) FontWeight.Bold else FontWeight.Medium,
                                 color = if (!isClockIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -361,7 +361,7 @@ fun AttendanceQrDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "وحدة (suId): ${selectedAccount.suId}",
+                                text = "كود المطعم: ${selectedAccount.suId}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -507,33 +507,27 @@ fun AccountCardHeaderBar(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                shape = RoundedCornerShape(6.dp),
-                                color = ColorWorked.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "أوفلاين ✓",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                    color = ColorWorked,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "نشط",
+                                tint = ColorWorked,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
-                            text = "كود: ${activeAccount.staffId} • ${activeAccount.instanceName.ifBlank { activeAccount.instanceId }}",
+                            text = "كود الموظف: ${activeAccount.staffId} • كود المطعم: ${activeAccount.suId}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
                         Text(
-                            text = "لم يتم إضافة حساب ESS بعد",
+                            text = "حسابات ESS",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "اضغط لتسجيل الدخول وحفظ كود QR",
+                            text = "اضغط للربط من الإعدادات",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -638,13 +632,13 @@ fun AttendanceQrQuickActionButtons(
 
                     Column {
                         Text(
-                            text = "تسجيل حضور",
+                            text = "تسجيل الحضور",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "كود QR دخول (ClockIn)",
+                            text = "دخول",
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorWorked,
                             fontWeight = FontWeight.SemiBold
@@ -712,13 +706,13 @@ fun AttendanceQrQuickActionButtons(
 
                     Column {
                         Text(
-                            text = "تسجيل انصراف",
+                            text = "تسجيل الانصراف",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "كود QR خروج (ClockOut)",
+                            text = "خروج",
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorLogout,
                             fontWeight = FontWeight.SemiBold
@@ -850,22 +844,17 @@ fun AccountsManagerDialog(
                                             )
                                             if (isActive) {
                                                 Spacer(modifier = Modifier.width(6.dp))
-                                                Surface(
-                                                    shape = RoundedCornerShape(6.dp),
-                                                    color = ColorWorked
-                                                ) {
-                                                    Text(
-                                                        text = "نشط",
-                                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                                                        color = Color.White,
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                                    )
-                                                }
+                                                Icon(
+                                                    imageVector = Icons.Filled.CheckCircle,
+                                                    contentDescription = "الحساب النشط",
+                                                    tint = ColorWorked,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "كود الموظف: ${acc.staffId} • وحدة الجدولة: ${acc.suId}",
+                                            text = "كود الموظف: ${acc.staffId} • كود المطعم: ${acc.suId}",
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -981,7 +970,7 @@ fun AddAccountDialog(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    text = "أدخل بيانات حسابك في ESS لتحميل كود الموظف ووحدة الجدولة وحفظ بيانات الـ QR أوفلاين.",
+                    text = "أدخل بيانات حسابك في ESS لتحميل كود الموظف وكود المطعم وحفظ بيانات الـ QR أوفلاين.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

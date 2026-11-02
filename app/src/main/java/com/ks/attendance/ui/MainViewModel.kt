@@ -790,8 +790,8 @@ class MainViewModel(
                     essEmail = acc.email
                 )
                 refreshHome()
-                syncFromEss { count ->
-                    showHomeMessage("تمت إضافة حساب ${name} بنجاح ✓ ومزامنة $count وردية")
+                syncFromEss { _ ->
+                    showHomeMessage("تم تسجيل الدخول وإضافة حساب ${name} بنجاح ✓")
                 }
             }
             onResult(result)
@@ -809,7 +809,7 @@ class MainViewModel(
                 essEmail = account.email
             )
             refreshHome()
-            showHomeMessage("تم التبديل إلى حساب ${name} ✓")
+            showHomeMessage("تم التبديل إلى حساب ${name} بنجاح ✓")
             // Silently sync shifts for switched account
             syncFromEss {}
         }
@@ -819,7 +819,7 @@ class MainViewModel(
         viewModelScope.launch {
             repo.deleteAccount(account.id)
             refreshHome()
-            showHomeMessage("تم حذف الحساب")
+            showHomeMessage("تم حذف الحساب بنجاح")
         }
     }
 
@@ -837,11 +837,11 @@ class MainViewModel(
                 prefs.setEmployeeName(name)
                 refreshHome()
                 syncFromEss {
-                    showHomeMessage("تم تحديث بيانات الحساب والمزامنة بنجاح ✓")
+                    showHomeMessage("تم تحديث بيانات الحساب بنجاح ✓")
                     onDone?.invoke(true)
                 }
             } else {
-                showHomeMessage("تعذر تحديث بيانات الحساب، استخدام البيانات المحفوظة", isError = true)
+                showHomeMessage("تعذر تحديث البيانات، تم استخدام النسخة المحفوظة", isError = true)
                 onDone?.invoke(false)
             }
         }

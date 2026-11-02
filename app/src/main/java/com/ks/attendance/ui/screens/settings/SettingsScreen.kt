@@ -63,13 +63,21 @@ fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
 
     // ESS states
-    var essEmail by remember(state.essEmail) { mutableStateOf(state.essEmail) }
-    var essPassword by remember(state.essPassword) { mutableStateOf(state.essPassword) }
-    var saveCreds by remember(state.essSaveCredentials) { mutableStateOf(state.essSaveCredentials) }
+    var essEmail by remember { mutableStateOf("") }
+    var essPassword by remember { mutableStateOf("") }
     var showPassword by remember { mutableStateOf(false) }
     var isLoggingIn by remember { mutableStateOf(false) }
     var isSyncing by remember { mutableStateOf(false) }
+    var showAddAccountForm by remember { mutableStateOf(false) }
     var loginMessage by remember { mutableStateOf<String?>(null) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(homeState.message) {
+        homeState.message?.let { msg ->
+            android.widget.Toast.makeText(context, msg.text, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearMessage()
+        }
+    }
 
     val restoreLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -93,56 +101,102 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── 1. ESS Integration Card (Top of the page) ─────────────────────
+            // ─── 1. Unified ESS Accounts Card ─────────────────────────────────
             SlateCard(
-                title = stringResource(R.string.section_ess),
-                icon = Icons.Filled.CloudQueue
+                title = "حسابات ESS",
+                icon = Icons.Filled.ManageAccounts
             ) {
-                if (state.isEssLoggedIn) {
-                    // Connected Status
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(ColorWorked.copy(alpha = 0.15f))
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(ColorWorked)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (state.employeeName.isNotBlank()) state.employeeName else stringResource(R.string.ess_connected),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (state.essEmail.isNotBlank()) {
-                                Text(
-                                    text = state.essEmail,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                val accounts = homeState.allAccounts
+                val activeAccount = homeState.activeAccount
+
+                if (accounts.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        accounts.forEach { acc ->
+                            val isActive = (acc.id == activeAccount?.id)
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .clickable {
+                                        if (!isActive) viewModel.switchAccount(acc)
+                                    },
+                                shape = RoundedCornerShape(14.dp),
+                                color = if (isActive)
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                else
+                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                                border = if (isActive)
+                                    androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                                else null
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = acc.staffName,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (isActive) {
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Icon(
+                                                    imageVector = Icons.Filled.CheckCircle,
+                                                    contentDescription = "الحساب النشط",
+                                                    tint = ColorWorked,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "كود الموظف: ${acc.staffId} • كود المطعم: ${acc.suId}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = acc.email,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                        )
+                                    }
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(
+                                            onClick = { viewModel.deleteAccount(acc) },
+                                            modifier = Modifier.size(34.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Filled.DeleteOutline,
+                                                contentDescription = "حذف الحساب",
+                                                tint = ColorLogout,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Action buttons: Refresh active account & Toggle add form
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Button(
+                        OutlinedButton(
                             onClick = {
                                 isSyncing = true
-                                viewModel.syncFromEss { count ->
+                                viewModel.refreshActiveAccount {
                                     isSyncing = false
-                                    loginMessage = "تمت المزامنة بنجاح: $count وردية"
                                 }
                             },
                             modifier = Modifier.weight(1f),
@@ -150,108 +204,124 @@ fun SettingsScreen(
                             enabled = !isSyncing
                         ) {
                             if (isSyncing) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                             } else {
-                                Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(stringResource(R.string.ess_sync_btn))
+                                Text("تحديث البيانات", style = MaterialTheme.typography.labelMedium)
                             }
                         }
 
-                        OutlinedButton(
-                            onClick = { viewModel.essLogout() },
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(
-                                contentColor = ColorLogout
-                            ),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, ColorLogout.copy(alpha = 0.5f))
+                        Button(
+                            onClick = { showAddAccountForm = !showAddAccountForm },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = if (showAddAccountForm) Icons.Filled.Close else Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text(stringResource(R.string.ess_logout_btn), fontWeight = FontWeight.Bold)
+                            Text(
+                                text = if (showAddAccountForm) "إغلاق" else "إضافة حساب",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
-                } else {
-                    // Login Form
-                    OutlinedTextField(
-                        value = essEmail,
-                        onValueChange = { essEmail = it },
-                        label = { Text(stringResource(R.string.ess_email)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                    )
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    OutlinedTextField(
-                        value = essPassword,
-                        onValueChange = { essPassword = it },
-                        label = { Text(stringResource(R.string.ess_password)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { showPassword = !showPassword }) {
-                                Icon(
-                                    imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        },
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
+                // Add Account Form (Shown when no accounts or user toggles add)
+                AnimatedVisibility(
+                    visible = accounts.isEmpty() || showAddAccountForm,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { saveCreds = !saveCreds },
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(top = if (accounts.isNotEmpty()) 14.dp else 0.dp)
                     ) {
-                        Checkbox(
-                            checked = saveCreds,
-                            onCheckedChange = { saveCreds = it }
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = stringResource(R.string.ess_remember_me),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        if (accounts.isNotEmpty()) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(bottom = 12.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            )
+                            Text(
+                                text = "إضافة حساب جديد",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = essEmail,
+                            onValueChange = { essEmail = it },
+                            label = { Text("البريد الإلكتروني") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            singleLine = true,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                        )
 
-                    Button(
-                        onClick = {
-                            if (essEmail.isNotBlank() && essPassword.isNotBlank()) {
-                                isLoggingIn = true
-                                viewModel.addNewAccount(essEmail.trim(), essPassword) { res ->
-                                    isLoggingIn = false
-                                    if (res.isSuccess) {
-                                        loginMessage = "تم تسجيل الدخول وحفظ بيانات QR أوفلاين بنجاح ✓"
-                                    } else {
-                                        loginMessage = "فشل: ${res.exceptionOrNull()?.message}"
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        OutlinedTextField(
+                            value = essPassword,
+                            onValueChange = { essPassword = it },
+                            label = { Text("كلمة المرور") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { showPassword = !showPassword }) {
+                                    Icon(
+                                        imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            },
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Button(
+                            onClick = {
+                                if (essEmail.isNotBlank() && essPassword.isNotBlank()) {
+                                    isLoggingIn = true
+                                    loginMessage = null
+                                    viewModel.addNewAccount(essEmail.trim(), essPassword) { res ->
+                                        isLoggingIn = false
+                                        if (res.isSuccess) {
+                                            essEmail = ""
+                                            essPassword = ""
+                                            showAddAccountForm = false
+                                        } else {
+                                            loginMessage = "فشل: ${res.exceptionOrNull()?.message}"
+                                        }
                                     }
                                 }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
+                        ) {
+                            if (isLoggingIn) {
+                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("جارٍ جلب البيانات وحفظها...")
+                            } else {
+                                Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("تسجيل الدخول وحفظ الحساب", fontWeight = FontWeight.Bold)
                             }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
-                    ) {
-                        if (isLoggingIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(stringResource(R.string.ess_login_btn))
                         }
                     }
                 }
@@ -261,7 +331,7 @@ fun SettingsScreen(
                     Text(
                         text = msg,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
             }

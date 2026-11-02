@@ -46,11 +46,18 @@ fun HomeScreen(
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
 
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(homeState.message) {
+        homeState.message?.let { msg ->
+            android.widget.Toast.makeText(context, msg.text, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearMessage()
+        }
+    }
+
     // Attendance QR & Account Manager states
     var showQrDialog by remember { mutableStateOf(false) }
     var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
-    var showAddAccountDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -115,7 +122,7 @@ fun HomeScreen(
                     activeAccount = homeState.activeAccount,
                     accountsCount = homeState.allAccounts.size,
                     onOpenAccountManager = { showAccountsManagerDialog = true },
-                    onQuickAddAccount = { showAddAccountDialog = true }
+                    onQuickAddAccount = { onNavigate("settings") }
                 )
             }
 
@@ -127,7 +134,8 @@ fun HomeScreen(
                         if (homeState.activeAccount != null) {
                             showQrDialog = true
                         } else {
-                            showAddAccountDialog = true
+                            viewModel.showHomeMessage("يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً", isError = true)
+                            onNavigate("settings")
                         }
                     },
                     onClockOutQrClick = {
@@ -135,7 +143,8 @@ fun HomeScreen(
                         if (homeState.activeAccount != null) {
                             showQrDialog = true
                         } else {
-                            showAddAccountDialog = true
+                            viewModel.showHomeMessage("يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً", isError = true)
+                            onNavigate("settings")
                         }
                     }
                 )
@@ -477,17 +486,7 @@ fun HomeScreen(
                 onRefreshActive = { viewModel.refreshActiveAccount() },
                 onOpenAddAccount = {
                     showAccountsManagerDialog = false
-                    showAddAccountDialog = true
-                }
-            )
-        }
-
-        // ─── Add ESS Account Dialog ───────────────────────────────────────────
-        if (showAddAccountDialog) {
-            AddAccountDialog(
-                onDismiss = { showAddAccountDialog = false },
-                onAddAccount = { email, pass, onResult ->
-                    viewModel.addNewAccount(email, pass, onResult)
+                    onNavigate("settings")
                 }
             )
         }
@@ -751,7 +750,7 @@ fun EmploymentTypeDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "اختر طريقة الحساب (يمكن تغييرها لاحقاً)",
+                    text = "اختر طريقة حساب الراتب",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -763,47 +762,7 @@ fun EmploymentTypeDialog(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Option 1: Fixed employment (تعيين)
-                Surface(
-                    onClick = { selectedIsFixed = true },
-                    shape = RoundedCornerShape(16.dp),
-                    color = if (selectedIsFixed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                    border = androidx.compose.foundation.BorderStroke(
-                        width = if (selectedIsFixed) 2.dp else 1.dp,
-                        color = if (selectedIsFixed) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(
-                            selected = selectedIsFixed,
-                            onClick = { selectedIsFixed = true },
-                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "تعيين (أوفر تايم)",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "حساب مستحقات الساعات الإضافية بعد 9 ساعات",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                // Option 2: Hourly (بالساعة)
+                // Option 1: Hourly (نظام الساعة) - Placed first as requested
                 Surface(
                     onClick = { selectedIsFixed = false },
                     shape = RoundedCornerShape(16.dp),
@@ -828,14 +787,54 @@ fun EmploymentTypeDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "ساعة",
+                                text = "نظام الساعة",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "حساب الراتب بناءً على إجمالي الساعات",
+                                text = "حساب إجمالي ساعات العمل بالسعر المحدد",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                // Option 2: Fixed employment (نظام التعيين)
+                Surface(
+                    onClick = { selectedIsFixed = true },
+                    shape = RoundedCornerShape(16.dp),
+                    color = if (selectedIsFixed) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    border = androidx.compose.foundation.BorderStroke(
+                        width = if (selectedIsFixed) 2.dp else 1.dp,
+                        color = if (selectedIsFixed) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = selectedIsFixed,
+                            onClick = { selectedIsFixed = true },
+                            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "نظام التعيين",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "حساب الساعات الإضافية (أوفر تايم) بعد 9 ساعات",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -853,7 +852,7 @@ fun EmploymentTypeDialog(
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Text(
-                    text = "تأكيد",
+                    text = "تأكيد الاختيار",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
