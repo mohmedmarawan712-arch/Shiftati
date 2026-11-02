@@ -523,6 +523,10 @@ class MainViewModel(
                 }
 
                 _reportState.value = _reportState.value.copy(isExporting = true)
+                val activeAcc = repo.getActiveAccountDirect()
+                val empName = activeAcc?.let { it.staffShortName.ifBlank { it.staffName } }
+                    ?: _homeState.value.employeeName.ifBlank { prefs.employeeName.first() }
+
                 val result = ExportUtil.exportExcel(
                     context = context,
                     records = records,
@@ -531,7 +535,8 @@ class MainViewModel(
                     periodEnd = pe,
                     hourlyRate = rate,
                     isFixedEmployment = prefs.fixedEmploymentEnabled.first(),
-                    standardShiftHours = prefs.standardShiftHours.first()
+                    standardShiftHours = prefs.standardShiftHours.first(),
+                    employeeName = empName
                 )
                 _reportState.value = _reportState.value.copy(isExporting = false)
 
