@@ -19,8 +19,9 @@ object ExportUtil {
     private val sdfDateTime = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
 
     /**
-     * Exports attendance records to a clean, simple, and well-proportioned Excel workbook (.xls)
-     * with live Excel formulas, adapted column widths, and 0.5h break deduction for Hourly mode.
+     * Exports attendance records to a clean, well-proportioned Excel workbook (.xls)
+     * Includes the app's final calculation summary card (Total hours & Total money),
+     * live Excel formulas, adapted column widths, and 0.5h break deduction for Hourly mode.
      */
     fun exportExcel(
         context: Context,
@@ -82,13 +83,18 @@ object ExportUtil {
         val totalSalariedOvertimePay = totalOvertimeHours * hourlyRate
         val totalRegularHours = workedDays * standardShiftHours
 
-        // Row indices in Excel table
-        // Rows 1-2: Title and metadata
-        // Row 3: Table Header
-        // Rows 4 to (3 + sortedRecords.size): Data rows
-        val firstDataRow = 4
-        val lastDataRow = if (sortedRecords.isNotEmpty()) 3 + sortedRecords.size else 4
-        val sheetName = if (isFixedEmployment) "تعيين - أوفر تايم" else "ساعة - حضور وراتب"
+        // Row indices in Excel:
+        // Row 1: Title
+        // Row 2: Metadata
+        // Row 3: Space
+        // Row 4: Summary Card Headers
+        // Row 5: Summary Card Values
+        // Row 6: Space
+        // Row 7: Table Headers
+        // Rows 8 to (7 + sortedRecords.size): Data rows
+        val firstDataRow = 8
+        val lastDataRow = if (sortedRecords.isNotEmpty()) 7 + sortedRecords.size else 8
+        val sheetName = if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"
 
         val html = buildString {
             append("""
@@ -116,61 +122,97 @@ object ExportUtil {
                   th { background-color: #059669; color: #ffffff; padding: 8px 10px; border: 1px solid #047857; font-weight: bold; font-size: 11pt; text-align: center; white-space: nowrap; }
                   td { padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 10pt; white-space: nowrap; }
                   .th-calc { background-color: #047857; color: #fef08a; border: 1px solid #065f46; font-weight: bold; }
-                  .title-cell { font-size: 15pt; font-weight: bold; color: #065f46; text-align: right; border: none; padding: 4px 8px; }
-                  .meta-cell { font-size: 10pt; color: #475569; text-align: right; border: none; padding: 4px 8px 10px 8px; }
+                  .title-cell { font-size: 16pt; font-weight: bold; color: #065f46; text-align: right; border: none; padding: 6px 8px; }
+                  .meta-cell { font-size: 10pt; color: #475569; text-align: right; border: none; padding: 2px 8px 12px 8px; }
+                  .card-hdr { background-color: #ecfdf5; color: #065f46; font-weight: bold; font-size: 11pt; border: 1px solid #a7f3d0; text-align: center; padding: 6px; }
+                  .card-val { background-color: #f0fdf4; color: #047857; font-weight: bold; font-size: 14pt; border: 1px solid #a7f3d0; text-align: center; padding: 8px; }
                   .summary-row { background-color: #f1f5f9; font-weight: bold; }
                   .summary-lbl { text-align: right; font-weight: bold; color: #334155; padding-right: 12px; }
                   .total-bar { background-color: #d1fae5; border-top: 2px solid #059669; font-weight: bold; }
                   .total-lbl { font-size: 11pt; font-weight: bold; color: #047857; text-align: right; padding-right: 12px; }
-                  .total-val { font-size: 12pt; font-weight: bold; color: #047857; text-align: center; }
+                  .total-val { font-size: 13pt; font-weight: bold; color: #047857; text-align: center; }
                   .font-bold { font-weight: bold; }
                   .num { mso-number-format:"0\.00"; text-align: center; }
-                  .currency { mso-number-format:"\#\,\#\#0\.00"; text-align: center; font-weight: 600; }
+                  .currency { mso-number-format:"\#\,\#\#0\.00"; text-align: center; font-weight: 700; }
                   .integer { mso-number-format:"0"; text-align: center; }
                 </style>
                 </head>
                 <body dir="rtl">
                   <table border="1" cellpadding="6" cellspacing="0">
                     <colgroup>
-                      <col width="75" style="width: 55pt;">
-                      <col width="95" style="width: 72pt;">
                       <col width="80" style="width: 60pt;">
-                      <col width="80" style="width: 60pt;">
-                      <col width="75" style="width: 55pt;">
-                      <col width="65" style="width: 50pt;">
-                      <col width="140" style="width: 105pt;">
-                      <col width="75" style="width: 55pt;">
+                      <col width="100" style="width: 75pt;">
                       <col width="85" style="width: 65pt;">
-                      <col width="105" style="width: 80pt;">
+                      <col width="85" style="width: 65pt;">
+                      <col width="80" style="width: 60pt;">
+                      <col width="70" style="width: 55pt;">
+                      <col width="150" style="width: 115pt;">
+                      <col width="80" style="width: 60pt;">
+                      <col width="90" style="width: 70pt;">
+                      <col width="115" style="width: 90pt;">
                     </colgroup>
                     <thead>
+                      <!-- Row 1: Title -->
                       <tr>
                         <td colspan="10" class="title-cell">تقرير ساعات العمل والراتب (شفتاتي)</td>
                       </tr>
+                      <!-- Row 2: Metadata -->
                       <tr>
                         <td colspan="10" class="meta-cell">
                           <b>الموظف:</b> $rawName &nbsp;|&nbsp;
                           <b>الفترة:</b> من $periodStart إلى $periodEnd &nbsp;|&nbsp;
                           <b>تاريخ التصدير:</b> ${sdfDateTime.format(Date())} &nbsp;|&nbsp;
-                          <b>النظام:</b> ${if (isFixedEmployment) "تعيين (أوفر تايم بعد $standardShiftHours س)" else "ساعة (خصم 0.5 س بريك)"}
+                          <b>نظام العمل:</b> ${if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"}
                         </td>
                       </tr>
+
+                      <!-- Row 3: Blank separator -->
+                      <tr style="height: 6px;"><td colspan="10" style="border: none; background: #ffffff;"></td></tr>
+
+                      <!-- Rows 4 & 5: App-style Final Calculation Summary Card (الحسبة النهائية زي التطبيق) -->
                       <tr>
-                        <th width="75">اليوم</th>
-                        <th width="95">التاريخ</th>
-                        <th width="80">الحضور</th>
-                        <th width="80">الانصراف</th>
-                        <th width="75">الساعات</th>
-                        <th width="65">المصدر</th>
-                        <th width="140">الملاحظات</th>
                         ${if (isFixedEmployment) """
-                        <th width="75" class="th-calc">الأساسي</th>
-                        <th width="85" class="th-calc">الإضافي</th>
-                        <th width="105" class="th-calc">فلوس الإضافي</th>
+                        <td colspan="4" class="card-hdr">الساعات الأساسية</td>
+                        <td colspan="3" class="card-hdr">ساعات إضافية (أوفر تايم)</td>
+                        <td colspan="3" class="card-hdr">مستحق الإضافي (الفلوس)</td>
                         """.trimIndent() else """
-                        <th width="75" class="th-calc">البريك</th>
-                        <th width="85" class="th-calc">الصافي</th>
-                        <th width="105" class="th-calc">المرتب (ج.م)</th>
+                        <td colspan="4" class="card-hdr">الساعات (صافي بعد خصم البريك)</td>
+                        <td colspan="3" class="card-hdr">أيام العمل الفعلية</td>
+                        <td colspan="3" class="card-hdr">إجمالي الراتب (الفلوس)</td>
+                        """.trimIndent()}
+                      </tr>
+                      <tr>
+                        ${if (isFixedEmployment) """
+                        <td colspan="4" class="card-val num" x:num="${"%.2f".format(totalRegularHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(H$firstDataRow:H$lastDataRow)\"" else ""}>${"%.2f".format(totalRegularHours)} س</td>
+                        <td colspan="3" class="card-val num" style="color:#059669;" x:num="${"%.2f".format(totalOvertimeHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>+${"%.2f".format(totalOvertimeHours)} س</td>
+                        <td colspan="3" class="card-val currency" x:num="${"%.2f".format(totalSalariedOvertimePay)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalSalariedOvertimePay)} ج.م</td>
+                        """.trimIndent() else """
+                        <td colspan="4" class="card-val num" x:num="${"%.2f".format(totalNetHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>${"%.2f".format(totalNetHours)} س</td>
+                        <td colspan="3" class="card-val integer" x:num="$workedDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;&gt;0&quot;)\"" else ""}>$workedDays يوم</td>
+                        <td colspan="3" class="card-val currency" x:num="${"%.2f".format(totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalHourlySalary)} ج.م</td>
+                        """.trimIndent()}
+                      </tr>
+
+                      <!-- Row 6: Blank separator -->
+                      <tr style="height: 10px;"><td colspan="10" style="border: none; background: #ffffff;"></td></tr>
+
+                      <!-- Row 7: Main Table Column Headers -->
+                      <tr>
+                        <th width="80">اليوم</th>
+                        <th width="100">التاريخ</th>
+                        <th width="85">الحضور</th>
+                        <th width="85">الانصراف</th>
+                        <th width="80">الساعات</th>
+                        <th width="70">المصدر</th>
+                        <th width="150">الملاحظات</th>
+                        ${if (isFixedEmployment) """
+                        <th width="80" class="th-calc">الأساسي</th>
+                        <th width="90" class="th-calc">الإضافي</th>
+                        <th width="115" class="th-calc">فلوس الإضافي</th>
+                        """.trimIndent() else """
+                        <th width="80" class="th-calc">البريك</th>
+                        <th width="90" class="th-calc">الصافي</th>
+                        <th width="115" class="th-calc">المرتب (ج.م)</th>
                         """.trimIndent()}
                       </tr>
                     </thead>
@@ -234,13 +276,13 @@ object ExportUtil {
                 }
             }
 
-            // Summary Section inside the same table: Concise, aligned, and live
+            // Summary Section inside the table footer: Fully summed totals & money
             append("""
                     </tbody>
                     <tfoot>
-                      <!-- Totals Row -->
+                      <!-- Column Totals Row -->
                       <tr class="summary-row">
-                        <td colspan="4" class="summary-lbl">إجمالي الساعات:</td>
+                        <td colspan="4" class="summary-lbl">الإجمالي العام:</td>
                         <td class="num font-bold" x:num="${"%.2f".format(totalRawHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(E$firstDataRow:E$lastDataRow)\"" else ""}>${"%.2f".format(totalRawHours)}</td>
                         <td colspan="2"></td>
                         ${if (isFixedEmployment) """
@@ -256,18 +298,22 @@ object ExportUtil {
 
                       <!-- Attendance & Rate Stats Row -->
                       <tr class="summary-row">
-                        <td colspan="4" class="summary-lbl">أيام العمل:</td>
+                        <td colspan="4" class="summary-lbl">أيام العمل الفعلية:</td>
                         <td class="integer font-bold" x:num="$workedDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;&gt;0&quot;)\"" else ""}>$workedDays يوم</td>
-                        <td colspan="2" class="summary-lbl">الإجازات (OFF):</td>
+                        <td colspan="2" class="summary-lbl">أيام الإجازات (OFF):</td>
                         <td class="integer font-bold" style="color:#b45309;" x:num="$offDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;=0&quot;)\"" else ""}>$offDays</td>
                         <td class="summary-lbl">سعر الساعة:</td>
                         <td class="currency font-bold" x:num="${"%.2f".format(hourlyRate)}">${"%,.0f".format(hourlyRate)} ج.م</td>
                       </tr>
 
-                      <!-- Final Grand Total Bar -->
+                      <!-- Final Grand Total Bar (الحسبة النهائية المجمعة: التوتال والفلوس) -->
                       <tr class="total-bar">
-                        <td colspan="7" class="total-lbl">${if (isFixedEmployment) "إجمالي مستحقات الأوفر تايم:" else "صافي الراتب المستحق بالكامل (بعد خصم البريك):"}</td>
-                        <td colspan="3" class="total-val currency" x:num="${"%.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)} ج.م</td>
+                        <td colspan="7" class="total-lbl">
+                          ${if (isFixedEmployment) "الحسبة النهائية (إجمالي مستحقات الأوفر تايم):" else "الحسبة النهائية (صافي الراتب المستحق بعد خصم البريك):"}
+                        </td>
+                        <td colspan="3" class="total-val currency" x:num="${"%.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>
+                          ${"%,.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)} ج.م
+                        </td>
                       </tr>
                     </tfoot>
                   </table>

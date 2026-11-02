@@ -127,7 +127,7 @@ fun AttendanceListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (homeState.isFixedEmployment) "ملخص التعيين والإضافي" else "ملخص الساعات",
+                                text = if (homeState.isFixedEmployment) "نظام التعيين" else "نظام الساعة",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
