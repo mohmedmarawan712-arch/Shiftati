@@ -252,11 +252,11 @@ class MainViewModel(
             )
 
             val openSession = repo.getOpenSession()
-            val todayHours = repo.getTotalHoursInRange(today, today)
+            val todayRaw = repo.getTotalHoursInRange(today, today)
+            val todayHours = if (isFixed) todayRaw else (if (todayRaw > 0.5) todayRaw - 0.5 else 0.0)
             val recordsInRange = repo.getRecordsInRangeDirect(periodStart, periodEnd)
-            val monthHours = recordsInRange.sumOf { it.hoursWorked }
 
-            val workedRecords = recordsInRange.filter { it.hoursWorked > 0.0 }
+            val workedRecords = recordsInRange.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
             val dayGroups = workedRecords.groupBy { it.workDate }
             val workedDays = dayGroups.keys.size
 
@@ -267,13 +267,21 @@ class MainViewModel(
                     overtimeHours += (daySum - stdShift)
                 }
             }
-            val regularHours = if (isFixed) (workedDays * stdShift) else monthHours
-            val regularSalary = if (isFixed) 0.0 else (regularHours * rate)
+
+            // Deduct 0.5h break per worked day for Hourly mode
+            val netMonthHours = dayGroups.values.sumOf { dayRecs ->
+                val daySum = dayRecs.sumOf { it.hoursWorked }
+                if (daySum > 0.5) daySum - 0.5 else 0.0
+            }
+
+            val monthHours = if (isFixed) recordsInRange.sumOf { it.hoursWorked } else netMonthHours
+            val regularHours = if (isFixed) (workedDays * stdShift) else netMonthHours
+            val regularSalary = if (isFixed) 0.0 else (netMonthHours * rate)
             val overtimeSalary = overtimeHours * rate
             val monthSalary = if (isFixed) {
                 overtimeSalary
             } else {
-                monthHours * rate
+                netMonthHours * rate
             }
 
 
@@ -442,8 +450,7 @@ class MainViewModel(
                            )
 
             repo.getRecordsInRange(ps, pe).collect { records ->
-                val totalHours = records.sumOf { it.hoursWorked }
-                val workedRecords = records.filter { it.hoursWorked > 0.0 }
+                val workedRecords = records.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
                 val dayGroups = workedRecords.groupBy { it.workDate }
                 val workedDays = dayGroups.keys.size
 
@@ -454,11 +461,18 @@ class MainViewModel(
                         overtimeHours += (daySum - stdShift)
                     }
                 }
-                val regularHours = if (isFixed) (workedDays * stdShift) else totalHours
+
+                val netTotalHours = dayGroups.values.sumOf { dayRecs ->
+                    val daySum = dayRecs.sumOf { it.hoursWorked }
+                    if (daySum > 0.5) daySum - 0.5 else 0.0
+                }
+
+                val totalHours = if (isFixed) records.sumOf { it.hoursWorked } else netTotalHours
+                val regularHours = if (isFixed) (workedDays * stdShift) else netTotalHours
                 val estimatedSalary = if (isFixed) {
                     overtimeHours * rate
                 } else {
-                    totalHours * rate
+                    netTotalHours * rate
                 }
 
 

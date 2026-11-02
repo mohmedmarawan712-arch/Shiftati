@@ -768,6 +768,22 @@ private fun RecordRow(
                                 softWrap = false
                             )
                         }
+                    } else if (!isFixedEmployment && record.hoursWorked > 0.5 && !isOffDay) {
+                        val net = record.hoursWorked - 0.5
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant
+                        ) {
+                            Text(
+                                text = "صافي: %.1f س (-0.5 بريك)".format(net),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        }
                     }
 
                     if (record.note.isNotBlank() && (!isOffDay || record.note != "إجازة (OFF)")) {
