@@ -155,7 +155,7 @@ fun HomeScreen(
             // ─── Active Attendance / Live Session Card ────────────────────────
             if (homeState.openSession != null) {
                 item {
-                    val openSession = homeState.openSession
+                    val openSession = homeState.openSession ?: return@item
                     var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
                     LaunchedEffect(openSession.checkInTime) {
                         while (true) {
