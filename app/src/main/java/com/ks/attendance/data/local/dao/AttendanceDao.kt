@@ -39,6 +39,10 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance_records WHERE checkOutTime IS NULL AND source != 'off_day' ORDER BY checkInTime DESC LIMIT 1")
     suspend fun getOpenSession(): AttendanceRecord?
 
+    /** Reactive Flow for active clock-in session */
+    @Query("SELECT * FROM attendance_records WHERE checkOutTime IS NULL AND source != 'off_day' ORDER BY checkInTime DESC LIMIT 1")
+    fun observeOpenSession(): Flow<AttendanceRecord?>
+
     @Query("""
         SELECT SUM(hoursWorked) FROM attendance_records 
         WHERE workDate >= :startDate AND workDate <= :endDate

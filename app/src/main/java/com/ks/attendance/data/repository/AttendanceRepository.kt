@@ -44,6 +44,7 @@ class AttendanceRepository(
     suspend fun deleteDay(date: String) = attendanceDao.deleteRecordsByDate(date)
 
     suspend fun getOpenSession(): AttendanceRecord? = attendanceDao.getOpenSession()
+    fun observeOpenSession(): Flow<AttendanceRecord?> = attendanceDao.observeOpenSession()
 
     suspend fun getTotalHoursInRange(start: String, end: String): Double =
         attendanceDao.getTotalHoursInRange(start, end) ?: 0.0
@@ -64,22 +65,21 @@ class AttendanceRepository(
 
     // ─── Clock-in / Clock-out shortcuts ──────────────────────────────────────
 
-    suspend fun clockIn(): Long {
-        val now = System.currentTimeMillis()
-        val date = sdfDate.format(Date(now))
+    suspend fun clockIn(customTime: Long = System.currentTimeMillis()): Long {
+        val date = sdfDate.format(Date(customTime))
         val record = AttendanceRecord(
             workDate = date,
-            checkInTime = now,
+            checkInTime = customTime,
             checkOutTime = null,
             source = "manual"
         )
         return attendanceDao.insert(record)
     }
 
-    suspend fun clockOut(openRecord: AttendanceRecord): AttendanceRecord {
-        val now = System.currentTimeMillis()
-        val hours = (now - openRecord.checkInTime).toDouble() / 3_600_000.0
-        val updated = openRecord.copy(checkOutTime = now, hoursWorked = hours)
+    suspend fun clockOut(openRecord: AttendanceRecord, customTime: Long = System.currentTimeMillis()): AttendanceRecord {
+        val outTime = if (customTime >= openRecord.checkInTime) customTime else System.currentTimeMillis()
+        val hours = (outTime - openRecord.checkInTime).toDouble() / 3_600_000.0
+        val updated = openRecord.copy(checkOutTime = outTime, hoursWorked = hours)
         attendanceDao.update(updated)
         return updated
     }
@@ -114,7 +114,7 @@ class AttendanceRepository(
      */
     suspend fun syncFromEss(startDate: Date, endDate: Date): Result<Int> = runCatching {
         val clockings = essClient.fetchClockings(startDate, endDate).getOrThrow()
-        val (shifts, _) = ClockingParser.pairShifts(clockings)
+        val (shifts, unmatched) = ClockingParser.pairShifts(clockings)
 
         val startStr = sdfDate.format(startDate)
         val endStr = sdfDate.format(endDate)
@@ -144,12 +144,38 @@ class AttendanceRepository(
             inserted++
         }
 
+        // Handle open ClockIn from ESS (clocked in today or recently without clockout yet)
+        val openClockIn = unmatched.lastOrNull { it.type.startsWith("ClockIn") }
+        if (openClockIn != null) {
+            val openWorkDate = sdfDate.format(openClockIn.time)
+            if (openWorkDate in startStr..endStr) {
+                val hasManualOrDuplicate = existingRecords.any { existing ->
+                    existing.workDate == openWorkDate && !existing.isFromServer
+                }
+                if (!hasManualOrDuplicate) {
+                    val existingOpen = attendanceDao.getOpenSession()
+                    val openRecord = AttendanceRecord(
+                        id = if (existingOpen?.isFromServer == true && existingOpen.workDate == openWorkDate) existingOpen.id else 0,
+                        workDate = openWorkDate,
+                        checkInTime = openClockIn.time.time,
+                        checkOutTime = null,
+                        hoursWorked = 0.0,
+                        source = "ess_online",
+                        isFromServer = true
+                    )
+                    attendanceDao.insert(openRecord)
+                    inserted++
+                }
+            }
+        }
+
         // Auto-fill missing days from ESS as OFF (manual) days:
         // Employees do not punch on OFF days, so ESS has no records on those dates.
-        if (shifts.isNotEmpty()) {
+        val allValidDates = shifts.map { it.workDate } + listOfNotNull(openClockIn?.let { sdfDate.format(it.time) })
+        if (allValidDates.isNotEmpty()) {
             val todayStr = sdfDate.format(Date())
-            val minDate = shifts.minOf { it.workDate }
-            val maxDate = if (shifts.maxOf { it.workDate } < todayStr) shifts.maxOf { it.workDate } else todayStr
+            val minDate = allValidDates.minOrNull() ?: todayStr
+            val maxDate = if ((allValidDates.maxOrNull() ?: todayStr) < todayStr) (allValidDates.maxOrNull() ?: todayStr) else todayStr
             fillMissingDaysAsOff(minDate, maxDate)
         }
 

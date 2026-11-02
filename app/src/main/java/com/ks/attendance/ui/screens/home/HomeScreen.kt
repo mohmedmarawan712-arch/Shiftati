@@ -152,6 +152,179 @@ fun HomeScreen(
                 )
             }
 
+            // ─── Active Attendance / Live Session Card ────────────────────────
+            if (homeState.openSession != null) {
+                item {
+                    val openSession = homeState.openSession
+                    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+                    LaunchedEffect(openSession.checkInTime) {
+                        while (true) {
+                            currentTime = System.currentTimeMillis()
+                            delay(30_000L)
+                        }
+                    }
+
+                    val elapsedMillis = maxOf(0L, currentTime - openSession.checkInTime)
+                    val elapsedHours = elapsedMillis / 3_600_000L
+                    val elapsedMins = (elapsedMillis % 3_600_000L) / 60_000L
+                    val checkInFormatted = PayrollUtil.formatTime(openSession.checkInTime, settingsState.is24Hour)
+
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.5.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            // Top Row: Status badge & Live indicator
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = ColorWorked.copy(alpha = 0.2f),
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Filled.Fingerprint,
+                                                contentDescription = null,
+                                                tint = ColorWorked,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(ColorWorked)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = "أنت مسجل حضور الآن 🟢",
+                                                style = MaterialTheme.typography.titleMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        Text(
+                                            text = if (openSession.isFromServer) "مصدر البصمة: جهاز ESS السيرفر" else "مصدر البصمة: تسجيل بالـ QR",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Text(
+                                        text = "دوام جاري ⏳",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ColorWorked,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Time & Duration details
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "وقت تسجيل الحضور",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = checkInFormatted,
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Text(
+                                        text = openSession.workDate,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = "المدة المستمرة حتى الآن",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = if (elapsedHours > 0) "${elapsedHours} س و ${elapsedMins} د" else "${elapsedMins} دقيقة",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            // Action buttons: Quick Clock-Out QR & Manual close
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        qrInitialEvent = QrUtil.EVENT_CLOCK_OUT
+                                        if (homeState.activeAccount != null) {
+                                            showQrDialog = true
+                                        } else {
+                                            viewModel.showHomeMessage(context.getString(R.string.attendance_require_account), isError = true)
+                                            onNavigate("settings")
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = ColorLogout)
+                                ) {
+                                    Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("تسجيل الانصراف (QR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                }
+
+                                OutlinedButton(
+                                    onClick = { viewModel.clockOut() },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Text("إنهاء يدوي", style = MaterialTheme.typography.labelMedium)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ─── Period Summary Card ──────────────────────────────────────────
             item {
                 Card(
@@ -470,7 +643,14 @@ fun HomeScreen(
                 onDismiss = { showQrDialog = false },
                 onSwitchAccount = { viewModel.switchAccount(it) },
                 onGeneratePayload = { acc, event, date -> viewModel.generateQrPayload(acc, event, date) },
-                onGenerateBitmap = { payload -> viewModel.generateQrBitmap(payload) }
+                onGenerateBitmap = { payload -> viewModel.generateQrBitmap(payload) },
+                onConfirmAttendance = { isClockIn, time ->
+                    if (isClockIn) {
+                        viewModel.clockIn(time.time)
+                    } else {
+                        viewModel.clockOut(time.time)
+                    }
+                }
             )
         }
 

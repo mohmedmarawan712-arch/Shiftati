@@ -58,7 +58,8 @@ fun AttendanceQrDialog(
     onDismiss: () -> Unit,
     onSwitchAccount: (EssAccount) -> Unit,
     onGeneratePayload: (EssAccount, String, Date) -> String,
-    onGenerateBitmap: (String) -> Bitmap
+    onGenerateBitmap: (String) -> Bitmap,
+    onConfirmAttendance: ((isClockIn: Boolean, time: Date) -> Unit)? = null
 ) {
     val context = LocalContext.current
     var currentEvent by remember { mutableStateOf(initialEvent) }
@@ -437,12 +438,19 @@ fun AttendanceQrDialog(
                     }
 
                     Button(
-                        onClick = onDismiss,
+                        onClick = {
+                            onConfirmAttendance?.invoke(isClockIn, clockTime)
+                            onDismiss()
+                        },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor)
                     ) {
-                        Text("تم الإتمام", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = if (isClockIn) "تأكيد الحضور" else "تأكيد الانصراف",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

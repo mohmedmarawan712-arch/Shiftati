@@ -166,6 +166,11 @@ class MainViewModel(
             allRecords.collect {
                 refreshHome()
             }
+        // Keep open session reactively updated
+        viewModelScope.launch {
+            repo.observeOpenSession().collect { open ->
+                _homeState.value = _homeState.value.copy(openSession = open)
+            }
         }
         // Auto-sync from ESS on launch if credentials exist
         autoLoginAndSyncIfSaved()
@@ -323,31 +328,31 @@ class MainViewModel(
 
     // ─── Clock In/Out ─────────────────────────────────────────────────────────
 
-    fun clockIn() {
+    fun clockIn(customTime: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             try {
                 val existing = repo.getOpenSession()
                 if (existing != null) {
-                    showHomeMessage("يوجد جلسة مفتوحة بالفعل منذ ${PayrollUtil.formatTime(existing.checkInTime)}", isError = true)
+                    showHomeMessage("أنت مسجل حضور بالفعل منذ الساعة ${PayrollUtil.formatTime(existing.checkInTime)}", isError = true)
                     return@launch
                 }
-                repo.clockIn()
+                repo.clockIn(customTime)
                 refreshHome()
-                showHomeMessage("تم تسجيل الدخول ✓")
+                showHomeMessage("تم تسجيل الحضور الساعة ${PayrollUtil.formatTime(customTime)} ✓")
             } catch (e: Exception) {
                 showHomeMessage("خطأ: ${e.message}", true)
             }
         }
     }
 
-    fun clockOut() {
+    fun clockOut(customTime: Long = System.currentTimeMillis()) {
         viewModelScope.launch {
             try {
                 val open = repo.getOpenSession()
-                    ?: run { showHomeMessage("لا توجد جلسة مفتوحة", true); return@launch }
-                val updated = repo.clockOut(open)
+                    ?: run { showHomeMessage("لا توجد جلسة حضور مفتوحة لتسجيل انصرافها", true); return@launch }
+                val updated = repo.clockOut(open, customTime)
                 refreshHome()
-                showHomeMessage("تم تسجيل الانصراف ✓ — ${PayrollUtil.formatHours(updated.hoursWorked)}")
+                showHomeMessage("تم تسجيل الانصراف الساعة ${PayrollUtil.formatTime(updated.checkOutTime ?: customTime)} ✓ (${PayrollUtil.formatHours(updated.hoursWorked)})")
             } catch (e: Exception) {
                 showHomeMessage("خطأ: ${e.message}", true)
             }
