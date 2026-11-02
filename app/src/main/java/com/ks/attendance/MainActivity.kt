@@ -5,17 +5,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.LayoutDirection
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.navigation.KSNavGraph
+import com.ks.attendance.ui.screens.splash.SplashScreen
 import com.ks.attendance.ui.theme.KSAttendanceTheme
 import com.ks.attendance.utils.PrefsUtil
 
@@ -38,7 +42,7 @@ class MainActivity : ComponentActivity() {
                 else                  -> systemInDark
             }
             val layoutDirection = if (settings.language == "en") LayoutDirection.Ltr else LayoutDirection.Rtl
-            var showSplash by remember { mutableStateOf(true) }
+            var showSplash by rememberSaveable { mutableStateOf(true) }
 
             CompositionLocalProvider(LocalLayoutDirection provides layoutDirection) {
                 KSAttendanceTheme(darkTheme = isDark) {
@@ -46,13 +50,19 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier.fillMaxSize(),
                         color = if (isDark) Color.Black else MaterialTheme.colorScheme.background
                     ) {
-                        if (showSplash) {
-                            com.ks.attendance.ui.screens.splash.SplashScreen(
-                                isDark = isDark,
-                                onSplashFinished = { showSplash = false }
-                            )
-                        } else {
-                            KSNavGraph(viewModel = viewModel)
+                        Crossfade(
+                            targetState = showSplash,
+                            animationSpec = tween(durationMillis = 350),
+                            label = "SplashToMainTransition"
+                        ) { isSplash ->
+                            if (isSplash) {
+                                SplashScreen(
+                                    isDark = isDark,
+                                    onSplashFinished = { showSplash = false }
+                                )
+                            } else {
+                                KSNavGraph(viewModel = viewModel)
+                            }
                         }
                     }
                 }
