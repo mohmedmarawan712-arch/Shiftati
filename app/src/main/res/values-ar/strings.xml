@@ -137,12 +137,12 @@
     <string name="ess_manage_accounts">إدارة حسابات ESS</string>
 
     <!-- Attendance QR & Actions -->
-    <string name="attendance_clock_in">تسجيل الحضور</string>
-    <string name="attendance_clock_out">تسجيل الانصراف</string>
-    <string name="attendance_in_short">دخول</string>
-    <string name="attendance_out_short">خروج</string>
-    <string name="attendance_qr_in_title">تسجيل الحضور</string>
-    <string name="attendance_qr_out_title">تسجيل الانصراف</string>
+    <string name="attendance_clock_in">حضور</string>
+    <string name="attendance_clock_out">انصراف</string>
+    <string name="attendance_in_short">حضور</string>
+    <string name="attendance_out_short">انصراف</string>
+    <string name="attendance_qr_in_title">حضور</string>
+    <string name="attendance_qr_out_title">انصراف</string>
     <string name="attendance_qr_subtitle">وجّه رمز الـ QR أمام جهاز البصمة</string>
     <string name="attendance_time_updated">تم التحديث بالوقت الحالي ✓</string>
     <string name="attendance_copy_qr">نسخ النص</string>

@@ -288,8 +288,18 @@ class AttendanceRepository(
     suspend fun deleteAccount(id: Long) {
         essAccountDao.deleteById(id)
         val remaining = essAccountDao.getAllAccountsDirect()
-        if (remaining.isNotEmpty() && essAccountDao.getActiveAccountDirect() == null) {
-            setActiveAccount(remaining.first().id)
+        if (remaining.isNotEmpty()) {
+            if (essAccountDao.getActiveAccountDirect() == null) {
+                setActiveAccount(remaining.first().id)
+            }
+        } else {
+            essAccountDao.clearActiveFlag()
+            essClient.instanceId = null
+            essClient.staffId = null
+            essClient.schedulingUnitId = null
+            essClient.detectedStaffFullName = null
+            essClient.detectedStaffShortName = null
+            essClient.detectedEmployeeName = null
         }
     }
 
@@ -341,6 +351,18 @@ class AttendanceRepository(
     ): Result<EssAccount> = runCatching {
         val profile = essClient.fetchFullProfile(email, pass, preferredInstanceId).getOrThrow()
         saveOrUpdateAccount(email, pass, profile, deviceId, setAsActive = true)
+    }
+
+    suspend fun restoreAccounts(accounts: List<EssAccount>) {
+        accounts.forEach { acc ->
+            essAccountDao.insert(acc)
+        }
+        val active = essAccountDao.getActiveAccountDirect()
+        if (active != null) {
+            setActiveAccount(active.id)
+        } else if (accounts.isNotEmpty()) {
+            setActiveAccount(accounts.first().id)
+        }
     }
 
     suspend fun refreshAccount(account: EssAccount): Result<EssAccount> = runCatching {

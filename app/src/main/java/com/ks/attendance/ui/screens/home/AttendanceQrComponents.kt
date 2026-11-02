@@ -178,7 +178,7 @@ fun AttendanceQrDialog(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                Icons.Filled.Login,
+                                Icons.Filled.Fingerprint,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp),
                                 tint = if (isClockIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant

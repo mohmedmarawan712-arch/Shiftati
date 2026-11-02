@@ -277,9 +277,9 @@ class MainViewModel(
             }
 
 
-            val activeAcc = repo.getActiveAccountDirect() ?: _homeState.value.activeAccount
-            val allAccs = repo.getAllAccountsDirect().ifEmpty { _homeState.value.allAccounts }
-            val resolvedName = activeAcc?.staffShortName?.ifBlank { activeAcc.staffName } ?: _homeState.value.employeeName
+            val activeAcc = repo.getActiveAccountDirect()
+            val allAccs = repo.getAllAccountsDirect()
+            val resolvedName = activeAcc?.staffShortName?.ifBlank { activeAcc.staffName } ?: ""
 
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
@@ -560,13 +560,13 @@ class MainViewModel(
                 val records = repo.getAllRecordsDirect()
                 val notes = repo.getAllNotesDirect()
                 val prefsMap = prefs.getAllPrefsMap()
+                val accounts = repo.getAllAccountsDirect()
 
-                val json = BackupUtil.buildBackupJson(records, notes, prefsMap)
+                val json = BackupUtil.buildBackupJson(records, notes, prefsMap, accounts)
                 val saveRes = BackupUtil.saveBackupToFile(context, json)
                 if (saveRes.isSuccess) {
                     val path = saveRes.getOrThrow()
-                    showHomeMessage("تم إنشاء النسخة الاحتياطية بنجاح ✓\nتم الحفظ في: $path")
-                    BackupUtil.shareBackupFile(context, path)
+                    showHomeMessage("تم حفظ النسخة الاحتياطية بنجاح ✓\nالمسار: $path")
                 } else {
                     showHomeMessage("فشل حفظ النسخة الاحتياطية: ${saveRes.exceptionOrNull()?.message}", isError = true)
                 }
@@ -593,12 +593,17 @@ class MainViewModel(
                 val backup = parsedRes.getOrThrow()
                 // Restore Room entities
                 repo.restoreData(backup.records, backup.notes)
+                // Restore accounts if present
+                if (backup.accounts.isNotEmpty()) {
+                    repo.restoreAccounts(backup.accounts)
+                }
                 // Restore preferences & credentials
                 if (backup.preferences.isNotEmpty()) {
                     prefs.restorePrefsFromMap(backup.preferences)
                 }
                 refreshHome()
-                showHomeMessage("تمت استعادة النسخة الاحتياطية بنجاح ✓\nتم استرجاع ${backup.records.size} وردية و ${backup.notes.size} ملاحظة")
+                val accMsg = if (backup.accounts.isNotEmpty()) " و ${backup.accounts.size} حساب" else ""
+                showHomeMessage("تمت استعادة النسخة الاحتياطية بنجاح ✓\nتم استرجاع ${backup.records.size} وردية$accMsg")
             } catch (e: Exception) {
                 showHomeMessage("خطأ أثناء الاستعادة: ${e.message}", isError = true)
             }
@@ -818,6 +823,26 @@ class MainViewModel(
     fun deleteAccount(account: EssAccount) {
         viewModelScope.launch {
             repo.deleteAccount(account.id)
+            val newActive = repo.getActiveAccountDirect()
+            if (newActive != null) {
+                prefs.setEssCredentials(newActive.email, newActive.password, true)
+                val name = newActive.staffShortName.ifBlank { newActive.staffName }
+                prefs.setEmployeeName(name)
+                _settingsState.value = _settingsState.value.copy(
+                    isEssLoggedIn = true,
+                    employeeName = name,
+                    essEmail = newActive.email
+                )
+            } else {
+                prefs.setEssCredentials("", "", false)
+                prefs.setEmployeeName("")
+                _settingsState.value = _settingsState.value.copy(
+                    isEssLoggedIn = false,
+                    employeeName = "",
+                    essEmail = "",
+                    essPassword = ""
+                )
+            }
             refreshHome()
             showHomeMessage("تم حذف الحساب بنجاح")
         }

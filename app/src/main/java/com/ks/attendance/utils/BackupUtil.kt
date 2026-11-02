@@ -7,6 +7,7 @@ import android.os.Environment
 import androidx.core.content.FileProvider
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
+import com.ks.attendance.data.local.entity.EssAccount
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -22,22 +23,32 @@ object BackupUtil {
         val exportedAt: String,
         val preferences: Map<String, Any?>,
         val records: List<AttendanceRecord>,
-        val notes: List<DayNote>
+        val notes: List<DayNote>,
+        val accounts: List<EssAccount> = emptyList()
     )
 
     /**
-     * Serializes complete application state (records, notes, settings, credentials) into JSON.
+     * Serializes complete application state (records, notes, settings, credentials, accounts) into JSON.
      */
     fun buildBackupJson(
         records: List<AttendanceRecord>,
         notes: List<DayNote>,
-        preferences: Map<String, Any?>
+        preferences: Map<String, Any?>,
+        accounts: List<EssAccount> = emptyList()
     ): String {
         val root = JSONObject()
         root.put("app", "Shiftati")
-        root.put("version", 1)
+        root.put("version", 2)
         root.put("timestamp", System.currentTimeMillis())
         root.put("exportedAt", SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date()))
+
+        // Summary metadata for human inspection
+        val summary = JSONObject()
+        summary.put("recordsCount", records.size)
+        summary.put("notesCount", notes.size)
+        summary.put("accountsCount", accounts.size)
+        summary.put("totalHours", records.sumOf { it.hoursWorked })
+        root.put("summary", summary)
 
         // 1. Preferences
         val prefsJson = JSONObject()
@@ -74,6 +85,26 @@ object BackupUtil {
             notesArray.put(n)
         }
         root.put("notes", notesArray)
+
+        // 4. ESS Accounts
+        val accountsArray = JSONArray()
+        for (acc in accounts) {
+            val a = JSONObject()
+            a.put("id", acc.id)
+            a.put("email", acc.email)
+            a.put("password", acc.password)
+            a.put("staffId", acc.staffId)
+            a.put("staffName", acc.staffName)
+            a.put("staffShortName", acc.staffShortName)
+            a.put("suId", acc.suId)
+            a.put("instanceId", acc.instanceId)
+            a.put("instanceName", acc.instanceName)
+            a.put("deviceId", acc.deviceId)
+            a.put("isActive", acc.isActive)
+            a.put("lastSyncTime", acc.lastSyncTime)
+            accountsArray.put(a)
+        }
+        root.put("accounts", accountsArray)
 
         return root.toString(2)
     }
@@ -159,12 +190,38 @@ object BackupUtil {
             }
         }
 
+        // ESS Accounts
+        val accountsList = mutableListOf<EssAccount>()
+        if (root.has("accounts")) {
+            val arr = root.getJSONArray("accounts")
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                accountsList.add(
+                    EssAccount(
+                        id = obj.optLong("id", 0L),
+                        email = obj.optString("email", ""),
+                        password = obj.optString("password", ""),
+                        staffId = obj.optString("staffId", ""),
+                        staffName = obj.optString("staffName", ""),
+                        staffShortName = obj.optString("staffShortName", ""),
+                        suId = obj.optString("suId", ""),
+                        instanceId = obj.optString("instanceId", ""),
+                        instanceName = obj.optString("instanceName", ""),
+                        deviceId = obj.optString("deviceId", ""),
+                        isActive = obj.optBoolean("isActive", false),
+                        lastSyncTime = obj.optLong("lastSyncTime", System.currentTimeMillis())
+                    )
+                )
+            }
+        }
+
         BackupData(
             version = version,
             exportedAt = exportedAt,
             preferences = prefsMap,
             records = recordsList,
-            notes = notesList
+            notes = notesList,
+            accounts = accountsList
         )
     }
 
