@@ -174,6 +174,7 @@ class MainViewModel(
             allRecords.collect {
                 refreshHome()
             }
+        }
         // Keep open session reactively updated
         viewModelScope.launch {
             repo.observeOpenSession().collect { open ->

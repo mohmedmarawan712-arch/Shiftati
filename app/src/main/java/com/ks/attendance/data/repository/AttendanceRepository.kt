@@ -392,6 +392,7 @@ class AttendanceRepository(
             essClient.detectedStaffFullName = null
             essClient.detectedStaffShortName = null
             essClient.detectedEmployeeName = null
+        }
     }
 
     suspend fun saveOrUpdateAccount(
