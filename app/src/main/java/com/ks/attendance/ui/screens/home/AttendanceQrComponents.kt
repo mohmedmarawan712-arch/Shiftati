@@ -27,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -37,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.EssAccount
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.qr.QrUtil
@@ -122,7 +124,7 @@ fun AttendanceQrDialog(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = if (isClockIn) "تسجيل الحضور" else "تسجيل الانصراف",
+                                text = if (isClockIn) stringResource(R.string.attendance_qr_in_title) else stringResource(R.string.attendance_qr_out_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -133,7 +135,7 @@ fun AttendanceQrDialog(
                                         .size(6.dp)
                                         .clip(CircleShape)
                                         .background(ColorWorked)
-                                )
+                                    )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
                                     text = "أوفلاين",
@@ -183,7 +185,7 @@ fun AttendanceQrDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "دخول",
+                                text = stringResource(R.string.attendance_in_short),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (isClockIn) FontWeight.Bold else FontWeight.Medium,
                                 color = if (isClockIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -213,7 +215,7 @@ fun AttendanceQrDialog(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "خروج",
+                                text = stringResource(R.string.attendance_out_short),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = if (!isClockIn) FontWeight.Bold else FontWeight.Medium,
                                 color = if (!isClockIn) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
@@ -400,14 +402,14 @@ fun AttendanceQrDialog(
                         FilledTonalButton(
                             onClick = {
                                 clockTime = Date()
-                                Toast.makeText(context, "تم التحديث بالوقت الحالي ✓", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.attendance_time_updated), Toast.LENGTH_SHORT).show()
                             },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                         ) {
                             Icon(Icons.Filled.Update, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تحديث للوقت الحالي", style = MaterialTheme.typography.labelSmall)
+                            Text(stringResource(R.string.attendance_update_current_time), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                 }
@@ -424,14 +426,14 @@ fun AttendanceQrDialog(
                             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                             val clip = ClipData.newPlainText("QR Payload", qrPayload)
                             clipboard.setPrimaryClip(clip)
-                            Toast.makeText(context, "تم نسخ كود الـ QR", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(R.string.attendance_qr_copied), Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Icon(Icons.Filled.ContentCopy, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("نسخ النص", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.attendance_copy_qr), style = MaterialTheme.typography.labelMedium)
                     }
 
                     Button(
@@ -522,12 +524,12 @@ fun AccountCardHeaderBar(
                         )
                     } else {
                         Text(
-                            text = "حسابات ESS",
+                            text = stringResource(R.string.section_ess_accounts),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "اضغط للربط من الإعدادات",
+                            text = stringResource(R.string.ess_tap_to_connect),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -632,13 +634,13 @@ fun AttendanceQrQuickActionButtons(
 
                     Column {
                         Text(
-                            text = "تسجيل الحضور",
+                            text = stringResource(R.string.attendance_clock_in),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "دخول",
+                            text = stringResource(R.string.attendance_in_short),
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorWorked,
                             fontWeight = FontWeight.SemiBold
@@ -706,13 +708,13 @@ fun AttendanceQrQuickActionButtons(
 
                     Column {
                         Text(
-                            text = "تسجيل الانصراف",
+                            text = stringResource(R.string.attendance_clock_out),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "خروج",
+                            text = stringResource(R.string.attendance_out_short),
                             style = MaterialTheme.typography.labelSmall,
                             color = ColorLogout,
                             fontWeight = FontWeight.SemiBold
@@ -769,7 +771,7 @@ fun AccountsManagerDialog(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "إدارة حسابات ESS",
+                            text = stringResource(R.string.ess_manage_accounts),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -797,7 +799,7 @@ fun AccountsManagerDialog(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "لا توجد حسابات مسجلة بعد",
+                                text = stringResource(R.string.ess_no_accounts),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -899,7 +901,7 @@ fun AccountsManagerDialog(
                         ) {
                             Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("تحديث البيانات", style = MaterialTheme.typography.labelMedium)
+                            Text(stringResource(R.string.ess_refresh_data), style = MaterialTheme.typography.labelMedium)
                         }
                     }
 
@@ -910,7 +912,7 @@ fun AccountsManagerDialog(
                     ) {
                         Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("إضافة حساب", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ess_add_account_btn), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -918,145 +920,3 @@ fun AccountsManagerDialog(
     }
 }
 
-/**
- * AddAccountDialog — Dialog to enter email & password, login to ESS and download QR profile.
- */
-@Composable
-fun AddAccountDialog(
-    onDismiss: () -> Unit,
-    onAddAccount: (String, String, (Result<EssAccount>) -> Unit) -> Unit
-) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    Dialog(
-        onDismissRequest = { if (!isLoading) onDismiss() },
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .wrapContentHeight()
-                .padding(vertical = 24.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(22.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "إضافة حساب ESS جديد",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(
-                        onClick = onDismiss,
-                        enabled = !isLoading
-                    ) {
-                        Icon(Icons.Filled.Close, contentDescription = "إغلاق")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                Text(
-                    text = "أدخل بيانات حسابك في ESS لتحميل كود الموظف وكود المطعم وحفظ بيانات الـ QR أوفلاين.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = { Text("البريد الإلكتروني") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    enabled = !isLoading
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("كلمة المرور") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(
-                                imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    },
-                    singleLine = true,
-                    enabled = !isLoading
-                )
-
-                if (errorMessage != null) {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = errorMessage ?: "",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Button(
-                    onClick = {
-                        if (email.isNotBlank() && password.isNotBlank()) {
-                            isLoading = true
-                            errorMessage = null
-                            onAddAccount(email.trim(), password) { result ->
-                                isLoading = false
-                                if (result.isSuccess) {
-                                    onDismiss()
-                                } else {
-                                    errorMessage = result.exceptionOrNull()?.message ?: "فشل تسجيل الدخول"
-                                }
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
-                ) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("جارٍ جلب البيانات...")
-                    } else {
-                        Icon(Icons.Filled.CloudDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("تسجيل الدخول وحفظ البيانات", fontWeight = FontWeight.Bold)
-                    }
-                }
-            }
-        }
-    }
-}

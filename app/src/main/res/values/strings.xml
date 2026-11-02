@@ -118,4 +118,43 @@
     <string name="clock_out_success">Clocked out successfully ✓</string>
     <string name="sync_success">Synced %d shifts successfully</string>
     <string name="export_success">Excel file created successfully</string>
+
+    <!-- ESS & Accounts -->
+    <string name="section_ess_accounts">ESS Accounts</string>
+    <string name="ess_no_accounts">No accounts registered yet</string>
+    <string name="ess_tap_to_connect">Tap to connect in Settings</string>
+    <string name="ess_restaurant_code_label">Restaurant: %s</string>
+    <string name="ess_employee_code_label">Employee: %s</string>
+    <string name="ess_account_info">Employee: %1$s • Restaurant: %2$s</string>
+    <string name="ess_add_account_btn">Add Account</string>
+    <string name="ess_add_new_account_title">Add New Account</string>
+    <string name="ess_close_form">Close</string>
+    <string name="ess_refresh_data">Refresh Data</string>
+    <string name="ess_logging_in_loading">Fetching and saving data...</string>
+    <string name="ess_login_and_save">Sign In &amp; Save Account</string>
+    <string name="ess_active_badge">Active Account</string>
+    <string name="ess_delete_account">Delete Account</string>
+    <string name="ess_manage_accounts">ESS Accounts Management</string>
+
+    <!-- Attendance QR & Actions -->
+    <string name="attendance_clock_in">Clock In</string>
+    <string name="attendance_clock_out">Clock Out</string>
+    <string name="attendance_in_short">In</string>
+    <string name="attendance_out_short">Out</string>
+    <string name="attendance_qr_in_title">Clock In</string>
+    <string name="attendance_qr_out_title">Clock Out</string>
+    <string name="attendance_qr_subtitle">Show this QR code to the scanner device</string>
+    <string name="attendance_time_updated">Updated to current time ✓</string>
+    <string name="attendance_copy_qr">Copy Code</string>
+    <string name="attendance_qr_copied">QR code payload copied ✓</string>
+    <string name="attendance_require_account">Please sign in or add an account from Settings first</string>
+    <string name="attendance_update_current_time">Update to current time</string>
+
+    <!-- Employment Onboarding Dialog -->
+    <string name="employment_dialog_title">Choose Salary Calculation Mode</string>
+    <string name="employment_hourly_title">Hourly System</string>
+    <string name="employment_hourly_desc">Calculate total worked hours by specified hourly rate</string>
+    <string name="employment_salaried_title">Salaried System</string>
+    <string name="employment_salaried_desc">Calculate overtime compensation after 9 hours</string>
+    <string name="employment_confirm_choice">Confirm Choice</string>
 </resources>

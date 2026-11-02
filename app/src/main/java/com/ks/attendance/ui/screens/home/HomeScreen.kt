@@ -18,10 +18,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
@@ -134,7 +136,7 @@ fun HomeScreen(
                         if (homeState.activeAccount != null) {
                             showQrDialog = true
                         } else {
-                            viewModel.showHomeMessage("يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً", isError = true)
+                            viewModel.showHomeMessage(context.getString(R.string.attendance_require_account), isError = true)
                             onNavigate("settings")
                         }
                     },
@@ -143,7 +145,7 @@ fun HomeScreen(
                         if (homeState.activeAccount != null) {
                             showQrDialog = true
                         } else {
-                            viewModel.showHomeMessage("يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً", isError = true)
+                            viewModel.showHomeMessage(context.getString(R.string.attendance_require_account), isError = true)
                             onNavigate("settings")
                         }
                     }
@@ -742,7 +744,7 @@ fun EmploymentTypeDialog(
                 }
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
-                    text = "نظام العمل",
+                    text = stringResource(R.string.section_employment_type),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -750,7 +752,7 @@ fun EmploymentTypeDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "اختر طريقة حساب الراتب",
+                    text = stringResource(R.string.employment_dialog_title),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -787,14 +789,14 @@ fun EmploymentTypeDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "نظام الساعة",
+                                text = stringResource(R.string.employment_hourly_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "حساب إجمالي ساعات العمل بالسعر المحدد",
+                                text = stringResource(R.string.employment_hourly_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -827,14 +829,14 @@ fun EmploymentTypeDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "نظام التعيين",
+                                text = stringResource(R.string.employment_salaried_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "حساب الساعات الإضافية (أوفر تايم) بعد 9 ساعات",
+                                text = stringResource(R.string.employment_salaried_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -852,7 +854,7 @@ fun EmploymentTypeDialog(
                 shape = RoundedCornerShape(14.dp)
             ) {
                 Text(
-                    text = "تأكيد الاختيار",
+                    text = stringResource(R.string.employment_confirm_choice),
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )

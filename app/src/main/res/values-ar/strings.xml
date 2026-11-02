@@ -94,7 +94,7 @@
     <string name="time_format_24h">تنسيق 24 ساعة</string>
     <string name="amoled_dark_mode">وضع AMOLED</string>
 
-    <string name="section_ess">الربط مع ESS</string>
+    <string name="section_ess">حسابات ESS</string>
     <string name="ess_connected">متصل بنظام ESS</string>
     <string name="ess_not_connected">غير متصل</string>
     <string name="ess_email">البريد الإلكتروني</string>
@@ -118,4 +118,43 @@
     <string name="clock_out_success">تم تسجيل الانصراف بنجاح ✓</string>
     <string name="sync_success">تمت المزامنة بنجاح: %d وردية</string>
     <string name="export_success">تم إنشاء ملف Excel بنجاح</string>
+
+    <!-- ESS & Accounts -->
+    <string name="section_ess_accounts">حسابات ESS</string>
+    <string name="ess_no_accounts">لا توجد حسابات مسجلة بعد</string>
+    <string name="ess_tap_to_connect">اضغط للربط من الإعدادات</string>
+    <string name="ess_restaurant_code_label">كود المطعم: %s</string>
+    <string name="ess_employee_code_label">كود الموظف: %s</string>
+    <string name="ess_account_info">كود الموظف: %1$s • كود المطعم: %2$s</string>
+    <string name="ess_add_account_btn">إضافة حساب</string>
+    <string name="ess_add_new_account_title">إضافة حساب جديد</string>
+    <string name="ess_close_form">إغلاق</string>
+    <string name="ess_refresh_data">تحديث البيانات</string>
+    <string name="ess_logging_in_loading">جارٍ جلب البيانات وحفظها...</string>
+    <string name="ess_login_and_save">تسجيل الدخول وحفظ الحساب</string>
+    <string name="ess_active_badge">الحساب النشط</string>
+    <string name="ess_delete_account">حذف الحساب</string>
+    <string name="ess_manage_accounts">إدارة حسابات ESS</string>
+
+    <!-- Attendance QR & Actions -->
+    <string name="attendance_clock_in">تسجيل الحضور</string>
+    <string name="attendance_clock_out">تسجيل الانصراف</string>
+    <string name="attendance_in_short">دخول</string>
+    <string name="attendance_out_short">خروج</string>
+    <string name="attendance_qr_in_title">تسجيل الحضور</string>
+    <string name="attendance_qr_out_title">تسجيل الانصراف</string>
+    <string name="attendance_qr_subtitle">وجّه رمز الـ QR أمام جهاز البصمة</string>
+    <string name="attendance_time_updated">تم التحديث بالوقت الحالي ✓</string>
+    <string name="attendance_copy_qr">نسخ النص</string>
+    <string name="attendance_qr_copied">تم نسخ رمز الـ QR بنجاح ✓</string>
+    <string name="attendance_require_account">يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً</string>
+    <string name="attendance_update_current_time">تحديث للوقت الحالي</string>
+
+    <!-- Employment Onboarding Dialog -->
+    <string name="employment_dialog_title">اختر طريقة حساب الراتب</string>
+    <string name="employment_hourly_title">نظام الساعة</string>
+    <string name="employment_hourly_desc">حساب إجمالي ساعات العمل بالسعر المحدد</string>
+    <string name="employment_salaried_title">نظام التعيين</string>
+    <string name="employment_salaried_desc">حساب الساعات الإضافية (أوفر تايم) بعد 9 ساعات</string>
+    <string name="employment_confirm_choice">تأكيد الاختيار</string>
 </resources>

@@ -103,7 +103,7 @@ fun SettingsScreen(
 
             // ─── 1. Unified ESS Accounts Card ─────────────────────────────────
             SlateCard(
-                title = "حسابات ESS",
+                title = stringResource(R.string.section_ess_accounts),
                 icon = Icons.Filled.ManageAccounts
             ) {
                 val accounts = homeState.allAccounts
@@ -148,7 +148,7 @@ fun SettingsScreen(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Icon(
                                                     imageVector = Icons.Filled.CheckCircle,
-                                                    contentDescription = "الحساب النشط",
+                                                    contentDescription = stringResource(R.string.ess_active_badge),
                                                     tint = ColorWorked,
                                                     modifier = Modifier.size(18.dp)
                                                 )
@@ -174,7 +174,7 @@ fun SettingsScreen(
                                         ) {
                                             Icon(
                                                 imageVector = Icons.Filled.DeleteOutline,
-                                                contentDescription = "حذف الحساب",
+                                                contentDescription = stringResource(R.string.ess_delete_account),
                                                 tint = ColorLogout,
                                                 modifier = Modifier.size(20.dp)
                                             )
@@ -208,7 +208,7 @@ fun SettingsScreen(
                             } else {
                                 Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("تحديث البيانات", style = MaterialTheme.typography.labelMedium)
+                                Text(stringResource(R.string.ess_refresh_data), style = MaterialTheme.typography.labelMedium)
                             }
                         }
 
@@ -224,7 +224,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (showAddAccountForm) "إغلاق" else "إضافة حساب",
+                                text = if (showAddAccountForm) stringResource(R.string.ess_close_form) else stringResource(R.string.ess_add_account_btn),
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -249,7 +249,7 @@ fun SettingsScreen(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                             )
                             Text(
-                                text = "إضافة حساب جديد",
+                                text = stringResource(R.string.ess_add_new_account_title),
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary
@@ -260,7 +260,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = essEmail,
                             onValueChange = { essEmail = it },
-                            label = { Text("البريد الإلكتروني") },
+                            label = { Text(stringResource(R.string.ess_email)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = true,
@@ -272,7 +272,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = essPassword,
                             onValueChange = { essPassword = it },
-                            label = { Text("كلمة المرور") },
+                            label = { Text(stringResource(R.string.ess_password)) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -316,11 +316,11 @@ fun SettingsScreen(
                             if (isLoggingIn) {
                                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("جارٍ جلب البيانات وحفظها...")
+                                Text(stringResource(R.string.ess_logging_in_loading))
                             } else {
                                 Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("تسجيل الدخول وحفظ الحساب", fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.ess_login_and_save), fontWeight = FontWeight.Bold)
                             }
                         }
                     }

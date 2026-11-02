@@ -45,6 +45,38 @@ fun KSNavGraph(
     // Show bottom bar only on main screens
     val showBottomBar = bottomNavScreens.any { it.route == currentRoute }
 
+    val navigateToTab = { targetRoute: String ->
+        if (currentRoute != targetRoute) {
+            if (targetRoute == Screen.Home.route) {
+                val popped = navController.popBackStack(Screen.Home.route, inclusive = false)
+                if (!popped) {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = false
+                        }
+                        launchSingleTop = true
+                    }
+                }
+            } else {
+                navController.navigate(targetRoute) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+        }
+    }
+
+    val onNavigateToRoute: (String) -> Unit = { route ->
+        if (bottomNavScreens.any { it.route == route }) {
+            navigateToTab(route)
+        } else {
+            navController.navigate(route)
+        }
+    }
+
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
@@ -66,15 +98,7 @@ fun KSNavGraph(
                                 unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                 unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                             ),
-                            onClick = {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
+                            onClick = { navigateToTab(screen.route) }
                         )
                     }
                 }
@@ -93,13 +117,13 @@ fun KSNavGraph(
             composable(Screen.Home.route) {
                 HomeScreen(
                     viewModel = viewModel,
-                    onNavigate = { route -> navController.navigate(route) }
+                    onNavigate = onNavigateToRoute
                 )
             }
             composable(Screen.List.route) {
                 AttendanceListScreen(
                     viewModel = viewModel,
-                    onNavigate = { route -> navController.navigate(route) }
+                    onNavigate = onNavigateToRoute
                 )
             }
             composable(Screen.Calendar.route) {
@@ -114,7 +138,7 @@ fun KSNavGraph(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     viewModel = viewModel,
-                    onBack = null
+                    onBack = { navigateToTab(Screen.Home.route) }
                 )
             }
             // Add/Edit record — recordId = -1 means new
