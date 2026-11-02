@@ -31,5 +31,8 @@ data class AttendanceRecord(
     val source: String = "manual",
 
     /** Whether this record was synced from ESS and needs no local edit confirmation */
-    val isFromServer: Boolean = false
+    val isFromServer: Boolean = false,
+
+    /** Multi-account isolation: ID of the EssAccount owning this record (0 = local/unassigned) */
+    val accountId: Long = 0L
 )

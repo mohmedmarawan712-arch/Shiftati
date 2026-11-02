@@ -158,7 +158,15 @@ class MainViewModel(
                         activeAccount = acc,
                         employeeName = name
                     )
+                } else {
+                    _homeState.value = _homeState.value.copy(
+                        activeAccount = null,
+                        employeeName = "",
+                        todayRecords = emptyList(),
+                        openSession = null
+                    )
                 }
+                refreshHome()
             }
         }
         // Keep home metrics in sync whenever records change
@@ -549,7 +557,7 @@ class MainViewModel(
                 val result = ExportUtil.exportExcel(
                     context = context,
                     records = records,
-                    notes = emptyList(),
+                    notes = repo.getAllNotesDirect(),
                     periodStart = ps,
                     periodEnd = pe,
                     hourlyRate = rate,

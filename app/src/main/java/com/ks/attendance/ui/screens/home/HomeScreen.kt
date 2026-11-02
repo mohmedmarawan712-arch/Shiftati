@@ -167,7 +167,7 @@ fun HomeScreen(
                     val elapsedMillis = maxOf(0L, currentTime - openSession.checkInTime)
                     val elapsedHours = elapsedMillis / 3_600_000L
                     val elapsedMins = (elapsedMillis % 3_600_000L) / 60_000L
-                    val checkInFormatted = PayrollUtil.formatTime(openSession.checkInTime, settingsState.is24Hour)
+                    val checkInFormatted = PayrollUtil.formatTime(openSession.checkInTime, homeState.is24Hour)
 
                     Card(
                         shape = RoundedCornerShape(18.dp),

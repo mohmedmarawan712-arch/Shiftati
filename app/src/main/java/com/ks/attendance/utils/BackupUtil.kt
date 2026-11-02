@@ -70,6 +70,7 @@ object BackupUtil {
             r.put("note", rec.note)
             r.put("source", rec.source)
             r.put("isFromServer", rec.isFromServer)
+            r.put("accountId", rec.accountId)
             recordsArray.put(r)
         }
         root.put("records", recordsArray)
@@ -82,6 +83,7 @@ object BackupUtil {
             n.put("date", note.date)
             n.put("noteText", note.noteText)
             n.put("createdAt", note.createdAt)
+            n.put("accountId", note.accountId)
             notesArray.put(n)
         }
         root.put("notes", notesArray)
@@ -167,7 +169,8 @@ object BackupUtil {
                         hoursWorked = obj.optDouble("hoursWorked", 0.0),
                         note = obj.optString("note", ""),
                         source = obj.optString("source", "manual"),
-                        isFromServer = obj.optBoolean("isFromServer", false)
+                        isFromServer = obj.optBoolean("isFromServer", false),
+                        accountId = obj.optLong("accountId", 0L)
                     )
                 )
             }
@@ -184,7 +187,8 @@ object BackupUtil {
                         id = obj.optLong("id", 0L),
                         date = obj.getString("date"),
                         noteText = obj.getString("noteText"),
-                        createdAt = obj.optLong("createdAt", System.currentTimeMillis())
+                        createdAt = obj.optLong("createdAt", System.currentTimeMillis()),
+                        accountId = obj.optLong("accountId", 0L)
                     )
                 )
             }

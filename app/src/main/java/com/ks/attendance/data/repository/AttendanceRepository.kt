@@ -13,10 +13,14 @@ import com.ks.attendance.data.remote.EssAccountProfile
 import com.ks.attendance.data.remote.EssInstance
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class AttendanceRepository(
     private val attendanceDao: AttendanceDao,
     private val dayNoteDao: DayNoteDao,
@@ -26,37 +30,63 @@ class AttendanceRepository(
 ) {
     private val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
-    // ─── Attendance CRUD ──────────────────────────────────────────────────────
+    suspend fun getActiveAccountId(): Long = essAccountDao.getActiveAccountDirect()?.id ?: 0L
 
-    fun getAllRecords(): Flow<List<AttendanceRecord>> = attendanceDao.getAllRecords()
+    // ─── Attendance CRUD (Auto-scoped to active account) ──────────────────────
+
+    fun getAllRecords(): Flow<List<AttendanceRecord>> =
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            attendanceDao.getAllRecords(acc?.id ?: 0L)
+        }
 
     fun getRecordsInRange(start: String, end: String): Flow<List<AttendanceRecord>> =
-        attendanceDao.getRecordsInRange(start, end)
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            attendanceDao.getRecordsInRange(start, end, acc?.id ?: 0L)
+        }
 
     fun getRecordsForDay(date: String): Flow<List<AttendanceRecord>> =
-        attendanceDao.getRecordsForDay(date)
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            attendanceDao.getRecordsForDay(date, acc?.id ?: 0L)
+        }
 
-    suspend fun insertRecord(record: AttendanceRecord): Long = attendanceDao.insert(record)
+    suspend fun insertRecord(record: AttendanceRecord): Long {
+        val accId = if (record.accountId != 0L) record.accountId else getActiveAccountId()
+        return attendanceDao.insert(record.copy(accountId = accId))
+    }
 
-    suspend fun updateRecord(record: AttendanceRecord) = attendanceDao.update(record)
+    suspend fun updateRecord(record: AttendanceRecord) {
+        val accId = if (record.accountId != 0L) record.accountId else getActiveAccountId()
+        attendanceDao.update(record.copy(accountId = accId))
+    }
 
     suspend fun deleteRecord(record: AttendanceRecord) = attendanceDao.delete(record)
-    suspend fun deleteDay(date: String) = attendanceDao.deleteRecordsByDate(date)
+    suspend fun deleteDay(date: String) = attendanceDao.deleteRecordsByDate(date, getActiveAccountId())
 
-    suspend fun getOpenSession(): AttendanceRecord? = attendanceDao.getOpenSession()
-    fun observeOpenSession(): Flow<AttendanceRecord?> = attendanceDao.observeOpenSession()
+    suspend fun getOpenSession(): AttendanceRecord? = attendanceDao.getOpenSession(getActiveAccountId())
+    fun observeOpenSession(): Flow<AttendanceRecord?> =
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            attendanceDao.observeOpenSession(acc?.id ?: 0L)
+        }
 
     suspend fun getTotalHoursInRange(start: String, end: String): Double =
-        attendanceDao.getTotalHoursInRange(start, end) ?: 0.0
+        attendanceDao.getTotalHoursInRange(start, end, getActiveAccountId()) ?: 0.0
 
-    suspend fun getAllRecordsDirect(): List<AttendanceRecord> = attendanceDao.getAllRecordsDirect()
+    suspend fun getAllRecordsDirect(accountId: Long? = null): List<AttendanceRecord> =
+        attendanceDao.getAllRecordsDirect(accountId ?: getActiveAccountId())
+
+    suspend fun getAllRecordsRawDirect(): List<AttendanceRecord> =
+        attendanceDao.getAllRecordsRawDirect()
 
     suspend fun getRecordById(id: Long): AttendanceRecord? = attendanceDao.getById(id)
 
-    suspend fun getRecordsInRangeDirect(start: String, end: String): List<AttendanceRecord> =
-        attendanceDao.getRecordsInRangeDirect(start, end)
+    suspend fun getRecordsInRangeDirect(start: String, end: String, accountId: Long? = null): List<AttendanceRecord> =
+        attendanceDao.getRecordsInRangeDirect(start, end, accountId ?: getActiveAccountId())
 
-    suspend fun getAllNotesDirect(): List<DayNote> = dayNoteDao.getAllNotesDirect()
+    suspend fun getAllNotesDirect(accountId: Long? = null): List<DayNote> =
+        dayNoteDao.getAllNotesDirect(accountId ?: getActiveAccountId())
+
+    suspend fun getAllNotesRawDirect(): List<DayNote> =
+        dayNoteDao.getAllNotesRawDirect()
 
     suspend fun restoreData(records: List<AttendanceRecord>, notes: List<DayNote>) {
         if (records.isNotEmpty()) attendanceDao.insertAll(records)
@@ -67,11 +97,13 @@ class AttendanceRepository(
 
     suspend fun clockIn(customTime: Long = System.currentTimeMillis()): Long {
         val date = sdfDate.format(Date(customTime))
+        val accId = getActiveAccountId()
         val record = AttendanceRecord(
             workDate = date,
             checkInTime = customTime,
             checkOutTime = null,
-            source = "manual"
+            source = "manual",
+            accountId = accId
         )
         return attendanceDao.insert(record)
     }
@@ -79,24 +111,36 @@ class AttendanceRepository(
     suspend fun clockOut(openRecord: AttendanceRecord, customTime: Long = System.currentTimeMillis()): AttendanceRecord {
         val outTime = if (customTime >= openRecord.checkInTime) customTime else System.currentTimeMillis()
         val hours = (outTime - openRecord.checkInTime).toDouble() / 3_600_000.0
-        val updated = openRecord.copy(checkOutTime = outTime, hoursWorked = hours)
+        val accId = if (openRecord.accountId != 0L) openRecord.accountId else getActiveAccountId()
+        val updated = openRecord.copy(checkOutTime = outTime, hoursWorked = hours, accountId = accId)
         attendanceDao.update(updated)
         return updated
     }
 
     // ─── Notes ───────────────────────────────────────────────────────────────
 
-    fun getNotesForDay(date: String): Flow<List<DayNote>> = dayNoteDao.getNotesForDay(date)
+    fun getNotesForDay(date: String): Flow<List<DayNote>> =
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            dayNoteDao.getNotesForDay(date, acc?.id ?: 0L)
+        }
 
     fun getNotesInRange(start: String, end: String): Flow<List<DayNote>> =
-        dayNoteDao.getNotesInRange(start, end)
+        essAccountDao.getActiveAccount().flatMapLatest { acc ->
+            dayNoteDao.getNotesInRange(start, end, acc?.id ?: 0L)
+        }
 
     suspend fun getDatesWithNotes(start: String, end: String): List<String> =
-        dayNoteDao.getDatesWithNotes(start, end)
+        dayNoteDao.getDatesWithNotes(start, end, getActiveAccountId())
 
-    suspend fun insertNote(note: DayNote): Long = dayNoteDao.insert(note)
+    suspend fun insertNote(note: DayNote): Long {
+        val accId = if (note.accountId != 0L) note.accountId else getActiveAccountId()
+        return dayNoteDao.insert(note.copy(accountId = accId))
+    }
 
-    suspend fun updateNote(note: DayNote) = dayNoteDao.update(note)
+    suspend fun updateNote(note: DayNote) {
+        val accId = if (note.accountId != 0L) note.accountId else getActiveAccountId()
+        dayNoteDao.update(note.copy(accountId = accId))
+    }
 
     suspend fun deleteNote(note: DayNote) = dayNoteDao.delete(note)
 
@@ -109,25 +153,41 @@ class AttendanceRepository(
         essClient.selectInstance(instance)
 
     /**
-     * Clears old server records for the period, fetches fresh, converts, and inserts
+     * Clears old server records for the period and active account, fetches fresh, converts, and inserts
      * without duplicating any existing user-edited or manual shifts.
      */
-    suspend fun syncFromEss(startDate: Date, endDate: Date): Result<Int> = runCatching {
+    suspend fun syncFromEss(startDate: Date, endDate: Date, accountId: Long? = null): Result<Int> = runCatching {
+        val accId = accountId ?: getActiveAccountId()
         val clockings = essClient.fetchClockings(startDate, endDate).getOrThrow()
         val (shifts, unmatched) = ClockingParser.pairShifts(clockings)
 
         val startStr = sdfDate.format(startDate)
         val endStr = sdfDate.format(endDate)
-        attendanceDao.deleteServerRecordsInRange(startStr, endStr)
+        val todayStr = sdfDate.format(Date())
 
-        val existingRecords = attendanceDao.getRecordsInRangeDirect(startStr, endStr)
+        // 1. Delete server records for this period and this specific account
+        attendanceDao.deleteServerRecordsInRange(startStr, endStr, accId)
+
+        // 2. Identify all dates with shifts or unmatched events from server
+        val shiftDates = shifts.map { it.workDate }.distinct()
+        val unmatchedDates = unmatched.map { sdfDate.format(it.time) }.distinct()
+        val activeDates = (shiftDates + unmatchedDates).distinct()
+
+        // 3. Remove any placeholder off_day records on active punch dates so server records aren't blocked
+        if (activeDates.isNotEmpty()) {
+            attendanceDao.deleteOffDaysOnDates(activeDates, accId)
+        }
+
+        val existingRecords = attendanceDao.getRecordsInRangeDirect(startStr, endStr, accId)
         var inserted = 0
+
+        // 4. Insert completed shifts
         for (shift in shifts) {
             if (shift.workDate < startStr || shift.workDate > endStr) continue
 
-            // Avoid re-inserting if user already has a modified or manual shift on this day, or matching shift
+            // Avoid re-inserting if user has a manual/edited shift that isn't an off_day, or exact duplicate
             val duplicate = existingRecords.any { existing ->
-                (existing.workDate == shift.workDate && !existing.isFromServer) ||
+                (existing.workDate == shift.workDate && !existing.isFromServer && existing.source != "off_day") ||
                 (existing.workDate == shift.workDate && kotlin.math.abs(existing.checkInTime - shift.start.time) < 30 * 60 * 1000L)
             }
             if (duplicate) continue
@@ -138,30 +198,34 @@ class AttendanceRepository(
                 checkOutTime = shift.end.time,
                 hoursWorked = shift.hoursWorked,
                 source = "ess_online",
-                isFromServer = true
+                isFromServer = true,
+                accountId = accId
             )
             attendanceDao.insert(record)
             inserted++
         }
 
-        // Handle open ClockIn from ESS (clocked in today or recently without clockout yet)
-        val openClockIn = unmatched.lastOrNull { it.type.startsWith("ClockIn") }
-        if (openClockIn != null) {
+        // 5. Insert open/unmatched ClockIn punches (both today's active session and earlier unclosed punches)
+        val clockIns = unmatched.filter { it.type.startsWith("ClockIn") }
+        for (openClockIn in clockIns) {
             val openWorkDate = sdfDate.format(openClockIn.time)
             if (openWorkDate in startStr..endStr) {
                 val hasManualOrDuplicate = existingRecords.any { existing ->
-                    existing.workDate == openWorkDate && !existing.isFromServer
+                    (existing.workDate == openWorkDate && !existing.isFromServer && existing.source != "off_day") ||
+                    (existing.workDate == openWorkDate && kotlin.math.abs(existing.checkInTime - openClockIn.time.time) < 30 * 60 * 1000L)
                 }
                 if (!hasManualOrDuplicate) {
-                    val existingOpen = attendanceDao.getOpenSession()
+                    val existingOpen = attendanceDao.getOpenSession(accId)
                     val openRecord = AttendanceRecord(
                         id = if (existingOpen?.isFromServer == true && existingOpen.workDate == openWorkDate) existingOpen.id else 0,
                         workDate = openWorkDate,
                         checkInTime = openClockIn.time.time,
                         checkOutTime = null,
                         hoursWorked = 0.0,
+                        note = if (openWorkDate == todayStr) "" else "حضور بدون انصراف (سيرفر)",
                         source = "ess_online",
-                        isFromServer = true
+                        isFromServer = true,
+                        accountId = accId
                     )
                     attendanceDao.insert(openRecord)
                     inserted++
@@ -169,32 +233,30 @@ class AttendanceRepository(
             }
         }
 
-        // Auto-fill missing days from ESS as OFF (manual) days:
-        // Employees do not punch on OFF days, so ESS has no records on those dates.
-        val allValidDates = shifts.map { it.workDate } + listOfNotNull(openClockIn?.let { sdfDate.format(it.time) })
-        if (allValidDates.isNotEmpty()) {
-            val todayStr = sdfDate.format(Date())
-            val minDate = allValidDates.minOrNull() ?: todayStr
-            val maxDate = if ((allValidDates.maxOrNull() ?: todayStr) < todayStr) (allValidDates.maxOrNull() ?: todayStr) else todayStr
-            fillMissingDaysAsOff(minDate, maxDate)
+        // 6. Auto-fill missing days from ESS as OFF (manual) days:
+        // Checks all calendar days from startStr to min(endStr, todayStr)
+        val boundedEnd = if (endStr > todayStr) todayStr else endStr
+        if (startStr <= boundedEnd) {
+            fillMissingDaysAsOff(startStr, boundedEnd, accId)
         }
 
-        deduplicateRecords()
+        deduplicateRecords(accId)
         inserted
     }
 
     /**
      * Checks all calendar days between [startStr] and [endStr] (bounded by today).
      * Any day without an attendance record is created as an off day ("off_day") with note "إجازة (OFF)"
-     * and isFromServer = false (so it appears as "يدوي").
+     * and isFromServer = false (so it appears as "يدوي") for the specified account.
      */
-    suspend fun fillMissingDaysAsOff(startStr: String, endStr: String): Int {
+    suspend fun fillMissingDaysAsOff(startStr: String, endStr: String, accountId: Long? = null): Int {
+        val accId = accountId ?: getActiveAccountId()
         val todayStr = sdfDate.format(Date())
         val boundedEnd = if (endStr > todayStr) todayStr else endStr
         if (startStr > boundedEnd) return 0
 
         val allDates = PayrollUtil.getDatesInRange(startStr, boundedEnd)
-        val existing = attendanceDao.getRecordsInRangeDirect(startStr, boundedEnd)
+        val existing = attendanceDao.getRecordsInRangeDirect(startStr, boundedEnd, accId)
         val recordedDates = existing.map { it.workDate }.toSet()
         var added = 0
 
@@ -208,7 +270,8 @@ class AttendanceRepository(
                     hoursWorked = 0.0,
                     source = "off_day",
                     note = "إجازة (OFF)",
-                    isFromServer = false
+                    isFromServer = false,
+                    accountId = accId
                 )
                 attendanceDao.insert(offRecord)
                 added++
@@ -253,18 +316,19 @@ class AttendanceRepository(
             hoursWorked = shift.hoursWorked,
             isFromServer = true,
             source = "ess_online"
-            // Note is preserved
+            // Note and accountId are preserved
         )
         attendanceDao.update(reverted)
         reverted
     }
 
     /**
-     * Scans all records and deletes any duplicated shifts (same workDate & matching check-in),
+     * Scans records for [accountId] and deletes any duplicated shifts (same workDate & matching check-in),
      * preserving user-edited or manual records over pure server records.
      */
-    suspend fun deduplicateRecords(): Int {
-        val all = attendanceDao.getAllRecordsDirect()
+    suspend fun deduplicateRecords(accountId: Long? = null): Int {
+        val accId = accountId ?: getActiveAccountId()
+        val all = attendanceDao.getAllRecordsDirect(accId)
         val seen = mutableSetOf<String>()
         var deletedCount = 0
         // Sort so user-edited/manual records take precedence over unedited server records, then newest first
@@ -312,6 +376,8 @@ class AttendanceRepository(
     }
 
     suspend fun deleteAccount(id: Long) {
+        attendanceDao.deleteRecordsByAccount(id)
+        dayNoteDao.deleteNotesByAccount(id)
         essAccountDao.deleteById(id)
         val remaining = essAccountDao.getAllAccountsDirect()
         if (remaining.isNotEmpty()) {
@@ -326,7 +392,6 @@ class AttendanceRepository(
             essClient.detectedStaffFullName = null
             essClient.detectedStaffShortName = null
             essClient.detectedEmployeeName = null
-        }
     }
 
     suspend fun saveOrUpdateAccount(

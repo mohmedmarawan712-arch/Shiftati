@@ -19,18 +19,24 @@ interface DayNoteDao {
     @Delete
     suspend fun delete(note: DayNote)
 
-    @Query("SELECT * FROM day_notes WHERE date = :date ORDER BY createdAt ASC")
-    fun getNotesForDay(date: String): Flow<List<DayNote>>
+    @Query("SELECT * FROM day_notes WHERE accountId = :accountId AND date = :date ORDER BY createdAt ASC")
+    fun getNotesForDay(date: String, accountId: Long): Flow<List<DayNote>>
 
-    @Query("SELECT * FROM day_notes WHERE date >= :startDate AND date <= :endDate ORDER BY date ASC, createdAt ASC")
-    fun getNotesInRange(startDate: String, endDate: String): Flow<List<DayNote>>
+    @Query("SELECT * FROM day_notes WHERE accountId = :accountId AND date >= :startDate AND date <= :endDate ORDER BY date ASC, createdAt ASC")
+    fun getNotesInRange(startDate: String, endDate: String, accountId: Long): Flow<List<DayNote>>
 
-    @Query("SELECT DISTINCT date FROM day_notes WHERE date >= :startDate AND date <= :endDate")
-    suspend fun getDatesWithNotes(startDate: String, endDate: String): List<String>
+    @Query("SELECT DISTINCT date FROM day_notes WHERE accountId = :accountId AND date >= :startDate AND date <= :endDate")
+    suspend fun getDatesWithNotes(startDate: String, endDate: String, accountId: Long): List<String>
 
     @Query("SELECT * FROM day_notes WHERE id = :id")
     suspend fun getById(id: Long): DayNote?
 
-    @Query("SELECT * FROM day_notes")
-    suspend fun getAllNotesDirect(): List<DayNote>
+    @Query("DELETE FROM day_notes WHERE accountId = :accountId")
+    suspend fun deleteNotesByAccount(accountId: Long)
+
+    @Query("SELECT * FROM day_notes WHERE accountId = :accountId ORDER BY date ASC, createdAt ASC")
+    suspend fun getAllNotesDirect(accountId: Long): List<DayNote>
+
+    @Query("SELECT * FROM day_notes ORDER BY date ASC, createdAt ASC")
+    suspend fun getAllNotesRawDirect(): List<DayNote>
 }

@@ -57,11 +57,12 @@ fun AttendanceListScreen(
         }
     }
 
-    // Group by date descending
+    // Group by date descending with strict date ordering, and sort daily shifts chronologically
     val grouped = remember(displayRecords) {
         displayRecords
-            .sortedByDescending { it.workDate }
             .groupBy { it.workDate }
+            .toSortedMap(compareByDescending { it })
+            .mapValues { (_, records) -> records.sortedBy { it.checkInTime } }
     }
 
     Scaffold(

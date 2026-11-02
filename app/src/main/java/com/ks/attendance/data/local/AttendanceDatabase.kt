@@ -11,9 +11,12 @@ import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
 import com.ks.attendance.data.local.entity.EssAccount
 
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+
 @Database(
     entities = [AttendanceRecord::class, DayNote::class, EssAccount::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AttendanceDatabase : RoomDatabase() {
@@ -25,6 +28,24 @@ abstract class AttendanceDatabase : RoomDatabase() {
     companion object {
         @Volatile private var INSTANCE: AttendanceDatabase? = null
 
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE attendance_records ADD COLUMN accountId INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE day_notes ADD COLUMN accountId INTEGER NOT NULL DEFAULT 0")
+                // Assign existing records to the currently active account if one exists
+                database.execSQL("""
+                    UPDATE attendance_records SET accountId = (
+                        SELECT id FROM ess_accounts WHERE isActive = 1 LIMIT 1
+                    ) WHERE (SELECT COUNT(*) FROM ess_accounts WHERE isActive = 1) > 0
+                """)
+                database.execSQL("""
+                    UPDATE day_notes SET accountId = (
+                        SELECT id FROM ess_accounts WHERE isActive = 1 LIMIT 1
+                    ) WHERE (SELECT COUNT(*) FROM ess_accounts WHERE isActive = 1) > 0
+                """)
+            }
+        }
+
         fun getInstance(context: Context): AttendanceDatabase =
             INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -32,6 +53,7 @@ abstract class AttendanceDatabase : RoomDatabase() {
                     AttendanceDatabase::class.java,
                     "ks_attendance.db"
                 )
+                    .addMigrations(MIGRATION_2_3)
                     .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }

@@ -18,5 +18,6 @@ data class DayNote(
     /** Epoch-millis of note creation */
     val createdAt: Long = System.currentTimeMillis(),
 
-    val noteText: String
+    val noteText: String,
+    val accountId: Long = 0L
 )

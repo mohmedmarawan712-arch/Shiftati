@@ -54,8 +54,8 @@ object ExportUtil {
         val fileName = "${safeName}_${datePart}.xls"
         val file = File(dir, fileName)
 
-        // 2. Metrics Calculation
-        val sortedRecords = records.sortedBy { it.checkInTime }
+        // 2. Metrics Calculation (Ordered strictly by date ASC then time ASC)
+        val sortedRecords = records.sortedWith(compareBy<AttendanceRecord> { it.workDate }.thenBy { it.checkInTime })
         val workedRecords = sortedRecords.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
         val workedDays = workedRecords.groupBy { it.workDate }.keys.size
         val offDays = sortedRecords.filter { it.source == "off_day" }.map { it.workDate }.distinct().size
