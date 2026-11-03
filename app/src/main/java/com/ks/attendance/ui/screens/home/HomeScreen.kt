@@ -152,6 +152,148 @@ fun HomeScreen(
                 )
             }
 
+            // ─── Pending Incomplete Shifts Alert Card (حضور بدون انصراف - عطل ESS) ─────────────
+            if (homeState.pendingMissingCheckouts.isNotEmpty()) {
+                item {
+                    val pendingList = homeState.pendingMissingCheckouts
+                    val firstPending = pendingList.first()
+                    Card(
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFF59E0B).copy(alpha = 0.12f)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.5.dp,
+                                color = Color(0xFFF59E0B).copy(alpha = 0.65f),
+                                shape = RoundedCornerShape(18.dp)
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFFF59E0B).copy(alpha = 0.2f),
+                                        modifier = Modifier.size(38.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Filled.WarningAmber,
+                                                contentDescription = null,
+                                                tint = Color(0xFFF59E0B),
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = if (pendingList.size == 1) "وردية بدون انصراف (سيرفر ESS) ⚠️"
+                                                   else "${pendingList.size} ورديات بدون انصراف ⚠️",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = "بسبب سقوط سيستم ESS لم يُسجل الانصراف",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFF59E0B).copy(alpha = 0.25f)
+                                ) {
+                                    Text(
+                                        text = "تحتاج تسوية",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFD97706),
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(color = Color(0xFFF59E0B).copy(alpha = 0.25f))
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "يوم ${firstPending.workDate} • حضور الساعة ${PayrollUtil.formatTime(firstPending.checkInTime, homeState.is24Hour)}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "الساعات محسوبة حالياً 0 دقيقة. يمكنك تسوية الوردية لاحتساب ساعاتها وراتبها فوراً.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (pendingList.size == 1) {
+                                            viewModel.settleMissingCheckout(firstPending)
+                                        } else {
+                                            viewModel.settleAllMissingCheckouts()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1.2f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = Color(0xFFF59E0B),
+                                        contentColor = Color.Black
+                                    )
+                                ) {
+                                    Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = if (pendingList.size == 1) "تسوية شفت كامل (%.0f س)".format(homeState.standardShiftHours)
+                                               else "تسوية الكل (%.0f س)".format(homeState.standardShiftHours),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = { onNavigate("record/${firstPending.id}") },
+                                    modifier = Modifier.weight(0.9f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
+                                ) {
+                                    Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFF59E0B))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "تعديل الوقت",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // ─── Active Attendance / Live Session Card ────────────────────────
             if (homeState.openSession != null) {
                 item {
@@ -705,17 +847,20 @@ private fun CompactRecordCard(
     }
     val sourceColor = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val isOpen = !isOffDay && record.checkOutTime == null
+    val isMissingCheckout = isOpen && (System.currentTimeMillis() - record.checkInTime >= 16 * 3600 * 1000L || record.workDate < DateUtil.today())
 
     Card(
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = if (isMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.06f)
+            else MaterialTheme.colorScheme.surface
         ),
         modifier = Modifier
             .fillMaxWidth()
             .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
+                width = if (isMissingCheckout) 1.5.dp else 1.dp,
+                color = if (isMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.7f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
                 shape = RoundedCornerShape(14.dp)
             ),
         onClick = onClick
@@ -726,18 +871,23 @@ private fun CompactRecordCard(
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Distinct Attendance Badge (BeachAccess if off_day, Fingerprint if regular)
+            // Distinct Attendance Badge (BeachAccess if off_day, Fingerprint if regular, Warning if missing checkout)
             Surface(
                 shape = CircleShape,
                 color = if (isOffDay) ColorOffDay.copy(alpha = 0.15f)
+                else if (isMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.15f)
                 else ColorFingerprint.copy(alpha = 0.15f),
                 modifier = Modifier.size(36.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = if (isOffDay) Icons.Filled.BeachAccess else Icons.Filled.Fingerprint,
+                        imageVector = if (isOffDay) Icons.Filled.BeachAccess
+                        else if (isMissingCheckout) Icons.Filled.WarningAmber
+                        else Icons.Filled.Fingerprint,
                         contentDescription = if (isOffDay) "إجازة" else "حضور",
-                        tint = if (isOffDay) ColorOffDay else ColorFingerprint,
+                        tint = if (isOffDay) ColorOffDay
+                        else if (isMissingCheckout) Color(0xFFF59E0B)
+                        else ColorFingerprint,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -766,7 +916,23 @@ private fun CompactRecordCard(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (isOpen) {
+                        if (isMissingCheckout) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Filled.WarningAmber,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp),
+                                    tint = Color(0xFFF59E0B)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "انصراف مفقود",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFF59E0B)
+                                )
+                            }
+                        } else if (isOpen) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
                                     Icons.Filled.HourglassTop,

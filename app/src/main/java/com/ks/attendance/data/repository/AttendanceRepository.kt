@@ -65,10 +65,27 @@ class AttendanceRepository(
     suspend fun deleteRecord(record: AttendanceRecord) = attendanceDao.delete(record)
     suspend fun deleteDay(date: String) = attendanceDao.deleteRecordsByDate(date, getActiveAccountId())
 
-    suspend fun getOpenSession(): AttendanceRecord? = attendanceDao.getOpenSession(getActiveAccountId())
+    companion object {
+        const val MAX_ACTIVE_SHIFT_MILLIS = 16 * 3600 * 1000L // 16 hours
+    }
+
+    suspend fun getOpenSession(): AttendanceRecord? {
+        val minTime = System.currentTimeMillis() - MAX_ACTIVE_SHIFT_MILLIS
+        return attendanceDao.getActiveOpenSession(getActiveAccountId(), minTime)
+    }
+
+    suspend fun getPendingMissingCheckouts(): List<AttendanceRecord> {
+        val minTime = System.currentTimeMillis() - MAX_ACTIVE_SHIFT_MILLIS
+        return attendanceDao.getPendingMissingCheckouts(getActiveAccountId(), minTime)
+    }
+
     fun observeOpenSession(): Flow<AttendanceRecord?> =
         essAccountDao.getActiveAccount().flatMapLatest { acc ->
-            attendanceDao.observeOpenSession(acc?.id ?: 0L)
+            val accId = acc?.id ?: 0L
+            attendanceDao.getAllRecords(accId).map { records ->
+                val minTime = System.currentTimeMillis() - MAX_ACTIVE_SHIFT_MILLIS
+                records.firstOrNull { it.checkOutTime == null && it.source != "off_day" && it.checkInTime >= minTime }
+            }
         }
 
     suspend fun getTotalHoursInRange(start: String, end: String): Double =

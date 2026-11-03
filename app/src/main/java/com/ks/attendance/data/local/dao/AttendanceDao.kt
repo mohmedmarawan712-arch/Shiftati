@@ -39,6 +39,22 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance_records WHERE accountId = :accountId AND checkOutTime IS NULL AND source != 'off_day' ORDER BY checkInTime DESC LIMIT 1")
     suspend fun getOpenSession(accountId: Long): AttendanceRecord?
 
+    /** Active open session (live clock-in within recent threshold) */
+    @Query("""
+        SELECT * FROM attendance_records 
+        WHERE accountId = :accountId AND checkOutTime IS NULL AND source != 'off_day' AND checkInTime >= :minStartTime 
+        ORDER BY checkInTime DESC LIMIT 1
+    """)
+    suspend fun getActiveOpenSession(accountId: Long, minStartTime: Long): AttendanceRecord?
+
+    /** Find incomplete/unsettled shifts without checkout from the past */
+    @Query("""
+        SELECT * FROM attendance_records 
+        WHERE accountId = :accountId AND checkOutTime IS NULL AND source != 'off_day' AND checkInTime < :minStartTime 
+        ORDER BY checkInTime DESC
+    """)
+    suspend fun getPendingMissingCheckouts(accountId: Long, minStartTime: Long): List<AttendanceRecord>
+
     /** Reactive Flow for active clock-in session of an account */
     @Query("SELECT * FROM attendance_records WHERE accountId = :accountId AND checkOutTime IS NULL AND source != 'off_day' ORDER BY checkInTime DESC LIMIT 1")
     fun observeOpenSession(accountId: Long): Flow<AttendanceRecord?>

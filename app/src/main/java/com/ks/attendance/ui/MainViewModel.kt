@@ -49,7 +49,8 @@ data class HomeState(
     val hourlyRate: Double = 30.0,
     val hasChosenEmployment: Boolean = true,
     val activeAccount: EssAccount? = null,
-    val allAccounts: List<EssAccount> = emptyList()
+    val allAccounts: List<EssAccount> = emptyList(),
+    val pendingMissingCheckouts: List<AttendanceRecord> = emptyList()
 )
 
 data class ReportState(
@@ -280,6 +281,7 @@ class MainViewModel(
             )
 
             val openSession = repo.getOpenSession()
+            val pendingMissing = repo.getPendingMissingCheckouts()
             val todayRaw = repo.getTotalHoursInRange(today, today)
             val todayHours = if (isFixed) todayRaw else (if (todayRaw > 0.5) todayRaw - 0.5 else 0.0)
             val recordsInRange = repo.getRecordsInRangeDirect(periodStart, periodEnd)
@@ -320,6 +322,7 @@ class MainViewModel(
 
             _homeState.value = _homeState.value.copy(
                 openSession = openSession,
+                pendingMissingCheckouts = pendingMissing,
                 periodStart = periodStart,
                 periodEnd = periodEnd,
                 todayHours = todayHours,
@@ -382,6 +385,77 @@ class MainViewModel(
                 showHomeMessage("تم تسجيل الانصراف الساعة ${PayrollUtil.formatTime(updated.checkOutTime ?: customTime)} ✓ (${PayrollUtil.formatHours(updated.hoursWorked)})")
             } catch (e: Exception) {
                 showHomeMessage("خطأ: ${e.message}", true)
+            }
+        }
+    }
+
+    /**
+     * Settle an incomplete past shift that had missing checkout (e.g. ESS outage).
+     * Calculates checkout timestamp and hours, preserving genuine check-in and crediting the user's pay.
+     */
+    fun settleMissingCheckout(record: AttendanceRecord, customHours: Double? = null) {
+        viewModelScope.launch {
+            try {
+                val accId = record.accountId
+                val p = prefs.allPreferences.first()
+                val stdShift = prefs.getStandardShiftHours(p, accId)
+                val hoursToApply = customHours ?: stdShift
+                val outTime = record.checkInTime + (hoursToApply * 3_600_000L).toLong()
+
+                val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
+                    "حضور ESS + تسوية انصراف (${PayrollUtil.formatHours(hoursToApply)})"
+                } else {
+                    "${record.note} (تسوية: ${PayrollUtil.formatHours(hoursToApply)})"
+                }
+
+                val updated = record.copy(
+                    checkOutTime = outTime,
+                    hoursWorked = hoursToApply,
+                    note = updatedNote,
+                    source = "ess_online",
+                    isFromServer = false // Marked as modified so ESS sync won't erase the settlement
+                )
+                repo.updateRecord(updated)
+                refreshHome()
+                showHomeMessage("تمت تسوية الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)} ✓")
+            } catch (e: Exception) {
+                showHomeMessage("فشل تسوية الوردية: ${e.message}", true)
+            }
+        }
+    }
+
+    /**
+     * Settle all past incomplete shifts with missing checkouts at once using standard shift hours.
+     */
+    fun settleAllMissingCheckouts() {
+        viewModelScope.launch {
+            try {
+                val pending = _homeState.value.pendingMissingCheckouts
+                if (pending.isEmpty()) return@launch
+                val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+                val p = prefs.allPreferences.first()
+                val stdShift = prefs.getStandardShiftHours(p, accId)
+
+                for (record in pending) {
+                    val outTime = record.checkInTime + (stdShift * 3_600_000L).toLong()
+                    val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
+                        "حضور ESS + تسوية انصراف (${PayrollUtil.formatHours(stdShift)})"
+                    } else {
+                        "${record.note} (تسوية: ${PayrollUtil.formatHours(stdShift)})"
+                    }
+                    val updated = record.copy(
+                        checkOutTime = outTime,
+                        hoursWorked = stdShift,
+                        note = updatedNote,
+                        source = "ess_online",
+                        isFromServer = false
+                    )
+                    repo.updateRecord(updated)
+                }
+                refreshHome()
+                showHomeMessage("تمت تسوية ${pending.size} ورديات بنجاح واحتساب الساعات في الراتب ✓")
+            } catch (e: Exception) {
+                showHomeMessage("فشل تسوية الورديات: ${e.message}", true)
             }
         }
     }

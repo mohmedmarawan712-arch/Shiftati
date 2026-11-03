@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.KSTopBar
@@ -300,6 +300,61 @@ fun AddEditRecordScreen(
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
                         )
+                    }
+                }
+            }
+
+            // Quick settlement suggestion for missing checkout
+            if (isOnlineRecord && !initialHasCheckOut) {
+                Surface(
+                    color = Color(0xFFF59E0B).copy(alpha = 0.14f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.WarningAmber,
+                                contentDescription = null,
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "وردية بدون انصراف (عطل بالسيرفر) ⚠️",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFD97706)
+                                )
+                                Text(
+                                    text = "تطبيق شفت 9 ساعات قياسي تلقائياً لحساب الراتب",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        Button(
+                            onClick = {
+                                hasCheckOut = true
+                                checkOutHour = (checkInHour + 9) % 24
+                                checkOutMinute = checkInMinute
+                                if (noteText.isBlank() || noteText == "حضور بدون انصراف (سيرفر)") {
+                                    noteText = "حضور ESS + تسوية انصراف (9.0 س)"
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B), contentColor = Color.Black)
+                        ) {
+                            Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("شفت 9س", fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }

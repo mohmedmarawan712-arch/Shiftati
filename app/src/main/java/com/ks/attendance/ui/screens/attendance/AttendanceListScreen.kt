@@ -44,6 +44,7 @@ fun AttendanceListScreen(
     var dayToDelete by remember { mutableStateOf<String?>(null) }
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
+    var recordToSettle by remember { mutableStateOf<AttendanceRecord?>(null) }
 
     var filterByPeriod by remember { mutableStateOf(true) }
     val hasActivePeriod = homeState.periodStart.isNotBlank() && homeState.periodEnd.isNotBlank()
@@ -363,11 +364,16 @@ fun AttendanceListScreen(
                 }
             } else {
                 grouped.forEach { (date, records) ->
+                    val hasMissing = records.any {
+                        it.checkOutTime == null && it.source != "off_day" &&
+                        (System.currentTimeMillis() - it.checkInTime >= 16 * 3600 * 1000L || it.workDate < DateUtil.today())
+                    }
                     // Sticky header
                     stickyHeader(key = "header_$date") {
                         DateGroupHeader(
                             date = date,
                             totalHours = records.sumOf { it.hoursWorked },
+                            hasMissingCheckout = hasMissing,
                             onDeleteDay = { dayToDelete = date }
                         )
                     }
@@ -380,7 +386,8 @@ fun AttendanceListScreen(
                             hourlyRate = homeState.hourlyRate,
                             onDelete = { recordToDelete = record },
                             onEdit = { onNavigate("record/${record.id}") },
-                            onRevert = { recordToRevert = record }
+                            onRevert = { recordToRevert = record },
+                            onSettle = { recordToSettle = record }
                         )
                     }
                 }
@@ -464,6 +471,66 @@ fun AttendanceListScreen(
             )
         }
 
+        // Confirm settle missing checkout dialog
+        recordToSettle?.let { record ->
+            AlertDialog(
+                onDismissRequest = { recordToSettle = null },
+                icon = {
+                    Icon(
+                        Icons.Filled.Bolt,
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(32.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "تسوية الوردية (عطل بسيرفر ESS)",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "تم تسجيل الحضور يوم ${record.workDate} الساعة ${PayrollUtil.formatTime(record.checkInTime, settingsState.is24Hour)} بدون انصراف.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            text = "يمكنك تطبيق الشفت القياسي (%.0f ساعات) لاحتساب ساعاتها فوراً في الراتب، أو تعديل التوقيت يدوياً:".format(homeState.standardShiftHours),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            viewModel.settleMissingCheckout(record)
+                            recordToSettle = null
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF59E0B),
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("تسوية بـ %.0f ساعات ⚡".format(homeState.standardShiftHours), fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(
+                        onClick = {
+                            val id = record.id
+                            recordToSettle = null
+                            onNavigate("record/$id")
+                        }
+                    ) {
+                        Text("تعديل الوقت يدوياً")
+                    }
+                }
+            )
+        }
+
         // Confirm delete entire day dialog
         dayToDelete?.let { date ->
             AlertDialog(
@@ -498,6 +565,7 @@ fun AttendanceListScreen(
 private fun DateGroupHeader(
     date: String,
     totalHours: Double,
+    hasMissingCheckout: Boolean = false,
     onDeleteDay: () -> Unit
 ) {
     val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
@@ -532,12 +600,13 @@ private fun DateGroupHeader(
             ) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
+                    color = if (hasMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.18f)
+                            else MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = PayrollUtil.formatHours(totalHours),
+                        text = if (hasMissingCheckout) "0 دقيقة (⚠️ معلق)" else PayrollUtil.formatHours(totalHours),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = if (hasMissingCheckout) Color(0xFFD97706) else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
@@ -567,12 +636,14 @@ private fun RecordRow(
     hourlyRate: Double = 30.0,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onRevert: (() -> Unit)? = null
+    onRevert: (() -> Unit)? = null,
+    onSettle: (() -> Unit)? = null
 ) {
     val isOffDay = (record.source == "off_day")
     val checkIn = PayrollUtil.formatTime(record.checkInTime, is24Hour)
     val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
     val isOpen = !isOffDay && record.checkOutTime == null
+    val isMissingCheckout = isOpen && (System.currentTimeMillis() - record.checkInTime >= 16 * 3600 * 1000L || record.workDate < DateUtil.today())
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceBadge = when {
         isOffDay -> "يدوي"
@@ -589,8 +660,11 @@ private fun RecordRow(
                 detectTapGestures(onLongPress = { onEdit() })
             },
         shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+        color = if (isMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            if (isMissingCheckout) 1.5.dp else 1.dp,
+            if (isMissingCheckout) Color(0xFFF59E0B).copy(alpha = 0.8f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -673,16 +747,19 @@ private fun RecordRow(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(
-                                imageVector = if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
+                                imageVector = if (isMissingCheckout) Icons.Filled.WarningAmber
+                                else if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
                                 contentDescription = "انصراف",
-                                tint = if (isOpen) MaterialTheme.colorScheme.error else ColorLogout,
+                                tint = if (isMissingCheckout) Color(0xFFF59E0B)
+                                else if (isOpen) MaterialTheme.colorScheme.error else ColorLogout,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = checkOut,
+                                text = if (isMissingCheckout) "انصراف مفقود" else checkOut,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                                color = if (isMissingCheckout) Color(0xFFF59E0B)
+                                else if (isOpen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 softWrap = false
                             )
@@ -748,6 +825,35 @@ private fun RecordRow(
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
+                        }
+                    }
+
+                    // Missing checkout quick settle button
+                    if (isMissingCheckout && onSettle != null) {
+                        Surface(
+                            onClick = onSettle,
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFF59E0B).copy(alpha = 0.2f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Bolt,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = "تسوية ⚡",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFFD97706)
+                                )
+                            }
                         }
                     }
 
