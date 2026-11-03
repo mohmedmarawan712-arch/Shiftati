@@ -30,6 +30,8 @@ data class HomeState(
     val todayRecords: List<AttendanceRecord> = emptyList(),
     val todayHours: Double = 0.0,
     val monthHours: Double = 0.0,
+    val rawMonthHours: Double = 0.0,
+    val netMonthHours: Double = 0.0,
     val monthSalary: Double = 0.0,
     val periodStart: String = "",
     val periodEnd: String = "",
@@ -54,6 +56,8 @@ data class ReportState(
     val records: List<AttendanceRecord> = emptyList(),
     val notes: List<DayNote> = emptyList(),
     val totalHours: Double = 0.0,
+    val rawHours: Double = 0.0,
+    val netHours: Double = 0.0,
     val estimatedSalary: Double = 0.0,
     val hourlyRate: Double = 30.0,
     val periodStart: String = "",
@@ -283,6 +287,7 @@ class MainViewModel(
             val workedRecords = recordsInRange.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
             val dayGroups = workedRecords.groupBy { it.workDate }
             val workedDays = dayGroups.keys.size
+            val rawMonthHours = workedRecords.sumOf { it.hoursWorked }
 
             var overtimeHours = 0.0
             dayGroups.forEach { (_, dayRecs) ->
@@ -298,7 +303,7 @@ class MainViewModel(
                 if (daySum > 0.5) daySum - 0.5 else 0.0
             }
 
-            val monthHours = if (isFixed) recordsInRange.sumOf { it.hoursWorked } else netMonthHours
+            val monthHours = if (isFixed) rawMonthHours else netMonthHours
             val regularHours = if (isFixed) (workedDays * stdShift) else netMonthHours
             val regularSalary = if (isFixed) 0.0 else (netMonthHours * rate)
             val overtimeSalary = overtimeHours * rate
@@ -319,6 +324,8 @@ class MainViewModel(
                 periodEnd = periodEnd,
                 todayHours = todayHours,
                 monthHours = monthHours,
+                rawMonthHours = rawMonthHours,
+                netMonthHours = netMonthHours,
                 monthSalary = monthSalary,
                 workedDays = workedDays,
                 isFixedEmployment = isFixed,
@@ -480,6 +487,7 @@ class MainViewModel(
                 val workedRecords = records.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
                 val dayGroups = workedRecords.groupBy { it.workDate }
                 val workedDays = dayGroups.keys.size
+                val rawTotalHours = workedRecords.sumOf { it.hoursWorked }
 
                 var overtimeHours = 0.0
                 dayGroups.forEach { (_, dayRecs) ->
@@ -502,10 +510,11 @@ class MainViewModel(
                     netTotalHours * rate
                 }
 
-
                 _reportState.value = ReportState(
                     records = records,
                     totalHours = totalHours,
+                    rawHours = rawTotalHours,
+                    netHours = netTotalHours,
                     estimatedSalary = estimatedSalary,
                     hourlyRate = rate,
                     periodStart = ps,

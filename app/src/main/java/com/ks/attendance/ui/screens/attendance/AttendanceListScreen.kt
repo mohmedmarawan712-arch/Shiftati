@@ -71,13 +71,6 @@ fun AttendanceListScreen(
                 title = "سجل الحضور",
                 onBack = null,
                 actions = {
-                    IconButton(onClick = { onNavigate("calendar") }) {
-                        Icon(
-                            Icons.Filled.CalendarMonth,
-                            contentDescription = "عرض التقويم",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
                     IconButton(onClick = { viewModel.fillMissingDaysAsOff() }) {
                         Icon(
                             Icons.Filled.BeachAccess,
@@ -233,20 +226,19 @@ fun AttendanceListScreen(
                                     )
                                 }
                             } else {
-                                // Standard Hourly Mode
-                                // Total hours
+                                // Standard Hourly Mode: Total raw hours, Net hours after break deduction, and Salary
                                 Column(
                                     modifier = Modifier.weight(1f),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "%.1f س".format(homeState.monthHours),
+                                        text = "%.1f س".format(homeState.rawMonthHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الساعات",
+                                        text = "الساعات بالكامل",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -260,21 +252,22 @@ fun AttendanceListScreen(
                                         .background(MaterialTheme.colorScheme.outlineVariant)
                                 )
 
-                                // Worked days
+                                // Net hours after break deduction
                                 Column(
                                     modifier = Modifier.weight(1f),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                     Text(
-                                        text = "${homeState.workedDays} يوم",
+                                        text = "%.1f س".format(homeState.netMonthHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "أيام العمل",
+                                        text = "بعد الخصم (-0.5س)",
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
 
@@ -298,7 +291,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الراتب",
+                                        text = "الراتب (${homeState.workedDays} يوم)",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
