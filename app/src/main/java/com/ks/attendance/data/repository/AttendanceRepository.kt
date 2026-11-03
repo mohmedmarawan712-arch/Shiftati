@@ -175,17 +175,27 @@ class AttendanceRepository(
         val activeDates = (shiftDates + unmatchedDates + listOf(todayStr)).distinct()
 
         val existingRecords = attendanceDao.getRecordsInRangeDirect(startStr, endStr, accId)
+        val manualRecords = existingRecords.filter { !it.isFromServer && it.source != "off_day" }
+        val existingOffDates = existingRecords.filter { it.source == "off_day" }.map { it.workDate }.toSet()
         val toInsert = mutableListOf<AttendanceRecord>()
 
         // 2. Prepare valid server shifts
         for (shift in shifts) {
             if (shift.workDate < startStr || shift.workDate > endStr) continue
 
-            val duplicate = existingRecords.any { existing ->
-                (existing.workDate == shift.workDate && !existing.isFromServer && existing.source != "off_day") ||
-                (existing.workDate == shift.workDate && kotlin.math.abs(existing.checkInTime - shift.start.time) < 30 * 60 * 1000L)
+            // Only avoid inserting if user has an existing manual or edited shift on that day/time
+            val duplicateWithManual = manualRecords.any { manual ->
+                manual.workDate == shift.workDate &&
+                kotlin.math.abs(manual.checkInTime - shift.start.time) < 30 * 60 * 1000L
             }
-            if (duplicate) continue
+            if (duplicateWithManual) continue
+
+            // Preserve any existing user note written on this server shift
+            val existingNote = existingRecords.find {
+                it.isFromServer && it.workDate == shift.workDate &&
+                kotlin.math.abs(it.checkInTime - shift.start.time) < 30 * 60 * 1000L &&
+                it.note.isNotBlank()
+            }?.note ?: ""
 
             toInsert.add(
                 AttendanceRecord(
@@ -193,6 +203,7 @@ class AttendanceRepository(
                     checkInTime = shift.start.time,
                     checkOutTime = shift.end.time,
                     hoursWorked = shift.hoursWorked,
+                    note = existingNote,
                     source = "ess_online",
                     isFromServer = true,
                     accountId = accId
@@ -205,20 +216,25 @@ class AttendanceRepository(
         for (openClockIn in clockIns) {
             val openWorkDate = sdfDate.format(openClockIn.time)
             if (openWorkDate in startStr..endStr) {
-                val hasManualOrDuplicate = existingRecords.any { existing ->
-                    (existing.workDate == openWorkDate && !existing.isFromServer && existing.source != "off_day") ||
-                    (existing.workDate == openWorkDate && kotlin.math.abs(existing.checkInTime - openClockIn.time.time) < 30 * 60 * 1000L)
+                val hasManual = manualRecords.any { manual ->
+                    manual.workDate == openWorkDate &&
+                    kotlin.math.abs(manual.checkInTime - openClockIn.time.time) < 30 * 60 * 1000L
                 }
-                if (!hasManualOrDuplicate) {
-                    val existingOpen = attendanceDao.getOpenSession(accId)
+                if (!hasManual) {
+                    val existingNote = existingRecords.find {
+                        it.isFromServer && it.workDate == openWorkDate &&
+                        kotlin.math.abs(it.checkInTime - openClockIn.time.time) < 30 * 60 * 1000L &&
+                        it.note.isNotBlank()
+                    }?.note ?: if (openWorkDate == todayStr) "" else "حضور بدون انصراف (سيرفر)"
+
                     toInsert.add(
                         AttendanceRecord(
-                            id = if (existingOpen?.isFromServer == true && existingOpen.workDate == openWorkDate) existingOpen.id else 0,
+                            id = 0,
                             workDate = openWorkDate,
                             checkInTime = openClockIn.time.time,
                             checkOutTime = null,
                             hoursWorked = 0.0,
-                            note = if (openWorkDate == todayStr) "" else "حضور بدون انصراف (سيرفر)",
+                            note = existingNote,
                             source = "ess_online",
                             isFromServer = true,
                             accountId = accId
@@ -237,9 +253,9 @@ class AttendanceRepository(
         val offRecordsToInsert = mutableListOf<AttendanceRecord>()
         if (startStr <= boundedEnd) {
             val allDates = PayrollUtil.getDatesInRange(startStr, boundedEnd)
-            val combinedRecordedDates = (existingRecords.map { it.workDate } + toInsert.map { it.workDate }).toSet()
+            val coveredDates = (manualRecords.map { it.workDate } + toInsert.map { it.workDate } + existingOffDates).toSet()
             for (d in allDates) {
-                if (d !in combinedRecordedDates) {
+                if (d !in coveredDates) {
                     val inMillis = PayrollUtil.dateTimeToMillis(d, 0, 0)
                     offRecordsToInsert.add(
                         AttendanceRecord(
