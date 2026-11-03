@@ -34,7 +34,6 @@ import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.qr.QrUtil
 import kotlinx.coroutines.delay
-import java.text.NumberFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,6 +67,13 @@ fun HomeScreen(
                 title = "شفتاتي",
                 onBack = null,
                 actions = {
+                    IconButton(onClick = { showCustomRangePicker = true }) {
+                        Icon(
+                            Icons.Default.DateRange,
+                            contentDescription = "الفترة المخصصة",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                     IconButton(onClick = { viewModel.syncFromEss {} }) {
                         Icon(
                             Icons.Filled.Sync,
@@ -97,28 +103,6 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
             contentPadding = PaddingValues(top = 8.dp, bottom = 96.dp)
         ) {
-            // ─── Header ───────────────────────────────────────────────────────
-            item {
-                Column {
-                    val greeting = if (homeState.employeeName.isNotBlank())
-                        "أهلاً، ${homeState.employeeName}"
-                    else
-                        "مرحباً بك 👋"
-                    Text(
-                        text = greeting,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = DateUtil.toArabicFull(DateUtil.today()),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
             // ─── ESS Account Selector & Status Bar ────────────────────────────
             item {
                 AccountCardHeaderBar(
@@ -450,216 +434,6 @@ fun HomeScreen(
                                 Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text("تسجيل الانصراف (QR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-
-            // ─── Period Summary Card ──────────────────────────────────────────
-            item {
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.25f),
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (homeState.isFixedEmployment) Icons.Filled.Badge else Icons.Filled.Schedule,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = if (homeState.isFixedEmployment) "ملخص الشهر (تعيين)" else "ملخص الشهر (ساعة)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                            if (homeState.periodStart.isNotBlank()) {
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                                    modifier = Modifier.clickable { showCustomRangePicker = true }
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.DateRange,
-                                            contentDescription = "تغيير الفترة",
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(13.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = "${homeState.periodStart} → ${homeState.periodEnd}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (homeState.isFixedEmployment) {
-                                // 1. Base regular hours counted
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "%.0f س".format(homeState.regularHours),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "ساعات أساسية",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(28.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
-                                )
-
-                                // 2. Overtime hours
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "+%.1f س".format(homeState.overtimeHours),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "ساعات إضافية",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(28.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
-                                )
-
-                                // 3. Total overtime compensation (only overtime price!)
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "مستحق الإضافي",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else {
-                                // Hourly mode: Total raw hours, Net hours after break deduction, and Salary
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "%.1f س".format(homeState.rawMonthHours),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "الساعات بالكامل",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(28.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
-                                )
-
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "%.1f س".format(homeState.netMonthHours),
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                    Text(
-                                        text = "بعد الخصم (-0.5س)",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Box(
-                                    modifier = Modifier
-                                        .width(1.dp)
-                                        .height(28.dp)
-                                        .background(MaterialTheme.colorScheme.outlineVariant)
-                                )
-
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text(
-                                        text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Text(
-                                        text = "الراتب (${homeState.workedDays} يوم)",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
                             }
                         }
                     }
