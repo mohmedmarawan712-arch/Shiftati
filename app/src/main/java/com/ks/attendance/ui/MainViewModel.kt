@@ -173,7 +173,7 @@ class MainViewModel(
         }
         // Keep home metrics in sync whenever records change
         viewModelScope.launch {
-            allRecords.conflate().collect {
+            allRecords.collect {
                 refreshHome()
             }
         }
