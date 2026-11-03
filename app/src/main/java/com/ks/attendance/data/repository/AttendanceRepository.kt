@@ -17,6 +17,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import androidx.room.withTransaction
+import com.ks.attendance.data.local.AttendanceDatabase
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -26,7 +28,8 @@ class AttendanceRepository(
     private val dayNoteDao: DayNoteDao,
     private val essAccountDao: EssAccountDao,
     private val essClient: EssApiClient,
-    private val context: Context
+    private val context: Context,
+    private val database: AttendanceDatabase? = null
 ) {
     private val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
@@ -158,6 +161,8 @@ class AttendanceRepository(
      */
     suspend fun syncFromEss(startDate: Date, endDate: Date, accountId: Long? = null): Result<Int> = runCatching {
         val accId = accountId ?: getActiveAccountId()
+        // 1. Fetch clockings from ESS network and parse in memory FIRST.
+        // Existing cached records remain visible in the UI without interruption.
         val clockings = essClient.fetchClockings(startDate, endDate).getOrThrow()
         val (shifts, unmatched) = ClockingParser.pairShifts(clockings)
 
@@ -165,47 +170,37 @@ class AttendanceRepository(
         val endStr = sdfDate.format(endDate)
         val todayStr = sdfDate.format(Date())
 
-        // 1. Delete server records for this period and this specific account
-        attendanceDao.deleteServerRecordsInRange(startStr, endStr, accId)
-
-        // 2. Identify all dates with shifts or unmatched events from server, plus today
         val shiftDates = shifts.map { it.workDate }.distinct()
         val unmatchedDates = unmatched.map { sdfDate.format(it.time) }.distinct()
         val activeDates = (shiftDates + unmatchedDates + listOf(todayStr)).distinct()
 
-        // 3. Remove placeholder off_day records on active punch dates and today so punches/scans are never blocked
-        if (activeDates.isNotEmpty()) {
-            attendanceDao.deleteOffDaysOnDates(activeDates, accId)
-        }
-
         val existingRecords = attendanceDao.getRecordsInRangeDirect(startStr, endStr, accId)
-        var inserted = 0
+        val toInsert = mutableListOf<AttendanceRecord>()
 
-        // 4. Insert completed shifts
+        // 2. Prepare valid server shifts
         for (shift in shifts) {
             if (shift.workDate < startStr || shift.workDate > endStr) continue
 
-            // Avoid re-inserting if user has a manual/edited shift that isn't an off_day, or exact duplicate
             val duplicate = existingRecords.any { existing ->
                 (existing.workDate == shift.workDate && !existing.isFromServer && existing.source != "off_day") ||
                 (existing.workDate == shift.workDate && kotlin.math.abs(existing.checkInTime - shift.start.time) < 30 * 60 * 1000L)
             }
             if (duplicate) continue
 
-            val record = AttendanceRecord(
-                workDate = shift.workDate,
-                checkInTime = shift.start.time,
-                checkOutTime = shift.end.time,
-                hoursWorked = shift.hoursWorked,
-                source = "ess_online",
-                isFromServer = true,
-                accountId = accId
+            toInsert.add(
+                AttendanceRecord(
+                    workDate = shift.workDate,
+                    checkInTime = shift.start.time,
+                    checkOutTime = shift.end.time,
+                    hoursWorked = shift.hoursWorked,
+                    source = "ess_online",
+                    isFromServer = true,
+                    accountId = accId
+                )
             )
-            attendanceDao.insert(record)
-            inserted++
         }
 
-        // 5. Insert open/unmatched ClockIn punches (both today's active session and earlier unclosed punches)
+        // 3. Prepare open/unmatched ClockIn punches (both today's active session and earlier unclosed punches)
         val clockIns = unmatched.filter { it.type.startsWith("ClockIn") }
         for (openClockIn in clockIns) {
             val openWorkDate = sdfDate.format(openClockIn.time)
@@ -216,36 +211,70 @@ class AttendanceRepository(
                 }
                 if (!hasManualOrDuplicate) {
                     val existingOpen = attendanceDao.getOpenSession(accId)
-                    val openRecord = AttendanceRecord(
-                        id = if (existingOpen?.isFromServer == true && existingOpen.workDate == openWorkDate) existingOpen.id else 0,
-                        workDate = openWorkDate,
-                        checkInTime = openClockIn.time.time,
-                        checkOutTime = null,
-                        hoursWorked = 0.0,
-                        note = if (openWorkDate == todayStr) "" else "حضور بدون انصراف (سيرفر)",
-                        source = "ess_online",
-                        isFromServer = true,
-                        accountId = accId
+                    toInsert.add(
+                        AttendanceRecord(
+                            id = if (existingOpen?.isFromServer == true && existingOpen.workDate == openWorkDate) existingOpen.id else 0,
+                            workDate = openWorkDate,
+                            checkInTime = openClockIn.time.time,
+                            checkOutTime = null,
+                            hoursWorked = 0.0,
+                            note = if (openWorkDate == todayStr) "" else "حضور بدون انصراف (سيرفر)",
+                            source = "ess_online",
+                            isFromServer = true,
+                            accountId = accId
+                        )
                     )
-                    attendanceDao.insert(openRecord)
-                    inserted++
                 }
             }
         }
 
-        // 6. Auto-fill missing days from ESS as OFF (manual) days:
-        // Only completed past days (up to yesterday) can be considered OFF.
-        // Today is ongoing and must NEVER be marked OFF automatically while work/scans are possible.
+        // 4. Prepare missing days up to yesterday as OFF (manual) days in memory
         val cal = Calendar.getInstance()
         cal.add(Calendar.DAY_OF_YEAR, -1)
         val yesterdayStr = sdfDate.format(cal.time)
         val boundedEnd = if (endStr > yesterdayStr) yesterdayStr else endStr
+
+        val offRecordsToInsert = mutableListOf<AttendanceRecord>()
         if (startStr <= boundedEnd) {
-            fillMissingDaysAsOff(startStr, boundedEnd, accId)
+            val allDates = PayrollUtil.getDatesInRange(startStr, boundedEnd)
+            val combinedRecordedDates = (existingRecords.map { it.workDate } + toInsert.map { it.workDate }).toSet()
+            for (d in allDates) {
+                if (d !in combinedRecordedDates) {
+                    val inMillis = PayrollUtil.dateTimeToMillis(d, 0, 0)
+                    offRecordsToInsert.add(
+                        AttendanceRecord(
+                            workDate = d,
+                            checkInTime = inMillis,
+                            checkOutTime = inMillis,
+                            hoursWorked = 0.0,
+                            source = "off_day",
+                            note = "إجازة (OFF)",
+                            isFromServer = false,
+                            accountId = accId
+                        )
+                    )
+                }
+            }
         }
 
-        deduplicateRecords(accId)
-        inserted
+        // 5. Apply all database changes atomically in a single transaction.
+        // Room emits to the UI exactly once, eliminating screen flickering or empty reloads!
+        val db = database ?: AttendanceDatabase.getInstance(context)
+        db.withTransaction {
+            attendanceDao.deleteServerRecordsInRange(startStr, endStr, accId)
+            if (activeDates.isNotEmpty()) {
+                attendanceDao.deleteOffDaysOnDates(activeDates, accId)
+            }
+            if (toInsert.isNotEmpty()) {
+                attendanceDao.insertAll(toInsert)
+            }
+            if (offRecordsToInsert.isNotEmpty()) {
+                attendanceDao.insertAll(offRecordsToInsert)
+            }
+            deduplicateRecords(accId)
+        }
+
+        toInsert.size
     }
 
     /**

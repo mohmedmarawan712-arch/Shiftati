@@ -289,36 +289,24 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            // Action buttons: Quick Clock-Out QR & Manual close
-                            Row(
+                            // Action button: Quick Clock-Out QR
+                            Button(
+                                onClick = {
+                                    qrInitialEvent = QrUtil.EVENT_CLOCK_OUT
+                                    if (homeState.activeAccount != null) {
+                                        showQrDialog = true
+                                    } else {
+                                        viewModel.showHomeMessage(context.getString(R.string.attendance_require_account), isError = true)
+                                        onNavigate("settings")
+                                    }
+                                },
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = ColorLogout)
                             ) {
-                                Button(
-                                    onClick = {
-                                        qrInitialEvent = QrUtil.EVENT_CLOCK_OUT
-                                        if (homeState.activeAccount != null) {
-                                            showQrDialog = true
-                                        } else {
-                                            viewModel.showHomeMessage(context.getString(R.string.attendance_require_account), isError = true)
-                                            onNavigate("settings")
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(containerColor = ColorLogout)
-                                ) {
-                                    Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("تسجيل الانصراف (QR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
-                                }
-
-                                OutlinedButton(
-                                    onClick = { viewModel.clockOut() },
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Text("إنهاء يدوي", style = MaterialTheme.typography.labelMedium)
-                                }
+                                Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("تسجيل الانصراف (QR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

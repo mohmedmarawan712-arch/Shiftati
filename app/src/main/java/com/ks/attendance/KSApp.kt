@@ -15,7 +15,8 @@ class KSApp : Application() {
             dayNoteDao    = database.dayNoteDao(),
             essAccountDao = database.essAccountDao(),
             essClient     = essClient,
-            context       = this
+            context       = this,
+            database      = database
         )
     }
     val prefs by lazy { PrefsUtil(this) }

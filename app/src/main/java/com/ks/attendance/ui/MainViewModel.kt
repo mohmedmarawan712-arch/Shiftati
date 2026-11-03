@@ -12,6 +12,7 @@ import com.ks.attendance.utils.ExportUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
 import com.ks.attendance.utils.qr.QrUtil
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -172,7 +173,7 @@ class MainViewModel(
         }
         // Keep home metrics in sync whenever records change
         viewModelScope.launch {
-            allRecords.collect {
+            allRecords.conflate().collect {
                 refreshHome()
             }
         }
@@ -801,8 +802,8 @@ class MainViewModel(
                     )
                     refreshHome()
 
-                    // Also sync clocking shifts for active account
-                    syncFromEss {}
+                    // Also sync clocking shifts silently for active account
+                    syncFromEss(silent = true) {}
                 }
             } catch (_: Exception) {}
         }
@@ -829,7 +830,7 @@ class MainViewModel(
                     essEmail = acc.email
                 )
                 refreshHome()
-                syncFromEss { _ ->
+                syncFromEss(silent = false) { _ ->
                     showHomeMessage("تم تسجيل الدخول وإضافة حساب ${name} بنجاح ✓")
                 }
             }
@@ -837,8 +838,11 @@ class MainViewModel(
         }
     }
 
+    private var accountSyncJob: Job? = null
+
     fun switchAccount(account: EssAccount) {
         viewModelScope.launch {
+            accountSyncJob?.cancel()
             repo.setActiveAccount(account.id)
             prefs.setEssCredentials(account.email, account.password, true)
             val name = account.staffShortName.ifBlank { account.staffName }
@@ -849,8 +853,11 @@ class MainViewModel(
             )
             refreshHome()
             showHomeMessage("تم التبديل إلى حساب ${name} بنجاح ✓")
-            // Silently sync shifts for switched account
-            syncFromEss {}
+            // Silently sync shifts for switched account with debounce to prevent duplicate network calls on rapid clicks
+            accountSyncJob = viewModelScope.launch {
+                delay(300L)
+                syncFromEss(silent = true) {}
+            }
         }
     }
 
@@ -970,9 +977,11 @@ class MainViewModel(
         }
     }
 
-    fun syncFromEss(onResult: (Int) -> Unit) {
+    fun syncFromEss(silent: Boolean = false, onResult: (Int) -> Unit = {}) {
         viewModelScope.launch {
-            _homeState.value = _homeState.value.copy(isLoading = true)
+            if (!silent) {
+                _homeState.value = _homeState.value.copy(isLoading = true)
+            }
 
             // Auto-relogin silently if session expired but credentials exist
             if (!repo.isEssLoggedIn) {
@@ -1030,11 +1039,13 @@ class MainViewModel(
             }
 
             val result = repo.syncFromEss(syncStart, syncEnd)
-            _homeState.value = _homeState.value.copy(isLoading = false)
+            if (!silent) {
+                _homeState.value = _homeState.value.copy(isLoading = false)
+            }
             if (result.isSuccess) {
                 refreshHome()
                 onResult(result.getOrDefault(0))
-            } else {
+            } else if (!silent) {
                 showHomeMessage("فشل المزامنة: ${result.exceptionOrNull()?.message}", true)
             }
         }
