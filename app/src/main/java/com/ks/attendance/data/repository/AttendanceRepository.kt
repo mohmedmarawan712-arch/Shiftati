@@ -168,12 +168,12 @@ class AttendanceRepository(
         // 1. Delete server records for this period and this specific account
         attendanceDao.deleteServerRecordsInRange(startStr, endStr, accId)
 
-        // 2. Identify all dates with shifts or unmatched events from server
+        // 2. Identify all dates with shifts or unmatched events from server, plus today
         val shiftDates = shifts.map { it.workDate }.distinct()
         val unmatchedDates = unmatched.map { sdfDate.format(it.time) }.distinct()
-        val activeDates = (shiftDates + unmatchedDates).distinct()
+        val activeDates = (shiftDates + unmatchedDates + listOf(todayStr)).distinct()
 
-        // 3. Remove any placeholder off_day records on active punch dates so server records aren't blocked
+        // 3. Remove placeholder off_day records on active punch dates and today so punches/scans are never blocked
         if (activeDates.isNotEmpty()) {
             attendanceDao.deleteOffDaysOnDates(activeDates, accId)
         }
@@ -234,8 +234,12 @@ class AttendanceRepository(
         }
 
         // 6. Auto-fill missing days from ESS as OFF (manual) days:
-        // Checks all calendar days from startStr to min(endStr, todayStr)
-        val boundedEnd = if (endStr > todayStr) todayStr else endStr
+        // Only completed past days (up to yesterday) can be considered OFF.
+        // Today is ongoing and must NEVER be marked OFF automatically while work/scans are possible.
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterdayStr = sdfDate.format(cal.time)
+        val boundedEnd = if (endStr > yesterdayStr) yesterdayStr else endStr
         if (startStr <= boundedEnd) {
             fillMissingDaysAsOff(startStr, boundedEnd, accId)
         }
@@ -245,14 +249,16 @@ class AttendanceRepository(
     }
 
     /**
-     * Checks all calendar days between [startStr] and [endStr] (bounded by today).
-     * Any day without an attendance record is created as an off day ("off_day") with note "إجازة (OFF)"
-     * and isFromServer = false (so it appears as "يدوي") for the specified account.
+     * Checks calendar days between [startStr] and [endStr] (strictly bounded by yesterday).
+     * Any past day without an attendance record is created as an off day ("off_day") with note "إجازة (OFF)".
+     * Today is never auto-filled as OFF because the working day is still in progress and scanning/punching is expected.
      */
     suspend fun fillMissingDaysAsOff(startStr: String, endStr: String, accountId: Long? = null): Int {
         val accId = accountId ?: getActiveAccountId()
-        val todayStr = sdfDate.format(Date())
-        val boundedEnd = if (endStr > todayStr) todayStr else endStr
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -1)
+        val yesterdayStr = sdfDate.format(cal.time)
+        val boundedEnd = if (endStr > yesterdayStr) yesterdayStr else endStr
         if (startStr > boundedEnd) return 0
 
         val allDates = PayrollUtil.getDatesInRange(startStr, boundedEnd)
@@ -278,6 +284,16 @@ class AttendanceRepository(
             }
         }
         return added
+    }
+
+    /**
+     * Cleans up any placeholder OFF record mistakenly created on today's date,
+     * so that today is never falsely marked as a day off while the day is still active.
+     */
+    suspend fun cleanPlaceholderTodayOffDay(accountId: Long? = null) {
+        val accId = accountId ?: getActiveAccountId()
+        val todayStr = sdfDate.format(Date())
+        attendanceDao.deleteOffDaysOnDates(listOf(todayStr), accId)
     }
 
 

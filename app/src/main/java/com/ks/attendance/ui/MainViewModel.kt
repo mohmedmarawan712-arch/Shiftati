@@ -137,6 +137,7 @@ class MainViewModel(
     init {
         loadSettings()
         viewModelScope.launch {
+            repo.cleanPlaceholderTodayOffDay()
             repo.deduplicateRecords()
             refreshHome()
         }
