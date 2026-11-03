@@ -440,6 +440,9 @@ class AttendanceRepository(
         attendanceDao.deleteRecordsByAccount(id)
         dayNoteDao.deleteNotesByAccount(id)
         essAccountDao.deleteById(id)
+        try {
+            PrefsUtil(context).clearAccountPrefs(id)
+        } catch (_: Exception) {}
         val remaining = essAccountDao.getAllAccountsDirect()
         if (remaining.isNotEmpty()) {
             if (essAccountDao.getActiveAccountDirect() == null) {

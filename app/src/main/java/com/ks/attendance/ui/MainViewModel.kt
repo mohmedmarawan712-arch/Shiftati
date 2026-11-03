@@ -190,25 +190,26 @@ class MainViewModel(
 
     private fun observeSettings() {
         viewModelScope.launch {
-            prefs.allPreferences.collect { p ->
-                val rate = p[PrefsUtil.KEY_HOURLY_RATE] ?: PrefsUtil.DEFAULT_HOURLY_RATE
-                val startDay = p[PrefsUtil.KEY_PAYROLL_START] ?: PrefsUtil.DEFAULT_PAYROLL_START
-                val cycleType = p[PrefsUtil.KEY_PAYROLL_CYCLE] ?: PayrollUtil.CYCLE_16_TO_15
+            combine(prefs.allPreferences, activeAccount) { p, acc ->
+                val accId = acc?.id ?: 0L
+                val rate = prefs.getHourlyRate(p, accId)
+                val startDay = prefs.getPayrollStartDay(p, accId)
+                val cycleType = prefs.getPayrollCycleType(p, accId)
                 val lang = p[PrefsUtil.KEY_LANGUAGE] ?: PrefsUtil.DEFAULT_LANGUAGE
                 val dark = p[PrefsUtil.KEY_DARK_MODE] ?: true
                 val theme = p[PrefsUtil.KEY_THEME_MODE] ?: PrefsUtil.DEFAULT_THEME_MODE
                 val timeFmt = p[PrefsUtil.KEY_TIME_FORMAT] ?: PrefsUtil.DEFAULT_TIME_FORMAT
-                val email = p[PrefsUtil.KEY_ESS_EMAIL] ?: ""
-                val pass = p[PrefsUtil.KEY_ESS_PASSWORD] ?: ""
+                val email = acc?.email ?: (p[PrefsUtil.KEY_ESS_EMAIL] ?: "")
+                val pass = acc?.password ?: (p[PrefsUtil.KEY_ESS_PASSWORD] ?: "")
                 val saveCreds = p[PrefsUtil.KEY_ESS_SAVE_CREDS] ?: false
-                val name = p[PrefsUtil.KEY_EMPLOYEE_NAME] ?: ""
-                val customStart = p[PrefsUtil.KEY_CUSTOM_START_DATE] ?: ""
-                val customEnd = p[PrefsUtil.KEY_CUSTOM_END_DATE] ?: ""
-                val isFixed = p[PrefsUtil.KEY_FIXED_EMPLOYMENT] ?: PrefsUtil.DEFAULT_FIXED_EMPLOYMENT
-                val stdShift = p[PrefsUtil.KEY_STANDARD_SHIFT_HOURS] ?: PrefsUtil.DEFAULT_STANDARD_SHIFT_HOURS
-                val hasChosen = p[PrefsUtil.KEY_HAS_CHOSEN_EMPLOYMENT] ?: false
+                val name = acc?.let { it.staffShortName.ifBlank { it.staffName } } ?: (p[PrefsUtil.KEY_EMPLOYEE_NAME] ?: "")
+                val customStart = prefs.getCustomStartDate(p, accId)
+                val customEnd = prefs.getCustomEndDate(p, accId)
+                val isFixed = prefs.getFixedEmployment(p, accId)
+                val stdShift = prefs.getStandardShiftHours(p, accId)
+                val hasChosen = prefs.getHasChosenEmployment(p, accId)
 
-                _settingsState.value = SettingsState(
+                SettingsState(
                     hourlyRate = rate,
                     payrollStartDay = startDay,
                     payrollCycleType = cycleType,
@@ -219,17 +220,22 @@ class MainViewModel(
                     essEmail = email,
                     essPassword = pass,
                     essSaveCredentials = saveCreds,
-                    isEssLoggedIn = repo.isEssLoggedIn,
+                    isEssLoggedIn = acc != null || repo.isEssLoggedIn,
                     employeeName = name,
                     customStartDate = customStart,
                     customEndDate = customEnd,
                     isFixedEmployment = isFixed,
                     standardShiftHours = stdShift,
                     hasChosenEmployment = hasChosen
-                )
+                ) to (isFixed to (rate to (stdShift to hasChosen)))
+            }.collect { (settings, homeAttrs) ->
+                _settingsState.value = settings
+                val (isFixed, rateAndStd) = homeAttrs
+                val (rate, stdAndChosen) = rateAndStd
+                val (stdShift, hasChosen) = stdAndChosen
                 _homeState.value = _homeState.value.copy(
-                    employeeName = name,
-                    is24Hour = (timeFmt == "24h"),
+                    employeeName = settings.employeeName,
+                    is24Hour = settings.is24Hour,
                     isFixedEmployment = isFixed,
                     standardShiftHours = stdShift,
                     hourlyRate = rate,
@@ -250,14 +256,16 @@ class MainViewModel(
 
     fun refreshHome() {
         viewModelScope.launch {
-            val rate = prefs.hourlyRate.first()
-            val startDay = prefs.payrollStartDay.first()
-            val cycleType = prefs.payrollCycleType.first()
-            val customStart = prefs.customStartDate.first()
-            val customEnd = prefs.customEndDate.first()
-            val isFixed = prefs.fixedEmploymentEnabled.first()
-            val stdShift = prefs.standardShiftHours.first()
-            val hasChosen = prefs.hasChosenEmployment.first()
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            val p = prefs.allPreferences.first()
+            val rate = prefs.getHourlyRate(p, accId)
+            val startDay = prefs.getPayrollStartDay(p, accId)
+            val cycleType = prefs.getPayrollCycleType(p, accId)
+            val customStart = prefs.getCustomStartDate(p, accId)
+            val customEnd = prefs.getCustomEndDate(p, accId)
+            val isFixed = prefs.getFixedEmployment(p, accId)
+            val stdShift = prefs.getStandardShiftHours(p, accId)
+            val hasChosen = prefs.getHasChosenEmployment(p, accId)
 
             val (periodStart, periodEnd) = PayrollUtil.resolvePeriod(
                 cycleType = cycleType,
@@ -330,8 +338,9 @@ class MainViewModel(
 
     fun selectInitialEmploymentType(isFixed: Boolean) {
         viewModelScope.launch {
-            prefs.setFixedEmployment(isFixed)
-            prefs.setHasChosenEmployment(true)
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setFixedEmployment(isFixed, accId)
+            prefs.setHasChosenEmployment(true, accId)
             refreshHome()
             loadReport()
         }
@@ -448,13 +457,15 @@ class MainViewModel(
 
     fun loadReport(start: String? = null, end: String? = null) {
         viewModelScope.launch {
-            val rate = prefs.hourlyRate.first()
-            val startDay = prefs.payrollStartDay.first()
-            val cycleType = prefs.payrollCycleType.first()
-            val customStart = prefs.customStartDate.first()
-            val customEnd = prefs.customEndDate.first()
-            val isFixed = prefs.fixedEmploymentEnabled.first()
-            val stdShift = prefs.standardShiftHours.first()
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            val p = prefs.allPreferences.first()
+            val rate = prefs.getHourlyRate(p, accId)
+            val startDay = prefs.getPayrollStartDay(p, accId)
+            val cycleType = prefs.getPayrollCycleType(p, accId)
+            val customStart = prefs.getCustomStartDate(p, accId)
+            val customEnd = prefs.getCustomEndDate(p, accId)
+            val isFixed = prefs.getFixedEmployment(p, accId)
+            val stdShift = prefs.getStandardShiftHours(p, accId)
 
             val (ps, pe) = if (start != null && end != null) start to end
                            else PayrollUtil.resolvePeriod(
@@ -528,11 +539,15 @@ class MainViewModel(
     fun exportExcel(onlyCurrentPeriod: Boolean = true) {
         viewModelScope.launch {
             try {
-                val rate = prefs.hourlyRate.first()
-                val startDay = prefs.payrollStartDay.first()
-                val cycleType = prefs.payrollCycleType.first()
-                val customStart = prefs.customStartDate.first()
-                val customEnd = prefs.customEndDate.first()
+                val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+                val p = prefs.allPreferences.first()
+                val rate = prefs.getHourlyRate(p, accId)
+                val startDay = prefs.getPayrollStartDay(p, accId)
+                val cycleType = prefs.getPayrollCycleType(p, accId)
+                val customStart = prefs.getCustomStartDate(p, accId)
+                val customEnd = prefs.getCustomEndDate(p, accId)
+                val isFixed = prefs.getFixedEmployment(p, accId)
+                val stdShift = prefs.getStandardShiftHours(p, accId)
                 val (ps, pe) = PayrollUtil.resolvePeriod(
                     cycleType = cycleType,
                     startDay = startDay,
@@ -564,8 +579,8 @@ class MainViewModel(
                     periodStart = ps,
                     periodEnd = pe,
                     hourlyRate = rate,
-                    isFixedEmployment = prefs.fixedEmploymentEnabled.first(),
-                    standardShiftHours = prefs.standardShiftHours.first(),
+                    isFixedEmployment = isFixed,
+                    standardShiftHours = stdShift,
                     employeeName = empName
                 )
                 _reportState.value = _reportState.value.copy(isExporting = false)
@@ -648,16 +663,27 @@ class MainViewModel(
     // ─── Settings ─────────────────────────────────────────────────────────────
 
     fun setHourlyRate(rate: Double) {
-        viewModelScope.launch { prefs.setHourlyRate(rate) }
+        viewModelScope.launch {
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setHourlyRate(rate, accId)
+            refreshHome()
+            loadReport()
+        }
     }
 
     fun setPayrollStartDay(day: Int) {
-        viewModelScope.launch { prefs.setPayrollStartDay(day) }
+        viewModelScope.launch {
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setPayrollStartDay(day, accId)
+            refreshHome()
+            loadReport()
+        }
     }
 
     fun setPayrollCycleType(type: String) {
         viewModelScope.launch {
-            prefs.setPayrollCycleType(type)
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setPayrollCycleType(type, accId)
             refreshHome()
             loadReport()
         }
@@ -665,8 +691,9 @@ class MainViewModel(
 
     fun setCustomPeriodRange(start: String, end: String) {
         viewModelScope.launch {
-            prefs.setCustomPeriodRange(start, end)
-            prefs.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE)
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setCustomPeriodRange(start, end, accId)
+            prefs.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE, accId)
             refreshHome()
             loadReport()
         }
@@ -699,7 +726,9 @@ class MainViewModel(
 
     fun setFixedEmployment(enabled: Boolean) {
         viewModelScope.launch {
-            prefs.setFixedEmployment(enabled)
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setFixedEmployment(enabled, accId)
+            prefs.setHasChosenEmployment(true, accId)
             refreshHome()
             loadReport()
         }
@@ -707,7 +736,8 @@ class MainViewModel(
 
     fun setStandardShiftHours(hours: Double) {
         viewModelScope.launch {
-            prefs.setStandardShiftHours(hours)
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            prefs.setStandardShiftHours(hours, accId)
             refreshHome()
             loadReport()
         }
@@ -847,11 +877,40 @@ class MainViewModel(
             prefs.setEssCredentials(account.email, account.password, true)
             val name = account.staffShortName.ifBlank { account.staffName }
             prefs.setEmployeeName(name)
+
+            val p = prefs.allPreferences.first()
+            val accId = account.id
+            val rate = prefs.getHourlyRate(p, accId)
+            val startDay = prefs.getPayrollStartDay(p, accId)
+            val cycleType = prefs.getPayrollCycleType(p, accId)
+            val customStart = prefs.getCustomStartDate(p, accId)
+            val customEnd = prefs.getCustomEndDate(p, accId)
+            val isFixed = prefs.getFixedEmployment(p, accId)
+            val stdShift = prefs.getStandardShiftHours(p, accId)
+            val hasChosen = prefs.getHasChosenEmployment(p, accId)
+
             _settingsState.value = _settingsState.value.copy(
+                hourlyRate = rate,
+                payrollStartDay = startDay,
+                payrollCycleType = cycleType,
+                customStartDate = customStart,
+                customEndDate = customEnd,
+                isFixedEmployment = isFixed,
+                standardShiftHours = stdShift,
+                hasChosenEmployment = hasChosen,
                 employeeName = name,
                 essEmail = account.email
             )
+            _homeState.value = _homeState.value.copy(
+                activeAccount = account,
+                employeeName = name,
+                isFixedEmployment = isFixed,
+                standardShiftHours = stdShift,
+                hourlyRate = rate,
+                hasChosenEmployment = hasChosen
+            )
             refreshHome()
+            loadReport()
             showHomeMessage("تم التبديل إلى حساب ${name} بنجاح ✓")
             // Silently sync shifts for switched account with debounce to prevent duplicate network calls on rapid clicks
             accountSyncJob = viewModelScope.launch {
@@ -864,15 +923,43 @@ class MainViewModel(
     fun deleteAccount(account: EssAccount) {
         viewModelScope.launch {
             repo.deleteAccount(account.id)
+            prefs.clearAccountPrefs(account.id)
             val newActive = repo.getActiveAccountDirect()
             if (newActive != null) {
                 prefs.setEssCredentials(newActive.email, newActive.password, true)
                 val name = newActive.staffShortName.ifBlank { newActive.staffName }
                 prefs.setEmployeeName(name)
+                val p = prefs.allPreferences.first()
+                val accId = newActive.id
+                val rate = prefs.getHourlyRate(p, accId)
+                val startDay = prefs.getPayrollStartDay(p, accId)
+                val cycleType = prefs.getPayrollCycleType(p, accId)
+                val customStart = prefs.getCustomStartDate(p, accId)
+                val customEnd = prefs.getCustomEndDate(p, accId)
+                val isFixed = prefs.getFixedEmployment(p, accId)
+                val stdShift = prefs.getStandardShiftHours(p, accId)
+                val hasChosen = prefs.getHasChosenEmployment(p, accId)
+
                 _settingsState.value = _settingsState.value.copy(
+                    hourlyRate = rate,
+                    payrollStartDay = startDay,
+                    payrollCycleType = cycleType,
+                    customStartDate = customStart,
+                    customEndDate = customEnd,
+                    isFixedEmployment = isFixed,
+                    standardShiftHours = stdShift,
+                    hasChosenEmployment = hasChosen,
                     isEssLoggedIn = true,
                     employeeName = name,
                     essEmail = newActive.email
+                )
+                _homeState.value = _homeState.value.copy(
+                    activeAccount = newActive,
+                    employeeName = name,
+                    isFixedEmployment = isFixed,
+                    standardShiftHours = stdShift,
+                    hourlyRate = rate,
+                    hasChosenEmployment = hasChosen
                 )
             } else {
                 prefs.setEssCredentials("", "", false)
@@ -883,8 +970,13 @@ class MainViewModel(
                     essEmail = "",
                     essPassword = ""
                 )
+                _homeState.value = _homeState.value.copy(
+                    activeAccount = null,
+                    employeeName = ""
+                )
             }
             refreshHome()
+            loadReport()
             showHomeMessage("تم حذف الحساب بنجاح")
         }
     }
