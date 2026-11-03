@@ -363,6 +363,14 @@ fun AttendanceQrDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        if (selectedAccount.deviceId.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "معرف الجهاز: ${selectedAccount.deviceId}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.65f)
+                            )
+                        }
                     }
                 }
 
@@ -867,6 +875,13 @@ fun AccountsManagerDialog(
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                         )
+                                        if (acc.deviceId.isNotBlank()) {
+                                            Text(
+                                                text = "معرف الجهاز (QR): ${acc.deviceId}",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                                            )
+                                        }
                                     }
 
                                     Row(verticalAlignment = Alignment.CenterVertically) {

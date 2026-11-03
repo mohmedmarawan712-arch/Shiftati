@@ -919,13 +919,17 @@ class MainViewModel(
                     val email = prefs.essEmail.first()
                     val pass = prefs.essPassword.first()
                     if (saveCreds && email.isNotBlank() && pass.isNotBlank()) {
-                        val deviceId = QrUtil.getDeviceId(context)
+                        val deviceId = QrUtil.getDeviceIdForAccount(context, email.trim(), isPrimary = true)
                         val res = repo.fetchAndSaveAccount(email.trim(), pass, deviceId)
                         if (res.isSuccess) {
                             accounts = listOf(res.getOrThrow())
                         }
                     }
                 }
+
+                // Sanitize and ensure each account on this phone has a unique non-bogus device ID
+                repo.sanitizeAccountDeviceIds()
+                accounts = repo.getAllAccountsDirect()
 
                 if (accounts.isNotEmpty()) {
                     val active = repo.getActiveAccountDirect() ?: accounts.first().also {
@@ -960,7 +964,9 @@ class MainViewModel(
         onResult: (Result<EssAccount>) -> Unit
     ) {
         viewModelScope.launch {
-            val deviceId = QrUtil.getDeviceId(context)
+            val allAccounts = repo.getAllAccountsDirect()
+            val isPrimary = allAccounts.isEmpty()
+            val deviceId = QrUtil.getDeviceIdForAccount(context, email.trim(), isPrimary = isPrimary)
             val result = repo.fetchAndSaveAccount(email.trim(), pass, deviceId)
             if (result.isSuccess) {
                 val acc = result.getOrThrow()
@@ -1119,7 +1125,13 @@ class MainViewModel(
     }
 
     fun generateQrPayload(account: EssAccount, event: String, timestamp: Date = Date()): String {
-        val deviceId = account.deviceId.ifBlank { QrUtil.getDeviceId(context) }
+        val allAccounts = _homeState.value.allAccounts
+        val isPrimary = (account.id == allAccounts.firstOrNull()?.id)
+        val deviceId = if (account.deviceId.isNotBlank() && account.deviceId != "b4cfd84c7a095b7f") {
+            account.deviceId
+        } else {
+            QrUtil.getDeviceIdForAccount(context, account.email, isPrimary = isPrimary)
+        }
         return QrUtil.buildAttendanceQrPayload(
             staffId = account.staffId,
             staffName = account.staffName,

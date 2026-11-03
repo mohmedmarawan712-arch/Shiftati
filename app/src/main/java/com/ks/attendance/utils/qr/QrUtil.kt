@@ -79,18 +79,53 @@ object QrUtil {
     }
 
     /**
-     * Resolves or generates a persistent device ID matching the Android ID format.
+     * Resolves the real hardware Android ID for the current phone.
+     * If unavailable or emulator default, uses a persistent random 16-hex UUID stored in SharedPreferences.
      */
-    fun getDeviceId(context: Context): String {
+    fun getBaseDeviceId(context: Context): String {
         return try {
             val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
             if (!androidId.isNullOrBlank() && androidId != "9774d56d682e549c") {
-                androidId
+                androidId.lowercase().trim()
             } else {
-                "b4cfd84c7a095b7f"
+                getOrCreatePersistentFallbackId(context)
             }
         } catch (_: Exception) {
-            "b4cfd84c7a095b7f"
+            getOrCreatePersistentFallbackId(context)
         }
+    }
+
+    /**
+     * Resolves a unique 16-character hex device ID for a specific account on this phone.
+     * - Primary account uses the genuine phone's Android ID.
+     * - Additional/secondary accounts on the same phone receive a unique, deterministic 16-hex ID
+     *   derived cryptographically from (Android ID + account email/identifier).
+     */
+    fun getDeviceIdForAccount(context: Context, accountEmail: String = "", isPrimary: Boolean = false): String {
+        val baseId = getBaseDeviceId(context)
+        if (accountEmail.isBlank() || isPrimary) {
+            return baseId
+        }
+        return try {
+            val input = "$baseId:${accountEmail.trim().lowercase()}"
+            val md = java.security.MessageDigest.getInstance("SHA-256")
+            val digest = md.digest(input.toByteArray(Charsets.UTF_8))
+            digest.take(8).joinToString("") { "%02x".format(it) }
+        } catch (_: Exception) {
+            baseId
+        }
+    }
+
+    /** Legacy helper returning base device ID */
+    fun getDeviceId(context: Context): String = getBaseDeviceId(context)
+
+    private fun getOrCreatePersistentFallbackId(context: Context): String {
+        val prefs = context.getSharedPreferences("ks_device_meta", Context.MODE_PRIVATE)
+        var id = prefs.getString("persistent_device_id", null)
+        if (id.isNullOrBlank()) {
+            id = UUID.randomUUID().toString().replace("-", "").take(16).lowercase()
+            prefs.edit().putString("persistent_device_id", id).apply()
+        }
+        return id
     }
 }

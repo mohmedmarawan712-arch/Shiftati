@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import androidx.room.withTransaction
 import com.ks.attendance.data.local.AttendanceDatabase
+import com.ks.attendance.utils.qr.QrUtil
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -496,6 +497,16 @@ class AttendanceRepository(
         setAsActive: Boolean = true
     ): EssAccount {
         val existing = essAccountDao.getAccountByEmail(email)
+        val allExisting = essAccountDao.getAllAccountsDirect()
+        val isPrimary = allExisting.isEmpty() || (existing != null && allExisting.firstOrNull()?.id == existing.id)
+        val resolvedDeviceId = if (deviceId.isNotBlank() && deviceId != "b4cfd84c7a095b7f") {
+            deviceId
+        } else if (existing?.deviceId != null && existing.deviceId.isNotBlank() && existing.deviceId != "b4cfd84c7a095b7f") {
+            existing.deviceId
+        } else {
+            QrUtil.getDeviceIdForAccount(context, email, isPrimary = isPrimary)
+        }
+
         val account = (existing ?: EssAccount(
             email = email,
             password = pass,
@@ -505,7 +516,7 @@ class AttendanceRepository(
             suId = profile.suId,
             instanceId = profile.instanceId,
             instanceName = profile.instanceName,
-            deviceId = deviceId,
+            deviceId = resolvedDeviceId,
             isActive = setAsActive,
             lastSyncTime = System.currentTimeMillis()
         )).copy(
@@ -516,7 +527,7 @@ class AttendanceRepository(
             suId = profile.suId,
             instanceId = profile.instanceId,
             instanceName = profile.instanceName,
-            deviceId = if (deviceId.isNotBlank()) deviceId else existing?.deviceId ?: "b4cfd84c7a095b7f",
+            deviceId = resolvedDeviceId,
             lastSyncTime = System.currentTimeMillis()
         )
 
@@ -526,6 +537,28 @@ class AttendanceRepository(
             essAccountDao.setActiveAccount(saved.id)
         }
         return saved
+    }
+
+    suspend fun updateAccount(account: EssAccount) {
+        essAccountDao.update(account)
+    }
+
+    /**
+     * Ensures all stored accounts have unique, non-bogus device IDs.
+     * Primary account gets the hardware Android ID, while secondary accounts get distinct derived 16-hex IDs.
+     */
+    suspend fun sanitizeAccountDeviceIds() {
+        val accounts = essAccountDao.getAllAccountsDirect()
+        if (accounts.isEmpty()) return
+        val baseId = QrUtil.getBaseDeviceId(context)
+        accounts.forEachIndexed { index, acc ->
+            val expectedId = QrUtil.getDeviceIdForAccount(context, acc.email, isPrimary = (index == 0))
+            val isBogus = acc.deviceId.isBlank() || acc.deviceId == "b4cfd84c7a095b7f"
+            val isDuplicate = (index > 0 && acc.deviceId == baseId)
+            if (isBogus || isDuplicate) {
+                essAccountDao.update(acc.copy(deviceId = expectedId))
+            }
+        }
     }
 
     suspend fun fetchAndSaveAccount(
