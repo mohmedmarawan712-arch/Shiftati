@@ -244,7 +244,7 @@ fun HomeScreen(
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
-                            Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
                             Spacer(modifier = Modifier.height(14.dp))
 
                             // Time & Duration details

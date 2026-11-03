@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
 import com.ks.attendance.ui.MainViewModel
+import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
@@ -38,7 +39,8 @@ import java.util.*
 @Composable
 fun CalendarScreen(
     viewModel: MainViewModel,
-    onDayClick: (String) -> Unit
+    onDayClick: (String) -> Unit,
+    onBack: (() -> Unit)? = null
 ) {
     val allRecords by viewModel.allRecords.collectAsState()
     val settingsState by viewModel.settingsState.collectAsState()
@@ -132,8 +134,12 @@ fun CalendarScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
     ) {
+        KSTopBar(
+            title = "تقويم الشفتات",
+            onBack = onBack
+        )
+
         // ─── Month header ─────────────────────────────────────────────────────
         MonthHeader(
             year = displayYear,

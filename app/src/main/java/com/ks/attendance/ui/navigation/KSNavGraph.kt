@@ -109,10 +109,10 @@ fun KSNavGraph(
             navController = navController,
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(bottom = innerPadding.calculateBottomPadding()),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None }
+            enterTransition = { fadeIn(tween(180)) },
+            exitTransition = { fadeOut(tween(180)) },
+            popEnterTransition = { fadeIn(tween(180)) },
+            popExitTransition = { fadeOut(tween(180)) }
         ) {
             composable(Screen.Home.route) {
                 HomeScreen(
@@ -132,7 +132,8 @@ fun KSNavGraph(
                     onDayClick = { date ->
                         viewModel.selectDate(date)
                         navController.navigate("record/-1?date=$date")
-                    }
+                    },
+                    onBack = { navController.popBackStack() }
                 )
             }
             composable(Screen.Settings.route) {

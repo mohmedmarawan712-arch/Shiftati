@@ -71,6 +71,13 @@ fun AttendanceListScreen(
                 title = "سجل الحضور",
                 onBack = null,
                 actions = {
+                    IconButton(onClick = { onNavigate("calendar") }) {
+                        Icon(
+                            Icons.Filled.CalendarMonth,
+                            contentDescription = "عرض التقويم",
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                     IconButton(onClick = { viewModel.fillMissingDaysAsOff() }) {
                         Icon(
                             Icons.Filled.BeachAccess,
@@ -105,8 +112,8 @@ fun AttendanceListScreen(
                 .padding(padding),
             contentPadding = PaddingValues(bottom = 100.dp)
         ) {
-            // ─── ملخص النفخ Card ──────────────────────────────────────────────
-            item(key = "nafkha_summary") {
+            // ─── ملخص الفترة Card ──────────────────────────────────────────────
+            item(key = "period_summary") {
                 Card(
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(
