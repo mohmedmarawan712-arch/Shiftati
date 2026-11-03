@@ -18,33 +18,20 @@ object DateUtil {
         "الخميس", "الجمعة", "السبت", "الأحد"
     )
 
-    private val arabicDaysShort = listOf("الإثن", "الثلا", "الأرب", "الخمي", "الجمع", "السبت", "الأحد")
+    private val sdfThreadLocal = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    }
 
-    private val calHeaders = listOf("س", "أ", "ن", "ث", "ر", "خ", "ج")   // Sat=0 … Fri=6 in KSA week
-
-    fun arabicMonthName(month: Int): String = arabicMonths.getOrElse(month) { "" }  // 0-indexed
-
-    fun arabicDayName(dayOfWeek: Int): String = arabicDays.getOrElse(dayOfWeek) { "" }  // Calendar.MONDAY=2 → index 0
-
-    fun calendarHeaderLetters(): List<String> = calHeaders
-
-    /** Format Long millis to "HH:mm" */
-    fun formatHHmm(millis: Long): String =
-        SimpleDateFormat("HH:mm", Locale.US).format(Date(millis))
-
-    /** Format Long millis to "HH:mm:ss" */
-    fun formatHHmmss(millis: Long): String =
-        SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(millis))
+    fun arabicDayName(dayOfWeek: Int): String = arabicDays.getOrElse(dayOfWeek) { "" }
 
     /** Format Long millis to "yyyy-MM-dd" */
     fun formatDate(millis: Long): String =
-        SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(millis))
+        sdfThreadLocal.get()!!.format(Date(millis))
 
     /** "yyyy-MM-dd" → Calendar */
     fun parseToCalendar(dateStr: String): Calendar {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
         val cal = Calendar.getInstance()
-        sdf.parse(dateStr)?.let { cal.time = it }
+        sdfThreadLocal.get()!!.parse(dateStr)?.let { cal.time = it }
         return cal
     }
 
@@ -72,12 +59,21 @@ object DateUtil {
     /** Today as "yyyy-MM-dd" */
     fun today(): String = formatDate(System.currentTimeMillis())
 
+    private val dateTimeThreadLocal = ThreadLocal.withInitial {
+        SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+    }
+
+    /** "yyyy-MM-dd" + hour + minute → Long millis */
+    fun dateTimeToMillis(date: String, hour: Int, minute: Int): Long {
+        return dateTimeThreadLocal.get()!!.parse("$date %02d:%02d".format(hour, minute))?.time ?: System.currentTimeMillis()
+    }
+
     /** Returns all dates in a month as "yyyy-MM-dd" list */
     fun datesInMonth(year: Int, month: Int): List<String> {
         val cal = Calendar.getInstance()
         cal.set(year, month, 1)
         val lastDay = cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val sdf = sdfThreadLocal.get()!!
         return (1..lastDay).map { day ->
             cal.set(Calendar.DAY_OF_MONTH, day)
             sdf.format(cal.time)

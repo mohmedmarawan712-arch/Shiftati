@@ -9,8 +9,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,7 +22,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
 import com.ks.attendance.ui.MainViewModel
@@ -55,20 +52,21 @@ fun CalendarScreen(
     var displayYear by remember { mutableIntStateOf(cal.get(Calendar.YEAR)) }
     var displayMonth by remember { mutableIntStateOf(cal.get(Calendar.MONTH)) } // 0-indexed
 
-    // Derive worked dates from allRecords for current month
-    val workedDates by remember(allRecords, displayYear, displayMonth) {
+    // Derive worked dates from allRecords for current month efficiently by prefix
+    val ymPrefix = "%04d-%02d".format(displayYear, displayMonth + 1)
+    val workedDates by remember(allRecords, ymPrefix) {
         derivedStateOf {
-            allRecords.filter {
-                val c = DateUtil.parseToCalendar(it.workDate)
-                c.get(Calendar.YEAR) == displayYear && c.get(Calendar.MONTH) == displayMonth
-            }.map { it.workDate }.toSet()
+            allRecords.filter { it.workDate.startsWith(ymPrefix) }
+                .map { it.workDate }.toSet()
         }
     }
 
-    // Dates with notes
+    // Dates with notes dynamically loaded for current display month
     var datesWithNotes by remember { mutableStateOf(setOf<String>()) }
     LaunchedEffect(displayYear, displayMonth) {
-        datesWithNotes = emptySet()
+        val start = "$ymPrefix-01"
+        val end = "$ymPrefix-31"
+        datesWithNotes = viewModel.getDatesWithNotes(start, end).toSet()
     }
 
     // Bottom sheet for selected day

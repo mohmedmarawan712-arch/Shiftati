@@ -13,7 +13,11 @@ import java.util.*
  */
 object PayrollUtil {
 
-    private val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val sdfThreadLocal = ThreadLocal.withInitial { SimpleDateFormat("yyyy-MM-dd", Locale.US) }
+    private val sdf: SimpleDateFormat get() = sdfThreadLocal.get()!!
+
+    private val timeFormat24 = ThreadLocal.withInitial { SimpleDateFormat("HH:mm", Locale.US) }
+    private val timeFormat12 = ThreadLocal.withInitial { SimpleDateFormat("h:mm a", Locale.US) }
 
     const val CYCLE_16_TO_15       = "CYCLE_16_TO_15"
     const val CYCLE_29_TO_28       = "CYCLE_29_TO_28"
@@ -203,19 +207,12 @@ object PayrollUtil {
 
     fun parseDate(s: String): Date = sdf.parse(s) ?: Date()
     fun formatDate(millis: Long): String = sdf.format(Date(millis))
+
     fun formatTime(millis: Long, is24Hour: Boolean = false): String {
         return if (is24Hour) {
-            SimpleDateFormat("HH:mm", Locale.US).format(Date(millis))
+            timeFormat24.get()!!.format(Date(millis))
         } else {
-            val raw = SimpleDateFormat("h:mm a", Locale.US).format(Date(millis))
-            raw.replace("AM", "ص").replace("PM", "م")
-        }
-    }
-    fun formatTimeFull(millis: Long, is24Hour: Boolean = false): String {
-        return if (is24Hour) {
-            SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(millis))
-        } else {
-            val raw = SimpleDateFormat("h:mm:ss a", Locale.US).format(Date(millis))
+            val raw = timeFormat12.get()!!.format(Date(millis))
             raw.replace("AM", "ص").replace("PM", "م")
         }
     }
@@ -231,17 +228,6 @@ object PayrollUtil {
             h == 0L -> "$m دقيقة"
             m == 0L -> "$h ساعة"
             else -> "$h س $m د"
-        }
-    }
-
-    fun formatHoursEn(hours: Double): String {
-        val totalMinutes = (hours * 60).toLong()
-        val h = totalMinutes / 60
-        val m = totalMinutes % 60
-        return when {
-            h == 0L -> "${m}m"
-            m == 0L -> "${h}h"
-            else -> "${h}h ${m}m"
         }
     }
 

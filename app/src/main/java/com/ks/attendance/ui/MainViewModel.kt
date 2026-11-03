@@ -534,6 +534,9 @@ class MainViewModel(
         viewModelScope.launch { repo.deleteNote(note) }
     }
 
+    suspend fun getDatesWithNotes(start: String, end: String): List<String> =
+        repo.getDatesWithNotes(start, end)
+
     // ─── Reports ─────────────────────────────────────────────────────────────
 
     fun loadReport(start: String? = null, end: String? = null) {
