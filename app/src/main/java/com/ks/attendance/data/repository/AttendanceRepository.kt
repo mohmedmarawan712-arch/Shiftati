@@ -233,6 +233,18 @@ class AttendanceRepository(
         for (openClockIn in clockIns) {
             val openWorkDate = sdfDate.format(openClockIn.time)
             if (openWorkDate in startStr..endStr) {
+                // If this day already has a settled shift, manual entry, or shift with hours/checkout, skip re-insertion
+                val alreadyCovered = existingRecords.any { rec ->
+                    rec.workDate == openWorkDate && (
+                        rec.hoursWorked > 0.0 ||
+                        rec.checkOutTime != null ||
+                        !rec.isFromServer ||
+                        rec.source == "manual" ||
+                        rec.source == "off_day"
+                    )
+                }
+                if (alreadyCovered) continue
+
                 val hasManual = manualRecords.any { manual ->
                     manual.workDate == openWorkDate &&
                     kotlin.math.abs(manual.checkInTime - openClockIn.time.time) < 30 * 60 * 1000L

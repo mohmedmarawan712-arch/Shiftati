@@ -396,7 +396,12 @@ class MainViewModel(
     fun settleMissingCheckout(record: AttendanceRecord, customHours: Double? = null) {
         viewModelScope.launch {
             try {
-                val accId = record.accountId
+                // Immediately remove from pending in homeState for zero-delay UI update
+                _homeState.value = _homeState.value.copy(
+                    pendingMissingCheckouts = _homeState.value.pendingMissingCheckouts.filter { it.id != record.id }
+                )
+
+                val accId = if (record.accountId > 0) record.accountId else (_homeState.value.activeAccount?.id ?: repo.getActiveAccountId())
                 val p = prefs.allPreferences.first()
                 val stdShift = prefs.getStandardShiftHours(p, accId)
                 val hoursToApply = customHours ?: stdShift
@@ -420,6 +425,7 @@ class MainViewModel(
                 showHomeMessage("تمت تسوية الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)} ✓")
             } catch (e: Exception) {
                 showHomeMessage("فشل تسوية الوردية: ${e.message}", true)
+                refreshHome()
             }
         }
     }
@@ -432,6 +438,12 @@ class MainViewModel(
             try {
                 val pending = _homeState.value.pendingMissingCheckouts
                 if (pending.isEmpty()) return@launch
+
+                // Immediately clear pending list in memory
+                _homeState.value = _homeState.value.copy(
+                    pendingMissingCheckouts = emptyList()
+                )
+
                 val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
                 val p = prefs.allPreferences.first()
                 val stdShift = prefs.getStandardShiftHours(p, accId)
@@ -456,11 +468,14 @@ class MainViewModel(
                 showHomeMessage("تمت تسوية ${pending.size} ورديات بنجاح واحتساب الساعات في الراتب ✓")
             } catch (e: Exception) {
                 showHomeMessage("فشل تسوية الورديات: ${e.message}", true)
+                refreshHome()
             }
         }
     }
 
     // ─── CRUD ─────────────────────────────────────────────────────────────────
+
+    suspend fun getRecordById(id: Long): AttendanceRecord? = repo.getRecordById(id)
 
     fun addRecord(record: AttendanceRecord) {
         viewModelScope.launch {
@@ -472,6 +487,7 @@ class MainViewModel(
     fun updateRecord(record: AttendanceRecord) {
         viewModelScope.launch {
             val existing = repo.getRecordById(record.id)
+            val wasMissingCheckout = (existing?.checkOutTime == null && record.checkOutTime != null)
             val checkInDiffMinutes = if (existing != null) kotlin.math.abs(existing.checkInTime - record.checkInTime) / 60000 else 999
             val checkOutDiffMinutes = if (existing != null && existing.checkOutTime != null && record.checkOutTime != null) {
                 kotlin.math.abs(existing.checkOutTime - record.checkOutTime) / 60000
@@ -486,8 +502,8 @@ class MainViewModel(
                 checkOutDiffMinutes >= 1L
             )
 
-            // If time/date was NOT changed, preserve the original isFromServer flag!
-            val finalIsFromServer = if (timeOrDateChanged) {
+            // If time/date was changed or missing checkout was closed, mark isFromServer = false!
+            val finalIsFromServer = if (timeOrDateChanged || wasMissingCheckout) {
                 false
             } else if (existing != null) {
                 existing.isFromServer
@@ -497,6 +513,13 @@ class MainViewModel(
 
             val userEditedRecord = record.copy(isFromServer = finalIsFromServer)
             repo.updateRecord(userEditedRecord)
+
+            // Dismiss from pending missing list immediately if checkOutTime was set
+            if (wasMissingCheckout || record.checkOutTime != null) {
+                _homeState.value = _homeState.value.copy(
+                    pendingMissingCheckouts = _homeState.value.pendingMissingCheckouts.filter { it.id != record.id }
+                )
+            }
             refreshHome()
         }
     }

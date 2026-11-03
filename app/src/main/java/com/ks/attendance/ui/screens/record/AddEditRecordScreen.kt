@@ -61,11 +61,14 @@ fun AddEditRecordScreen(
     var initialCheckOutMinute by remember { mutableIntStateOf(-1) }
     var initialIsOffDay by remember { mutableStateOf(false) }
 
+    var existingRecord by remember { mutableStateOf<AttendanceRecord?>(null) }
+
     // Load existing record if editing
     LaunchedEffect(recordId) {
         if (isEdit) {
-            val record = viewModel.allRecords.value.find { it.id == recordId }
+            val record = viewModel.getRecordById(recordId) ?: viewModel.allRecords.value.find { it.id == recordId }
             record?.let { r ->
+                existingRecord = r
                 workDate = r.workDate
                 initialWorkDate = r.workDate
                 isOnlineRecord = (r.source == "ess_online")
@@ -77,14 +80,26 @@ fun AddEditRecordScreen(
                 checkInMinute = cal.get(Calendar.MINUTE)
                 initialCheckInHour = checkInHour
                 initialCheckInMinute = checkInMinute
-                r.checkOutTime?.let { out ->
+                if (r.checkOutTime != null) {
                     hasCheckOut = true
                     initialHasCheckOut = true
-                    cal.timeInMillis = out
+                    cal.timeInMillis = r.checkOutTime
                     checkOutHour = cal.get(Calendar.HOUR_OF_DAY)
                     checkOutMinute = cal.get(Calendar.MINUTE)
                     initialCheckOutHour = checkOutHour
                     initialCheckOutMinute = checkOutMinute
+                } else {
+                    // Open punch without checkout:
+                    // Auto-enable checkOut with standard shift hours so user can easily adjust hours and settle
+                    hasCheckOut = true
+                    initialHasCheckOut = false
+                    val stdHours = viewModel.homeState.value.standardShiftHours.takeIf { it > 0.0 } ?: 9.0
+                    val suggestedOutMillis = r.checkInTime + (stdHours * 3_600_000L).toLong()
+                    cal.timeInMillis = suggestedOutMillis
+                    checkOutHour = cal.get(Calendar.HOUR_OF_DAY)
+                    checkOutMinute = cal.get(Calendar.MINUTE)
+                    initialCheckOutHour = -1
+                    initialCheckOutMinute = -1
                 }
                 noteText = r.note
             }
@@ -116,13 +131,13 @@ fun AddEditRecordScreen(
 
     val hasUnsavedChanges by remember(
         workDate, checkInHour, checkInMinute, hasCheckOut, checkOutHour, checkOutMinute, noteText, isOffDay,
-        initialWorkDate, initialCheckInHour, initialCheckInMinute, initialHasCheckOut, initialCheckOutHour, initialCheckOutMinute, initialIsOffDay
+        initialWorkDate, initialCheckInHour, initialCheckInMinute, initialHasCheckOut, initialCheckOutHour, initialCheckOutMinute, initialIsOffDay, existingRecord
     ) {
         derivedStateOf {
             if (!isEdit) {
                 isOffDay || noteText.isNotBlank() || workDate != today || checkInHour != 9 || checkInMinute != 0 || hasCheckOut
             } else {
-                val existing = viewModel.allRecords.value.find { it.id == recordId }
+                val existing = existingRecord ?: viewModel.allRecords.value.find { it.id == recordId }
                 (isOffDay != initialIsOffDay) ||
                 (initialWorkDate != null && workDate != initialWorkDate) ||
                 (!isOffDay && initialCheckInHour != -1 && checkInHour != initialCheckInHour) ||
@@ -138,7 +153,7 @@ fun AddEditRecordScreen(
         if (isOffDay) {
             val inMillis = dateTimeToMillis(workDate, 0, 0)
             val defaultNote = if (noteText.isBlank()) "إجازة (OFF)" else noteText.trim()
-            val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
+            val existing = if (isEdit) (existingRecord ?: viewModel.allRecords.value.find { it.id == recordId }) else null
             val record = if (isEdit && existing != null) {
                 existing.copy(
                     workDate = workDate,
@@ -164,13 +179,13 @@ fun AddEditRecordScreen(
             return true
         }
 
+        val existing = if (isEdit) (existingRecord ?: viewModel.allRecords.value.find { it.id == recordId }) else null
+
         val timeOrDateModifiedByUser = (workDate != initialWorkDate) ||
             (checkInHour != initialCheckInHour) ||
             (checkInMinute != initialCheckInMinute) ||
             (hasCheckOut != initialHasCheckOut) ||
             (hasCheckOut && (checkOutHour != initialCheckOutHour || checkOutMinute != initialCheckOutMinute))
-
-        val existing = if (isEdit) viewModel.allRecords.value.find { it.id == recordId } else null
 
         val inMillis = if (isEdit && !timeOrDateModifiedByUser && existing != null) {
             existing.checkInTime
@@ -180,7 +195,7 @@ fun AddEditRecordScreen(
 
         val outMillis = if (!hasCheckOut) {
             null
-        } else if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+        } else if (isEdit && !timeOrDateModifiedByUser && existing != null && existing.checkOutTime != null) {
             existing.checkOutTime
         } else {
             val rawOut = dateTimeToMillis(workDate, checkOutHour, checkOutMinute)
@@ -198,12 +213,14 @@ fun AddEditRecordScreen(
         errorMsg = null
 
         val hours = if (outMillis != null) {
-            if (isEdit && !timeOrDateModifiedByUser && existing != null) {
+            if (isEdit && !timeOrDateModifiedByUser && existing != null && existing.hoursWorked > 0.0) {
                 existing.hoursWorked
             } else {
                 (outMillis - inMillis).toDouble() / 3_600_000.0
             }
         } else 0.0
+
+        val wasMissingCheckout = (existing?.checkOutTime == null && outMillis != null)
 
         val record = if (isEdit && existing != null) {
             existing.copy(
@@ -213,7 +230,7 @@ fun AddEditRecordScreen(
                 hoursWorked = hours,
                 note = noteText.trim(),
                 source = if (existing.source == "off_day") "manual" else existing.source,
-                isFromServer = if (timeOrDateModifiedByUser) false else existing.isFromServer
+                isFromServer = if (timeOrDateModifiedByUser || wasMissingCheckout) false else existing.isFromServer
             )
         } else {
             AttendanceRecord(

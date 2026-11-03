@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
@@ -60,6 +61,7 @@ fun HomeScreen(
     var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
     var showCustomRangePicker by remember { mutableStateOf(false) }
+    var showMissingCheckoutInfoDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -143,19 +145,19 @@ fun HomeScreen(
                     val pendingList = homeState.pendingMissingCheckouts
                     val firstPending = pendingList.first()
                     Card(
-                        shape = RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color(0xFFF59E0B).copy(alpha = 0.12f)
+                            containerColor = Color(0xFFF59E0B).copy(alpha = 0.10f)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .border(
-                                width = 1.5.dp,
-                                color = Color(0xFFF59E0B).copy(alpha = 0.65f),
-                                shape = RoundedCornerShape(18.dp)
+                                width = 1.dp,
+                                color = Color(0xFFF59E0B).copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp)
                             )
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(14.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -168,70 +170,52 @@ fun HomeScreen(
                                     Surface(
                                         shape = CircleShape,
                                         color = Color(0xFFF59E0B).copy(alpha = 0.2f),
-                                        modifier = Modifier.size(38.dp)
+                                        modifier = Modifier.size(36.dp)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
                                             Icon(
                                                 imageVector = Icons.Filled.WarningAmber,
                                                 contentDescription = null,
                                                 tint = Color(0xFFF59E0B),
-                                                modifier = Modifier.size(22.dp)
+                                                modifier = Modifier.size(20.dp)
                                             )
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
-                                            text = if (pendingList.size == 1) "وردية بدون انصراف (سيرفر ESS) ⚠️"
-                                                   else "${pendingList.size} ورديات بدون انصراف ⚠️",
-                                            style = MaterialTheme.typography.titleMedium,
+                                            text = if (pendingList.size == 1) "وردية معلقة بدون انصراف ⚠️"
+                                                   else "${pendingList.size} ورديات معلقة بدون انصراف ⚠️",
+                                            style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "بسبب سقوط سيستم ESS لم يُسجل الانصراف",
-                                            style = MaterialTheme.typography.labelSmall,
+                                            text = "يوم ${firstPending.workDate} • حضور ${PayrollUtil.formatTime(firstPending.checkInTime, homeState.is24Hour)}",
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                 }
 
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = Color(0xFFF59E0B).copy(alpha = 0.25f)
+                                IconButton(
+                                    onClick = { showMissingCheckoutInfoDialog = true },
+                                    modifier = Modifier.size(32.dp)
                                 ) {
-                                    Text(
-                                        text = "تحتاج تسوية",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFFD97706),
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    Icon(
+                                        imageVector = Icons.Filled.Info,
+                                        contentDescription = "شرح الوردية بدون انصراف",
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(22.dp)
                                     )
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-                            HorizontalDivider(color = Color(0xFFF59E0B).copy(alpha = 0.25f))
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "يوم ${firstPending.workDate} • حضور الساعة ${PayrollUtil.formatTime(firstPending.checkInTime, homeState.is24Hour)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "الساعات محسوبة حالياً 0 دقيقة. يمكنك تسوية الوردية لاحتساب ساعاتها وراتبها فوراً.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            Spacer(modifier = Modifier.height(14.dp))
+                            Spacer(modifier = Modifier.height(10.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Button(
                                     onClick = {
@@ -242,7 +226,7 @@ fun HomeScreen(
                                         }
                                     },
                                     modifier = Modifier.weight(1.2f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFFF59E0B),
                                         contentColor = Color.Black
@@ -251,8 +235,8 @@ fun HomeScreen(
                                     Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (pendingList.size == 1) "تسوية شفت كامل (%.0f س)".format(homeState.standardShiftHours)
-                                               else "تسوية الكل (%.0f س)".format(homeState.standardShiftHours),
+                                        text = if (pendingList.size == 1) "تسوية (%.0f س) ⚡".format(homeState.standardShiftHours)
+                                               else "تسوية الكل (%.0f س) ⚡".format(homeState.standardShiftHours),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -260,14 +244,14 @@ fun HomeScreen(
 
                                 OutlinedButton(
                                     onClick = { onNavigate("record/${firstPending.id}") },
-                                    modifier = Modifier.weight(0.9f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.weight(0.8f),
+                                    shape = RoundedCornerShape(10.dp),
                                     border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
                                 ) {
                                     Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFF59E0B))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "تعديل الوقت",
+                                        text = "تعديل",
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -622,6 +606,47 @@ fun HomeScreen(
                     viewModel.setCustomPeriodRange(start, end, autoSync = true)
                 },
                 onDismiss = { showCustomRangePicker = false }
+            )
+        }
+
+        // ─── Missing Checkout Explanation Dialog ──────────────────────────────
+        if (showMissingCheckoutInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showMissingCheckoutInfoDialog = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = Color(0xFFF59E0B),
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = "ما هي الوردية بدون انصراف؟",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    Text(
+                        text = "تم تسجيل وقت الحضور عبر سيرفر ESS بنجاح، لكن حدث عطل بالسيرفر أو انقطاع ولم يُسجل وقت الانصراف.\n\nتعتبر ساعاتها حالياً 0 دقيقة في التقرير. يمكنك تسوية الوردية لاحتساب شفت قياسي تلقائياً في الراتب، أو تعديل الوقت يدوياً.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 22.sp
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showMissingCheckoutInfoDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFFF59E0B),
+                            contentColor = Color.Black
+                        )
+                    ) {
+                        Text("حسناً، فهمت", fontWeight = FontWeight.Bold)
+                    }
+                }
             )
         }
     }
