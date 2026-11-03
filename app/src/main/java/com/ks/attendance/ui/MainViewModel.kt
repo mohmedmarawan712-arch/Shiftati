@@ -775,13 +775,17 @@ class MainViewModel(
         }
     }
 
-    fun setCustomPeriodRange(start: String, end: String) {
+    fun setCustomPeriodRange(start: String, end: String, autoSync: Boolean = true) {
         viewModelScope.launch {
+            val (cleanStart, cleanEnd) = if (start > end && end.isNotBlank()) end to start else start to end
             val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
-            prefs.setCustomPeriodRange(start, end, accId)
+            prefs.setCustomPeriodRange(cleanStart, cleanEnd, accId)
             prefs.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE, accId)
             refreshHome()
             loadReport()
+            if (autoSync) {
+                syncFromEss(silent = false)
+            }
         }
     }
 
@@ -1185,18 +1189,28 @@ class MainViewModel(
                 _settingsState.value = _settingsState.value.copy(isEssLoggedIn = true)
             }
 
-            val cycleType = prefs.payrollCycleType.first()
-            val customStart = prefs.customStartDate.first()
-            val customEnd = prefs.customEndDate.first()
+            val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
+            val p = prefs.allPreferences.first()
+            val cycleType = prefs.getPayrollCycleType(p, accId)
+            val customStart = prefs.getCustomStartDate(p, accId)
+            val customEnd = prefs.getCustomEndDate(p, accId)
 
             val (syncStart, syncEnd) = if (cycleType == PayrollUtil.CYCLE_CUSTOM_RANGE && customStart.isNotBlank() && customEnd.isNotBlank()) {
-                val s = PayrollUtil.parseDate(customStart)
+                val (cleanStart, cleanEnd) = if (customStart > customEnd) customEnd to customStart else customStart to customEnd
+                val sCal = Calendar.getInstance()
+                sCal.time = PayrollUtil.parseDate(cleanStart)
+                sCal.set(Calendar.HOUR_OF_DAY, 0)
+                sCal.set(Calendar.MINUTE, 0)
+                sCal.set(Calendar.SECOND, 0)
+                sCal.set(Calendar.MILLISECOND, 0)
+
                 val eCal = Calendar.getInstance()
-                eCal.time = PayrollUtil.parseDate(customEnd)
+                eCal.time = PayrollUtil.parseDate(cleanEnd)
                 eCal.set(Calendar.HOUR_OF_DAY, 23)
                 eCal.set(Calendar.MINUTE, 59)
                 eCal.set(Calendar.SECOND, 59)
-                s to eCal.time
+                eCal.set(Calendar.MILLISECOND, 999)
+                sCal.time to eCal.time
             } else {
                 // Sync broad window: from start of previous month through end of next month
                 val cal = Calendar.getInstance()
@@ -1216,7 +1230,7 @@ class MainViewModel(
                 s to calEnd.time
             }
 
-            val result = repo.syncFromEss(syncStart, syncEnd)
+            val result = repo.syncFromEss(syncStart, syncEnd, accId)
             if (!silent) {
                 _homeState.value = _homeState.value.copy(isLoading = false)
             }

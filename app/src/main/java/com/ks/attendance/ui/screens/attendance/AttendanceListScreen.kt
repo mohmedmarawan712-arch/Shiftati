@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
+import com.ks.attendance.ui.components.DateRangePickerDialog
 import com.ks.attendance.ui.components.EmptyState
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
@@ -44,6 +45,7 @@ fun AttendanceListScreen(
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
     var isReverting by remember { mutableStateOf(false) }
     var recordToSettle by remember { mutableStateOf<AttendanceRecord?>(null) }
+    var showRangePicker by remember { mutableStateOf(false) }
 
     var filterByPeriod by remember { mutableStateOf(true) }
     val hasActivePeriod = homeState.periodStart.isNotBlank() && homeState.periodEnd.isNotBlank()
@@ -136,14 +138,26 @@ fun AttendanceListScreen(
                             if (homeState.periodStart.isNotBlank()) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    modifier = Modifier.clickable { showRangePicker = true }
                                 ) {
-                                    Text(
-                                        text = "من ${homeState.periodStart} إلى ${homeState.periodEnd}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DateRange,
+                                            contentDescription = "تغيير الفترة",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "من ${homeState.periodStart} إلى ${homeState.periodEnd}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -557,6 +571,18 @@ fun AttendanceListScreen(
             )
         }
 
+        // ─── Custom Date Range Picker Dialog ──────────────────────────────────
+        if (showRangePicker) {
+            DateRangePickerDialog(
+                initialStartDate = homeState.periodStart,
+                initialEndDate = homeState.periodEnd,
+                onConfirm = { start, end ->
+                    showRangePicker = false
+                    viewModel.setCustomPeriodRange(start, end, autoSync = true)
+                },
+                onDismiss = { showRangePicker = false }
+            )
+        }
     }
 }
 

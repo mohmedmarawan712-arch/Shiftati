@@ -25,6 +25,7 @@ import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
+import com.ks.attendance.ui.components.DateRangePickerDialog
 import com.ks.attendance.ui.components.EmptyState
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
@@ -58,6 +59,7 @@ fun HomeScreen(
     var showQrDialog by remember { mutableStateOf(false) }
     var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
+    var showCustomRangePicker by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -490,15 +492,27 @@ fun HomeScreen(
                             if (homeState.periodStart.isNotBlank()) {
                                 Surface(
                                     shape = RoundedCornerShape(8.dp),
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                    modifier = Modifier.clickable { showCustomRangePicker = true }
                                 ) {
-                                    Text(
-                                        text = "${homeState.periodStart} → ${homeState.periodEnd}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                    )
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DateRange,
+                                            contentDescription = "تغيير الفترة",
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "${homeState.periodStart} → ${homeState.periodEnd}",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -820,6 +834,19 @@ fun HomeScreen(
                     showAccountsManagerDialog = false
                     onNavigate("settings")
                 }
+            )
+        }
+
+        // ─── Custom Date Range Picker Dialog ──────────────────────────────────
+        if (showCustomRangePicker) {
+            DateRangePickerDialog(
+                initialStartDate = homeState.periodStart,
+                initialEndDate = homeState.periodEnd,
+                onConfirm = { start, end ->
+                    showCustomRangePicker = false
+                    viewModel.setCustomPeriodRange(start, end, autoSync = true)
+                },
+                onDismiss = { showCustomRangePicker = false }
             )
         }
     }

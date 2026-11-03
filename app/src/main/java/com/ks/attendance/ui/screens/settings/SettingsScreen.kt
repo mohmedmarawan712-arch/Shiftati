@@ -28,8 +28,10 @@ import androidx.compose.ui.unit.dp
 import com.ks.attendance.R
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.DatePickerDialog
+import com.ks.attendance.ui.components.DateRangePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
+import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
 import androidx.compose.ui.graphics.Color
@@ -56,8 +58,7 @@ fun SettingsScreen(
     var customEndDate by remember(state.customEndDate) {
         mutableStateOf(if (state.customEndDate.isNotBlank()) state.customEndDate else homeState.periodEnd)
     }
-    var showStartDatePicker by remember { mutableStateOf(false) }
-    var showEndDatePicker by remember { mutableStateOf(false) }
+    var showRangePicker by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
 
     // ESS states
@@ -416,70 +417,101 @@ fun SettingsScreen(
                             customStartDate = start
                             customEndDate = end
                             viewModel.setPayrollCycleType(PayrollUtil.CYCLE_CUSTOM_RANGE)
-                            viewModel.setCustomPeriodRange(start, end)
+                            viewModel.setCustomPeriodRange(start, end, autoSync = false)
+                            showRangePicker = true
                         }
                     )
                 }
 
-                // If Custom Date Range is selected, show exact Start and End Date pickers
+                // If Custom Date Range is selected, show modern period card
                 AnimatedVisibility(visible = selectedCycle == PayrollUtil.CYCLE_CUSTOM_RANGE) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(top = 12.dp)
                     ) {
-                        Text(
-                            text = "اختر تاريخ البداية والنهاية للفترة:",
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            // Start Date Picker Button
-                            OutlinedButton(
-                                onClick = { showStartDatePicker = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.select_start_date),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        customStartDate.ifBlank { "اختر التاريخ" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                            Column(modifier = Modifier.padding(14.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            text = "الفترة المحددة حالياً:",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = if (customStartDate.isNotBlank() && customEndDate.isNotBlank()) {
+                                                "${customStartDate} ← ${customEndDate}"
+                                            } else "لم يتم تحديد فترة بعد",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                    val count = if (customStartDate.isNotBlank() && customEndDate.isNotBlank()) {
+                                        DateUtil.calculateDaysCount(customStartDate, customEndDate)
+                                    } else 0
+                                    if (count > 0) {
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = MaterialTheme.colorScheme.primaryContainer
+                                        ) {
+                                            Text(
+                                                text = "$count يوم",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                    }
                                 }
-                            }
 
-                            // End Date Picker Button
-                            OutlinedButton(
-                                onClick = { showEndDatePicker = true },
-                                modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        stringResource(R.string.select_end_date),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        customEndDate.ifBlank { "اختر التاريخ" },
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { showRangePicker = true },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.DateRange,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("تحديد بالتقويم", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { viewModel.syncFromEss(silent = false) },
+                                        modifier = Modifier.weight(1f),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Refresh,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("مزامنة الفترة")
+                                    }
                                 }
                             }
                         }
@@ -630,41 +662,18 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
         }
 
-        // Custom Start Date Picker Dialog
-        if (showStartDatePicker) {
-            val initialMillis = try {
-                PayrollUtil.parseDate(customStartDate).time
-            } catch (e: Exception) {
-                System.currentTimeMillis()
-            }
-            DatePickerDialog(
-                initialMillis = initialMillis,
-                onConfirm = { millis ->
-                    showStartDatePicker = false
-                    val formatted = PayrollUtil.formatDate(millis)
-                    customStartDate = formatted
-                    viewModel.setCustomPeriodRange(formatted, customEndDate)
+        // Custom Date Range Picker Dialog
+        if (showRangePicker) {
+            DateRangePickerDialog(
+                initialStartDate = customStartDate.ifBlank { homeState.periodStart },
+                initialEndDate = customEndDate.ifBlank { homeState.periodEnd },
+                onConfirm = { start, end ->
+                    showRangePicker = false
+                    customStartDate = start
+                    customEndDate = end
+                    viewModel.setCustomPeriodRange(start, end, autoSync = true)
                 },
-                onDismiss = { showStartDatePicker = false }
-            )
-        }
-
-        // Custom End Date Picker Dialog
-        if (showEndDatePicker) {
-            val initialMillis = try {
-                PayrollUtil.parseDate(customEndDate).time
-            } catch (e: Exception) {
-                System.currentTimeMillis()
-            }
-            DatePickerDialog(
-                initialMillis = initialMillis,
-                onConfirm = { millis ->
-                    showEndDatePicker = false
-                    val formatted = PayrollUtil.formatDate(millis)
-                    customEndDate = formatted
-                    viewModel.setCustomPeriodRange(customStartDate, formatted)
-                },
-                onDismiss = { showEndDatePicker = false }
+                onDismiss = { showRangePicker = false }
             )
         }
 

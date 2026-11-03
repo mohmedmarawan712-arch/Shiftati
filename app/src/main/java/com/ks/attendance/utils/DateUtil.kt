@@ -94,4 +94,62 @@ object DateUtil {
             else -> 0
         }
     }
+
+    /** Convert UTC millis (from Compose DatePicker / DateRangePicker) to "yyyy-MM-dd" */
+    fun utcMillisToDate(utcMillis: Long): String {
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        cal.timeInMillis = utcMillis
+        return "%04d-%02d-%02d".format(
+            cal.get(Calendar.YEAR),
+            cal.get(Calendar.MONTH) + 1,
+            cal.get(Calendar.DAY_OF_MONTH)
+        )
+    }
+
+    /** Convert "yyyy-MM-dd" to UTC millis at 00:00:00 UTC */
+    fun dateToUtcMillis(dateStr: String): Long {
+        val parts = dateStr.trim().split("-")
+        if (parts.size != 3) return System.currentTimeMillis()
+        val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+        cal.clear()
+        cal.set(parts[0].toInt(), parts[1].toInt() - 1, parts[2].toInt(), 0, 0, 0)
+        return cal.timeInMillis
+    }
+
+    /** Calculates number of inclusive days between startStr and endStr ("yyyy-MM-dd") */
+    fun calculateDaysCount(startStr: String, endStr: String): Int {
+        if (startStr.isBlank() || endStr.isBlank()) return 0
+        return try {
+            val s = sdfThreadLocal.get()!!.parse(startStr)?.time ?: return 0
+            val e = sdfThreadLocal.get()!!.parse(endStr)?.time ?: return 0
+            val diff = kotlin.math.abs(e - s)
+            (diff / (24 * 3600 * 1000L)).toInt() + 1
+        } catch (_: Exception) {
+            0
+        }
+    }
+
+    /** Returns Pair(start, end) for the last 30 days */
+    fun getLast30DaysPeriod(): Pair<String, String> {
+        val end = today()
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -29)
+        return formatDate(cal.timeInMillis) to end
+    }
+
+    /** Returns Pair(start, end) for the last 14 days */
+    fun getLast14DaysPeriod(): Pair<String, String> {
+        val end = today()
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -13)
+        return formatDate(cal.timeInMillis) to end
+    }
+
+    /** Returns Pair(start, end) for the last 7 days */
+    fun getLast7DaysPeriod(): Pair<String, String> {
+        val end = today()
+        val cal = Calendar.getInstance()
+        cal.add(Calendar.DAY_OF_YEAR, -6)
+        return formatDate(cal.timeInMillis) to end
+    }
 }
