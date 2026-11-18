@@ -133,7 +133,7 @@ fun AttendanceQrDialog(
                                     )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "أوفلاين",
+                                    text = stringResource(R.string.offline_badge),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = ColorWorked,
                                     fontWeight = FontWeight.Medium
@@ -143,7 +143,7 @@ fun AttendanceQrDialog(
                     }
 
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Filled.Close, contentDescription = "إغلاق")
+                        Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
 
@@ -389,7 +389,7 @@ fun AttendanceQrDialog(
                     ) {
                         Column {
                             Text(
-                                text = "وقت تسجيل البصمة",
+                                text = stringResource(R.string.qr_clock_time),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Bold
@@ -449,7 +449,7 @@ fun AttendanceQrDialog(
                         colors = ButtonDefaults.buttonColors(containerColor = accentColor)
                     ) {
                         Text(
-                            text = if (isClockIn) "تأكيد الحضور" else "تأكيد الانصراف",
+                            text = if (isClockIn) stringResource(R.string.confirm_clock_in) else stringResource(R.string.confirm_clock_out),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -521,7 +521,7 @@ fun AccountCardHeaderBar(
                             Spacer(modifier = Modifier.width(6.dp))
                             Icon(
                                 imageVector = Icons.Filled.CheckCircle,
-                                contentDescription = "نشط",
+                                contentDescription = stringResource(R.string.ess_active_badge),
                                 tint = ColorWorked,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -565,7 +565,7 @@ fun AccountCardHeaderBar(
                 }
                 Icon(
                     imageVector = Icons.Filled.SwapHoriz,
-                    contentDescription = "تبديل الحساب",
+                    contentDescription = stringResource(R.string.switch_account),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
@@ -858,7 +858,7 @@ fun AccountsManagerDialog(
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Icon(
                                                     imageVector = Icons.Filled.CheckCircle,
-                                                    contentDescription = "الحساب النشط",
+                                                    contentDescription = stringResource(R.string.ess_active_badge),
                                                     tint = ColorWorked,
                                                     modifier = Modifier.size(18.dp)
                                                 )
@@ -891,7 +891,7 @@ fun AccountsManagerDialog(
                                         ) {
                                             Icon(
                                                 Icons.Filled.DeleteOutline,
-                                                contentDescription = "حذف",
+                                                contentDescription = stringResource(R.string.delete),
                                                 tint = ColorLogout,
                                                 modifier = Modifier.size(20.dp)
                                             )

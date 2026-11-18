@@ -157,4 +157,113 @@
     <string name="employment_salaried_title">نظام التعيين</string>
     <string name="employment_salaried_desc">حساب الساعات الإضافية (أوفر تايم) بعد 9 ساعات</string>
     <string name="employment_confirm_choice">تأكيد الاختيار</string>
+
+    <!-- Period Presets -->
+    <string name="custom_period_title">الفترة المخصصة</string>
+    <string name="apply_and_fetch">تطبيق وجلب البيانات ⚡</string>
+    <string name="preset_current_month">الشهر الحالي</string>
+    <string name="preset_previous_month">الشهر السابق</string>
+    <string name="preset_cycle_16_15_current">دورة 16 - 15 (الحالية)</string>
+    <string name="preset_cycle_16_15_prev">دورة 16 - 15 (السابقة)</string>
+    <string name="selected_days_count">%d يوم</string>
+
+    <!-- Export Dialog & Reports -->
+    <string name="export_dialog_title">تصدير التقرير</string>
+    <string name="export_csv_title">جدول بيانات قياسي (CSV)</string>
+    <string name="export_csv_desc">ملف جداول قياسي متوافق مع كافة برامج الإكسل والهواتف</string>
+    <string name="export_html_title">تقرير للعرض والطباعة (HTML)</string>
+    <string name="export_html_desc">يفتح مباشرة في متصفح الهاتف كمسير راتب رسمي</string>
+    <string name="export_success_msg">تم تصدير التقرير بنجاح ✓</string>
+    <string name="export_saved_in">تم الحفظ في: %s</string>
+    <string name="export_failed">فشل التصدير: %s</string>
+    <string name="no_records_to_export">لا توجد سجلات في هذه الفترة لتصديرها</string>
+    <string name="export_chooser_title">مشاركة أو فتح التقرير</string>
+
+    <!-- Common Actions & Badges -->
+    <string name="confirm">تأكيد</string>
+    <string name="restore_action">استعادة</string>
+    <string name="ok_understood">حسناً، فهمت</string>
+    <string name="discard">تجاهل</string>
+    <string name="day_suffix">يوم</string>
+    <string name="shift_suffix">وردية</string>
+    <string name="filter_all">الكل</string>
+    <string name="filter_ess">سيرفر ESS</string>
+    <string name="filter_manual">يدوي</string>
+    <string name="filter_off">إجازات OFF</string>
+
+    <!-- Home & Session -->
+    <string name="clocked_in_banner">أنت مسجل حضور الآن 🟢</string>
+    <string name="source_ess_server">بصمة جهاز ESS</string>
+    <string name="source_qr_scanner">تسجيل بالـ QR</string>
+    <string name="shift_active">دوام جاري ⏳</string>
+    <string name="clock_in_time_label">وقت تسجيل الحضور</string>
+    <string name="duration_so_far">المدة المنقضية</string>
+    <string name="clock_out_qr_btn">تسجيل الانصراف (QR)</string>
+    <string name="pending_missing_shift">وردية معلقة بدون انصراف ⚠️</string>
+    <string name="pending_missing_shifts_count">%d ورديات معلقة بدون انصراف ⚠️</string>
+    <string name="settle_shift_btn">تسوية (%.0f س) ⚡</string>
+    <string name="settle_all_shifts_btn">تسوية الكل (%.0f س) ⚡</string>
+    <string name="missing_checkout_dialog_title">ما هي الوردية بدون انصراف؟</string>
+    <string name="missing_checkout_dialog_text">سُجل الحضور عبر سيرفر ESS ولم يُسجل الانصراف بسبب عطل بالسيرفر.\n\nساعاتها حالياً 0 دقيقة. يمكنك تسويتها لاحتساب شفت قياسي في الراتب أو تعديل التوقيت يدوياً.</string>
+    <string name="revert_ess_dialog_title">استعادة توقيت الوردية من ESS</string>
+    <string name="revert_ess_dialog_msg">استعادة مواعيد الحضور والانصراف الأصلية المسجلة على السيرفر ليوم %s؟</string>
+
+    <!-- Attendance List -->
+    <string name="fill_off_days_hint">إكمال أيام الإجازات (OFF) المفقودة</string>
+    <string name="export_report_hint">تصدير التقرير</string>
+    <string name="salary_mode_salaried">نظام التعيين</string>
+    <string name="salary_mode_hourly">نظام الساعة</string>
+    <string name="change_period">تغيير الفترة</string>
+    <string name="period_from_to">من %1$s إلى %2$s</string>
+    <string name="base_hours_label">ساعات أساسية</string>
+    <string name="overtime_hours_label">ساعات إضافية</string>
+    <string name="overtime_due_label">مستحق الإضافي</string>
+    <string name="total_hours_full">الساعات بالكامل</string>
+    <string name="after_break_deduction">بعد الخصم (-0.5س)</string>
+    <string name="salary_with_days">الراتب (%d يوم)</string>
+    <string name="current_period_records">سجلات الفترة الحالية (%d)</string>
+    <string name="show_all_records">عرض جميع السجلات (%d)</string>
+    <string name="no_records_in_period">لا توجد سجلات في الفترة المحددة</string>
+    <string name="settle_shift_dialog_title">تسوية الوردية (عطل بسيرفر ESS)</string>
+    <string name="settle_shift_dialog_msg">تم تسجيل الحضور يوم %1$s الساعة %2$s بدون انصراف.</string>
+    <string name="settle_shift_dialog_hint">يمكنك تطبيق الشفت القياسي (%.0f ساعات) لاحتساب ساعاتها فوراً في الراتب، أو تعديل التوقيت يدوياً:</string>
+    <string name="settle_with_hours_btn">تسوية بـ %.0f ساعات ⚡</string>
+    <string name="edit_time_manually">تعديل الوقت يدوياً</string>
+    <string name="delete_day_title">حذف ورديات اليوم</string>
+    <string name="delete_day_msg">حذف جميع ورديات يوم %s؟</string>
+    <string name="missing_checkout_badge">انصراف مفقود</string>
+
+    <!-- Add / Edit Record -->
+    <string name="edit_record_title">تعديل السجل</string>
+    <string name="add_record_title">إضافة سجل</string>
+    <string name="date_label">التاريخ</string>
+    <string name="off_day_badge">يوم إجازة (OFF)</string>
+    <string name="off_day_desc">تحديد هذا اليوم كإجازة بدون مواعيد حضور وانصراف</string>
+    <string name="check_in_label">وقت الدخول</string>
+    <string name="check_out_label">وقت الانصراف</string>
+    <string name="optional_label">اختياري</string>
+    <string name="computed_hours_prefix">الساعات المحسوبة: %s</string>
+    <string name="night_shift_badge">شفت ليلي (ينتهي غداً)</string>
+    <string name="off_day_notice">تم تسجيل اليوم كإجازة (OFF). لا يلزم إدخال مواعيد.</string>
+    <string name="notes_optional_label">ملاحظة (اختياري)</string>
+    <string name="notes_field_hint">أضف ملاحظة عن هذا اليوم أو الوردية...</string>
+    <string name="unsaved_changes_title">تغييرات غير محفوظة</string>
+    <string name="unsaved_changes_msg">هل تريد حفظ التعديلات قبل الخروج؟</string>
+    <string name="save_changes_btn">حفظ التغييرات</string>
+    <string name="err_same_time">وقت الانصراف لا يمكن أن يكون نفس وقت الدخول</string>
+    <string name="err_out_before_in">وقت الانصراف يجب أن يكون بعد وقت الدخول</string>
+    <string name="settle_9h_btn">شفت 9س</string>
+    <string name="missing_checkout_banner_title">وردية بدون انصراف (عطل بالسيرفر) ⚠️</string>
+    <string name="missing_checkout_banner_desc">تطبيق شفت 9 ساعات قياسي تلقائياً لحساب الراتب</string>
+    <string name="today_shifts">ورديات اليوم</string>
+    <string name="no_shifts_today">لم تسجل أي وردية اليوم حتى الآن</string>
+    <string name="empty_records_hint">لا توجد سجلات حضور بعد. اضغط + لإضافة سجل</string>
+    <string name="select_time_title">اختر الوقت</string>
+    <string name="offline_badge">أوفلاين</string>
+    <string name="qr_clock_time">وقت تسجيل البصمة</string>
+    <string name="confirm_clock_in">تأكيد الحضور</string>
+    <string name="confirm_clock_out">تأكيد الانصراف</string>
+    <string name="ess_imported_banner">وردية مستوردة من ESS (تعديلك يُحفظ محلياً)</string>
+    <string name="close">إغلاق</string>
+    <string name="switch_account">تبديل الحساب</string>
 </resources>

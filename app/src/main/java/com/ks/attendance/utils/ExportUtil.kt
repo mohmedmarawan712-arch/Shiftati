@@ -16,14 +16,24 @@ import java.util.*
 object ExportUtil {
 
     private val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    private val sdfDateTime = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.US)
+    private val sdfTime = SimpleDateFormat("HH:mm", Locale.US)
+
+    private fun getSafeFileName(employeeName: String): String {
+        val rawName = employeeName.trim().ifBlank { "شفتاتي" }
+        val nameWords = rawName.split(Regex("\\s+")).filter { it.isNotBlank() }
+        val firstTwoNames = when {
+            nameWords.size >= 2 -> "${nameWords[0]}_${nameWords[1]}"
+            nameWords.isNotEmpty() -> nameWords[0]
+            else -> "شفتاتي"
+        }
+        return firstTwoNames.replace(Regex("[/\\\\:*?\"<>|]"), "")
+    }
 
     /**
-     * Exports attendance records to a clean, well-proportioned Excel workbook (.xls)
-     * Includes the app's final calculation summary card (Total hours & Total money),
-     * live Excel formulas, adapted column widths, and 0.5h break deduction for Hourly mode.
+     * Exports attendance records to a universal, standard CSV spreadsheet (.csv) with UTF-8 BOM.
+     * Fully compatible with all spreadsheet apps (Excel, Google Sheets, LibreOffice, phone viewers).
      */
-    fun exportExcel(
+    fun exportCsv(
         context: Context,
         records: List<AttendanceRecord>,
         notes: List<DayNote>,
@@ -34,35 +44,17 @@ object ExportUtil {
         standardShiftHours: Double = 9.0,
         employeeName: String = ""
     ): Result<String> = runCatching {
-        val notesByDate = notes.groupBy { it.date }
         val dir = getExportDir(context)
+        val safeName = getSafeFileName(employeeName)
+        val datePart = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) "${periodStart}_${periodEnd}" else sdfDate.format(Date())
+        val file = File(dir, "${safeName}_${datePart}.csv")
 
-        // 1. File Name: First two names of account owner + date
-        val rawName = employeeName.trim().ifBlank { "شفتاتي" }
-        val nameWords = rawName.split(Regex("\\s+")).filter { it.isNotBlank() }
-        val firstTwoNames = when {
-            nameWords.size >= 2 -> "${nameWords[0]}_${nameWords[1]}"
-            nameWords.isNotEmpty() -> nameWords[0]
-            else -> "شفتاتي"
-        }
-        val safeName = firstTwoNames.replace(Regex("[/\\\\:*?\"<>|]"), "")
-        val datePart = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) {
-            "${periodStart}_${periodEnd}"
-        } else {
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
-        }
-        val fileName = "${safeName}_${datePart}.xls"
-        val file = File(dir, fileName)
-
-        // 2. Metrics Calculation (Ordered strictly by date ASC then time ASC)
         val sortedRecords = records.sortedWith(compareBy<AttendanceRecord> { it.workDate }.thenBy { it.checkInTime })
         val workedRecords = sortedRecords.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
         val workedDays = workedRecords.groupBy { it.workDate }.keys.size
         val offDays = sortedRecords.filter { it.source == "off_day" }.map { it.workDate }.distinct().size
-
         val totalRawHours = sortedRecords.sumOf { if (it.source == "off_day") 0.0 else it.hoursWorked }
 
-        // Hourly: 0.5h break per worked day (> 0.5h)
         val breakHoursPerRecord = sortedRecords.map { rec ->
             if (rec.source != "off_day" && rec.hoursWorked > 0.5) 0.5 else 0.0
         }
@@ -73,7 +65,6 @@ object ExportUtil {
         }.sum()
         val totalHourlySalary = totalNetHours * hourlyRate
 
-        // Salaried: Overtime exceeding standardShiftHours (e.g. 9.0)
         var totalOvertimeHours = 0.0
         sortedRecords.forEach { rec ->
             if (rec.source != "off_day" && rec.hoursWorked > standardShiftHours) {
@@ -81,250 +72,228 @@ object ExportUtil {
             }
         }
         val totalSalariedOvertimePay = totalOvertimeHours * hourlyRate
-        val totalRegularHours = workedDays * standardShiftHours
 
-        // Row indices in Excel:
-        // Row 1: Title
-        // Row 2: Metadata
-        // Row 3: Space
-        // Row 4: Summary Card Headers
-        // Row 5: Summary Card Values
-        // Row 6: Space
-        // Row 7: Table Headers
-        // Rows 8 to (7 + sortedRecords.size): Data rows
-        val firstDataRow = 8
-        val lastDataRow = if (sortedRecords.isNotEmpty()) 7 + sortedRecords.size else 8
-        val sheetName = if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"
+        val notesByDate = notes.groupBy { it.date }
 
-        val html = buildString {
-            append("""
-                <html xmlns:o="urn:schemas-microsoft-com:office:office" 
-                      xmlns:x="urn:schemas-microsoft-com:office:excel" 
-                      xmlns="http://www.w3.org/TR/REC-html40">
-                <head>
-                <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-                <!--[if gte mso 9]><xml>
-                 <x:ExcelWorkbook>
-                  <x:ExcelWorksheets>
-                   <x:ExcelWorksheet>
-                    <x:Name>$sheetName</x:Name>
-                    <x:WorksheetOptions>
-                     <x:DisplayRightToLeft/>
-                     <x:Gridline/>
-                    </x:WorksheetOptions>
-                   </x:ExcelWorksheet>
-                  </x:ExcelWorksheets>
-                 </x:ExcelWorkbook>
-                </xml><![endif]-->
-                <style>
-                  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; direction: rtl; }
-                  table { border-collapse: collapse; margin-top: 6px; }
-                  th { background-color: #059669; color: #ffffff; padding: 8px 10px; border: 1px solid #047857; font-weight: bold; font-size: 11pt; text-align: center; white-space: nowrap; }
-                  td { padding: 7px 10px; border: 1px solid #cbd5e1; text-align: center; font-size: 10pt; white-space: nowrap; }
-                  .th-calc { background-color: #047857; color: #fef08a; border: 1px solid #065f46; font-weight: bold; }
-                  .title-cell { font-size: 16pt; font-weight: bold; color: #065f46; text-align: right; border: none; padding: 6px 8px; }
-                  .meta-cell { font-size: 10pt; color: #475569; text-align: right; border: none; padding: 2px 8px 12px 8px; }
-                  .card-hdr { background-color: #ecfdf5; color: #065f46; font-weight: bold; font-size: 11pt; border: 1px solid #a7f3d0; text-align: center; padding: 6px; }
-                  .card-val { background-color: #f0fdf4; color: #047857; font-weight: bold; font-size: 14pt; border: 1px solid #a7f3d0; text-align: center; padding: 8px; }
-                  .summary-row { background-color: #f1f5f9; font-weight: bold; }
-                  .summary-lbl { text-align: right; font-weight: bold; color: #334155; padding-right: 12px; }
-                  .total-bar { background-color: #d1fae5; border-top: 2px solid #059669; font-weight: bold; }
-                  .total-lbl { font-size: 11pt; font-weight: bold; color: #047857; text-align: right; padding-right: 12px; }
-                  .total-val { font-size: 13pt; font-weight: bold; color: #047857; text-align: center; }
-                  .font-bold { font-weight: bold; }
-                  .num { mso-number-format:"0\.00"; text-align: center; }
-                  .currency { mso-number-format:"\#\,\#\#0\.00"; text-align: center; font-weight: 700; }
-                  .integer { mso-number-format:"0"; text-align: center; }
-                </style>
-                </head>
-                <body dir="rtl">
-                  <table border="1" cellpadding="6" cellspacing="0">
-                    <colgroup>
-                      <col width="80" style="width: 60pt;">
-                      <col width="100" style="width: 75pt;">
-                      <col width="85" style="width: 65pt;">
-                      <col width="85" style="width: 65pt;">
-                      <col width="80" style="width: 60pt;">
-                      <col width="70" style="width: 55pt;">
-                      <col width="150" style="width: 115pt;">
-                      <col width="80" style="width: 60pt;">
-                      <col width="90" style="width: 70pt;">
-                      <col width="115" style="width: 90pt;">
-                    </colgroup>
-                    <thead>
-                      <!-- Row 1: Title -->
-                      <tr>
-                        <td colspan="10" class="title-cell">تقرير ساعات العمل والراتب (شفتاتي)</td>
-                      </tr>
-                      <!-- Row 2: Metadata -->
-                      <tr>
-                        <td colspan="10" class="meta-cell">
-                          <b>الموظف:</b> $rawName &nbsp;|&nbsp;
-                          <b>الفترة:</b> من $periodStart إلى $periodEnd &nbsp;|&nbsp;
-                          <b>تاريخ التصدير:</b> ${sdfDateTime.format(Date())} &nbsp;|&nbsp;
-                          <b>نظام العمل:</b> ${if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"}
-                        </td>
-                      </tr>
-
-                      <!-- Row 3: Blank separator -->
-                      <tr style="height: 6px;"><td colspan="10" style="border: none; background: #ffffff;"></td></tr>
-
-                      <!-- Rows 4 & 5: App-style Final Calculation Summary Card (الحسبة النهائية زي التطبيق) -->
-                      <tr>
-                        ${if (isFixedEmployment) """
-                        <td colspan="4" class="card-hdr">الساعات الأساسية</td>
-                        <td colspan="3" class="card-hdr">ساعات إضافية (أوفر تايم)</td>
-                        <td colspan="3" class="card-hdr">مستحق الإضافي (الفلوس)</td>
-                        """.trimIndent() else """
-                        <td colspan="4" class="card-hdr">الساعات (صافي بعد خصم البريك)</td>
-                        <td colspan="3" class="card-hdr">أيام العمل الفعلية</td>
-                        <td colspan="3" class="card-hdr">إجمالي الراتب (الفلوس)</td>
-                        """.trimIndent()}
-                      </tr>
-                      <tr>
-                        ${if (isFixedEmployment) """
-                        <td colspan="4" class="card-val num" x:num="${"%.2f".format(totalRegularHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(H$firstDataRow:H$lastDataRow)\"" else ""}>${"%.2f".format(totalRegularHours)} س</td>
-                        <td colspan="3" class="card-val num" style="color:#059669;" x:num="${"%.2f".format(totalOvertimeHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>+${"%.2f".format(totalOvertimeHours)} س</td>
-                        <td colspan="3" class="card-val currency" x:num="${"%.2f".format(totalSalariedOvertimePay)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalSalariedOvertimePay)} ج.م</td>
-                        """.trimIndent() else """
-                        <td colspan="4" class="card-val num" x:num="${"%.2f".format(totalNetHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>${"%.2f".format(totalNetHours)} س</td>
-                        <td colspan="3" class="card-val integer" x:num="$workedDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;&gt;0&quot;)\"" else ""}>$workedDays يوم</td>
-                        <td colspan="3" class="card-val currency" x:num="${"%.2f".format(totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalHourlySalary)} ج.م</td>
-                        """.trimIndent()}
-                      </tr>
-
-                      <!-- Row 6: Blank separator -->
-                      <tr style="height: 10px;"><td colspan="10" style="border: none; background: #ffffff;"></td></tr>
-
-                      <!-- Row 7: Main Table Column Headers -->
-                      <tr>
-                        <th width="80">اليوم</th>
-                        <th width="100">التاريخ</th>
-                        <th width="85">الحضور</th>
-                        <th width="85">الانصراف</th>
-                        <th width="80">الساعات</th>
-                        <th width="70">المصدر</th>
-                        <th width="150">الملاحظات</th>
-                        ${if (isFixedEmployment) """
-                        <th width="80" class="th-calc">الأساسي</th>
-                        <th width="90" class="th-calc">الإضافي</th>
-                        <th width="115" class="th-calc">فلوس الإضافي</th>
-                        """.trimIndent() else """
-                        <th width="80" class="th-calc">البريك</th>
-                        <th width="90" class="th-calc">الصافي</th>
-                        <th width="115" class="th-calc">المرتب (ج.م)</th>
-                        """.trimIndent()}
-                      </tr>
-                    </thead>
-                    <tbody>
-            """.trimIndent())
-
-            for ((index, record) in sortedRecords.withIndex()) {
-                val row = firstDataRow + index
-                val date = runCatching { sdfDate.parse(record.workDate) }.getOrNull() ?: Date(record.checkInTime)
-                val dayName = arabicDayName(date)
-                val isOff = (record.source == "off_day")
-                val checkIn = if (isOff) "إجازة (OFF)" else PayrollUtil.formatTime(record.checkInTime, false)
-                val checkOut = if (isOff) "-" else (record.checkOutTime?.let { PayrollUtil.formatTime(it, false) } ?: "مفتوح")
-                val rawHours = if (isOff) 0.0 else record.hoursWorked
-                val dayNotes = notesByDate[record.workDate]?.joinToString(" | ") { it.noteText } ?: record.note
-                val source = when {
-                    isOff -> "إجازة"
-                    record.source == "ess_online" && !record.isFromServer -> "معدل"
-                    record.source == "ess_online" -> "ESS"
-                    else -> "يدوي"
-                }
-
-                val rowStyle = if (isOff) "background-color: #fef3c7;" else if (index % 2 == 1) "background-color: #f8fafc;" else ""
-
-                if (isFixedEmployment) {
-                    val baseHours = if (!isOff && rawHours > 0) minOf(standardShiftHours, rawHours) else 0.0
-                    val otHours = if (!isOff && rawHours > standardShiftHours) (rawHours - standardShiftHours) else 0.0
-                    val otWage = otHours * hourlyRate
-                    append("""
-                      <tr style="$rowStyle">
-                        <td style="font-weight:bold;">$dayName</td>
-                        <td>${record.workDate}</td>
-                        <td style="color:${if (isOff) "#b45309" else "#059669"}; font-weight:bold;">$checkIn</td>
-                        <td style="color:${if (isOff) "#b45309" else "#2563eb"}; font-weight:bold;">$checkOut</td>
-                        <td class="num font-bold" x:num="${"%.2f".format(rawHours)}">${"%.2f".format(rawHours)}</td>
-                        <td>$source</td>
-                        <td style="text-align:right;">$dayNotes</td>
-                        <td class="num" x:num="${"%.2f".format(baseHours)}" x:f="=IF(E$row&gt;0, MIN(${standardShiftHours.toInt()}, E$row), 0)">${"%.2f".format(baseHours)}</td>
-                        <td class="num font-bold" style="color:${if (otHours > 0) "#059669" else "#64748b"};" x:num="${"%.2f".format(otHours)}" x:f="=IF(E$row&gt;$standardShiftHours, ROUND(E$row-$standardShiftHours, 2), 0)">${if (otHours > 0) "+%.2f".format(otHours) else "0.00"}</td>
-                        <td class="currency" x:num="${"%.2f".format(otWage)}" x:f="=ROUND(I$row*$hourlyRate, 2)">${"%,.2f".format(otWage)}</td>
-                      </tr>
-                    """.trimIndent())
-                } else {
-                    val breakDeduction = if (!isOff && rawHours > 0.5) 0.5 else 0.0
-                    val netHours = if (!isOff && rawHours > 0.5) (rawHours - 0.5) else 0.0
-                    val dailyWage = netHours * hourlyRate
-                    append("""
-                      <tr style="$rowStyle">
-                        <td style="font-weight:bold;">$dayName</td>
-                        <td>${record.workDate}</td>
-                        <td style="color:${if (isOff) "#b45309" else "#059669"}; font-weight:bold;">$checkIn</td>
-                        <td style="color:${if (isOff) "#b45309" else "#2563eb"}; font-weight:bold;">$checkOut</td>
-                        <td class="num font-bold" x:num="${"%.2f".format(rawHours)}">${"%.2f".format(rawHours)}</td>
-                        <td>$source</td>
-                        <td style="text-align:right;">$dayNotes</td>
-                        <td class="num font-bold" style="color:#b45309;" x:num="${"%.2f".format(breakDeduction)}" x:f="=IF(E$row&gt;0.5, 0.5, 0)">${if (breakDeduction > 0) "-0.50" else "0.00"}</td>
-                        <td class="num font-bold" style="color:#059669;" x:num="${"%.2f".format(netHours)}" x:f="=IF(E$row&gt;0.5, ROUND(E$row-0.5, 2), 0)">${"%.2f".format(netHours)}</td>
-                        <td class="currency" x:num="${"%.2f".format(dailyWage)}" x:f="=ROUND(I$row*$hourlyRate, 2)">${"%,.2f".format(dailyWage)}</td>
-                      </tr>
-                    """.trimIndent())
-                }
+        val csv = buildString {
+            // Header summary
+            appendLine("\"تقرير حضور وانصراف - شفتاتي\"")
+            appendLine("\"الموظف\",\"${employeeName.ifBlank { "شفتاتي" }}\"")
+            appendLine("\"الفترة\",\"من $periodStart إلى $periodEnd\"")
+            appendLine("\"نظام العمل\",\"${if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"}\"")
+            if (isFixedEmployment) {
+                appendLine("\"أيام العمل\",\"$workedDays\",\"أيام الإجازة\",\"$offDays\"")
+                appendLine("\"الساعات الأساسية\",\"${workedDays * standardShiftHours} س\",\"ساعات الإضافي\",\"${PayrollUtil.formatHours(totalOvertimeHours)}\"")
+                appendLine("\"أجر الإضافي\",\"${PayrollUtil.formatCurrency(totalSalariedOvertimePay)}\"")
+            } else {
+                appendLine("\"أيام العمل\",\"$workedDays\",\"أيام الإجازة\",\"$offDays\"")
+                appendLine("\"إجمالي الساعات\",\"${PayrollUtil.formatHours(totalRawHours)}\",\"خصم البريك\",\"-${PayrollUtil.formatHours(totalBreakHours)}\"")
+                appendLine("\"صافي الساعات\",\"${PayrollUtil.formatHours(totalNetHours)}\",\"إجمالي الراتب\",\"${PayrollUtil.formatCurrency(totalHourlySalary)}\"")
             }
+            appendLine()
 
-            // Summary Section inside the table footer: Fully summed totals & money
-            append("""
-                    </tbody>
-                    <tfoot>
-                      <!-- Column Totals Row -->
-                      <tr class="summary-row">
-                        <td colspan="4" class="summary-lbl">الإجمالي العام:</td>
-                        <td class="num font-bold" x:num="${"%.2f".format(totalRawHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(E$firstDataRow:E$lastDataRow)\"" else ""}>${"%.2f".format(totalRawHours)}</td>
-                        <td colspan="2"></td>
-                        ${if (isFixedEmployment) """
-                        <td class="num font-bold" x:num="${"%.2f".format(totalRegularHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(H$firstDataRow:H$lastDataRow)\"" else ""}>${"%.2f".format(totalRegularHours)}</td>
-                        <td class="num font-bold" style="color:#059669;" x:num="${"%.2f".format(totalOvertimeHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>+${"%.2f".format(totalOvertimeHours)}</td>
-                        <td class="currency font-bold" style="color:#047857;" x:num="${"%.2f".format(totalSalariedOvertimePay)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalSalariedOvertimePay)}</td>
-                        """.trimIndent() else """
-                        <td class="num font-bold" style="color:#b45309;" x:num="${"%.2f".format(totalBreakHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(H$firstDataRow:H$lastDataRow)\"" else ""}>-${"%.2f".format(totalBreakHours)}</td>
-                        <td class="num font-bold" style="color:#059669;" x:num="${"%.2f".format(totalNetHours)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=SUM(I$firstDataRow:I$lastDataRow)\"" else ""}>${"%.2f".format(totalNetHours)}</td>
-                        <td class="currency font-bold" style="color:#047857;" x:num="${"%.2f".format(totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>${"%,.2f".format(totalHourlySalary)}</td>
-                        """.trimIndent()}
-                      </tr>
+            // Columns
+            appendLine("\"التاريخ\",\"اليوم\",\"وقت الحضور\",\"وقت الانصراف\",\"الساعات\",\"الخصم\",\"الصافي\",\"الحالة\",\"الملاحظات\"")
 
-                      <!-- Attendance & Rate Stats Row -->
-                      <tr class="summary-row">
-                        <td colspan="4" class="summary-lbl">أيام العمل الفعلية:</td>
-                        <td class="integer font-bold" x:num="$workedDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;&gt;0&quot;)\"" else ""}>$workedDays يوم</td>
-                        <td colspan="2" class="summary-lbl">أيام الإجازات (OFF):</td>
-                        <td class="integer font-bold" style="color:#b45309;" x:num="$offDays" ${if (sortedRecords.isNotEmpty()) "x:f=\"=COUNTIF(E$firstDataRow:E$lastDataRow, &quot;=0&quot;)\"" else ""}>$offDays</td>
-                        <td class="summary-lbl">سعر الساعة:</td>
-                        <td class="currency font-bold" x:num="${"%.2f".format(hourlyRate)}">${"%,.0f".format(hourlyRate)} ج.م</td>
-                      </tr>
+            sortedRecords.forEachIndexed { idx, rec ->
+                val cal = Calendar.getInstance().apply { timeInMillis = rec.checkInTime }
+                val dayName = arabicDayName(cal.time)
+                val isOff = (rec.source == "off_day")
+                val inTimeStr = if (isOff) "-" else sdfTime.format(Date(rec.checkInTime))
+                val outTimeStr = if (isOff) "-" else rec.checkOutTime?.let { sdfTime.format(Date(it)) } ?: "مفتوح"
+                val rawH = if (isOff) 0.0 else rec.hoursWorked
+                val breakH = breakHoursPerRecord[idx]
+                val netH = maxOf(0.0, rawH - breakH)
+                val status = when {
+                    isOff -> "إجازة (OFF)"
+                    rec.checkOutTime == null -> "انصراف مفقود"
+                    rec.isFromServer -> "سيرفر ESS"
+                    else -> "يدوي / معدل"
+                }
+                val dayNotes = notesByDate[rec.workDate]?.map { it.noteText }?.filter { it.isNotBlank() } ?: emptyList()
+                val allNotes = (listOf(rec.note.trim()) + dayNotes).filter { it.isNotBlank() }.distinct().joinToString(" | ")
 
-                      <!-- Final Grand Total Bar (الحسبة النهائية المجمعة: التوتال والفلوس) -->
-                      <tr class="total-bar">
-                        <td colspan="7" class="total-lbl">
-                          ${if (isFixedEmployment) "الحسبة النهائية (إجمالي مستحقات الأوفر تايم):" else "الحسبة النهائية (صافي الراتب المستحق بعد خصم البريك):"}
-                        </td>
-                        <td colspan="3" class="total-val currency" x:num="${"%.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)}" ${if (sortedRecords.isNotEmpty()) "x:f=\"=ROUND(SUM(J$firstDataRow:J$lastDataRow), 2)\"" else ""}>
-                          ${"%,.2f".format(if (isFixedEmployment) totalSalariedOvertimePay else totalHourlySalary)} ج.م
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </body>
-                </html>
-            """.trimIndent())
+                val hoursStr = if (isOff) "-" else PayrollUtil.formatHours(rawH)
+                val breakStr = if (isOff || breakH == 0.0) "-" else "-${PayrollUtil.formatHours(breakH)}"
+                val netStr = if (isOff) "-" else PayrollUtil.formatHours(netH)
+
+                appendLine("\"${rec.workDate}\",\"$dayName\",\"$inTimeStr\",\"$outTimeStr\",\"$hoursStr\",\"$breakStr\",\"$netStr\",\"$status\",\"${allNotes.replace("\"", "\"\"")}\"")
+            }
         }
 
         FileOutputStream(file).use { fos ->
             OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                writer.write("\uFEFF") // UTF-8 BOM for Arabic support
+                writer.write("\uFEFF") // UTF-8 BOM
+                writer.write(csv)
+                writer.flush()
+            }
+        }
+
+        file.absolutePath
+    }
+
+    /**
+     * Exports attendance records to a clean, mobile-optimized HTML document (.html).
+     * Opens directly in any phone's browser, formatted with RTL layout, summary cards, and printable styling.
+     */
+    fun exportHtmlReport(
+        context: Context,
+        records: List<AttendanceRecord>,
+        notes: List<DayNote>,
+        periodStart: String,
+        periodEnd: String,
+        hourlyRate: Double,
+        isFixedEmployment: Boolean = false,
+        standardShiftHours: Double = 9.0,
+        employeeName: String = ""
+    ): Result<String> = runCatching {
+        val dir = getExportDir(context)
+        val safeName = getSafeFileName(employeeName)
+        val datePart = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) "${periodStart}_${periodEnd}" else sdfDate.format(Date())
+        val file = File(dir, "${safeName}_${datePart}.html")
+
+        val sortedRecords = records.sortedWith(compareBy<AttendanceRecord> { it.workDate }.thenBy { it.checkInTime })
+        val workedRecords = sortedRecords.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
+        val workedDays = workedRecords.groupBy { it.workDate }.keys.size
+        val offDays = sortedRecords.filter { it.source == "off_day" }.map { it.workDate }.distinct().size
+        val totalRawHours = sortedRecords.sumOf { if (it.source == "off_day") 0.0 else it.hoursWorked }
+
+        val breakHoursPerRecord = sortedRecords.map { rec ->
+            if (rec.source != "off_day" && rec.hoursWorked > 0.5) 0.5 else 0.0
+        }
+        val totalBreakHours = breakHoursPerRecord.sum()
+        val totalNetHours = sortedRecords.mapIndexed { idx, rec ->
+            val h = if (rec.source == "off_day") 0.0 else rec.hoursWorked
+            maxOf(0.0, h - breakHoursPerRecord[idx])
+        }.sum()
+        val totalHourlySalary = totalNetHours * hourlyRate
+
+        var totalOvertimeHours = 0.0
+        sortedRecords.forEach { rec ->
+            if (rec.source != "off_day" && rec.hoursWorked > standardShiftHours) {
+                totalOvertimeHours += (rec.hoursWorked - standardShiftHours)
+            }
+        }
+        val totalSalariedOvertimePay = totalOvertimeHours * hourlyRate
+
+        val notesByDate = notes.groupBy { it.date }
+
+        val html = buildString {
+            appendLine("<!DOCTYPE html>")
+            appendLine("<html dir=\"rtl\" lang=\"ar\">")
+            appendLine("<head>")
+            appendLine("<meta charset=\"utf-8\">")
+            appendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">")
+            appendLine("<title>تقرير حضور وانصراف - $employeeName</title>")
+            appendLine("<style>")
+            appendLine("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 16px; direction: rtl; }")
+            appendLine(".card { background: #ffffff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; }")
+            appendLine(".header-title { font-size: 20px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }")
+            appendLine(".header-sub { font-size: 13px; color: #64748b; }")
+            appendLine(".grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 14px; }")
+            appendLine(".summary-box { background: #f1f5f9; border-radius: 12px; padding: 12px; text-align: center; }")
+            appendLine(".summary-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }")
+            appendLine(".summary-val { font-size: 16px; font-weight: bold; color: #0f172a; }")
+            appendLine(".summary-val.highlight { color: #0284c7; }")
+            appendLine(".summary-val.green { color: #16a34a; }")
+            appendLine("table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }")
+            appendLine("th { background: #f8fafc; color: #475569; padding: 10px 8px; text-align: right; border-bottom: 2px solid #e2e8f0; font-weight: 600; }")
+            appendLine("td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }")
+            appendLine("tr:nth-child(even) td { background: #fafbfc; }")
+            appendLine(".badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }")
+            appendLine(".badge-ess { background: #e0f2fe; color: #0369a1; }")
+            appendLine(".badge-manual { background: #fef3c7; color: #b45309; }")
+            appendLine(".badge-off { background: #f1f5f9; color: #64748b; }")
+            appendLine(".badge-missing { background: #fee2e2; color: #b91c1c; }")
+            appendLine("@media print { body { background: #ffffff; padding: 0; } .card { box-shadow: none; border: 1px solid #ccc; } }")
+            appendLine("</style>")
+            appendLine("</head>")
+            appendLine("<body>")
+
+            // Top Header Card
+            appendLine("<div class=\"card\">")
+            appendLine("<div class=\"header-title\">مسير الحضور والانصراف - شفتاتي</div>")
+            appendLine("<div class=\"header-sub\">الموظف: <b>${employeeName.ifBlank { "شفتاتي" }}</b> • الفترة: <b>من $periodStart إلى $periodEnd</b></div>")
+
+            // Summary Grid
+            appendLine("<div class=\"grid-summary\">")
+            appendLine("<div class=\"summary-box\"><div class=\"summary-label\">نظام العمل</div><div class=\"summary-val\">${if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"}</div></div>")
+            appendLine("<div class=\"summary-box\"><div class=\"summary-label\">أيام العمل</div><div class=\"summary-val highlight\">$workedDays يوم</div></div>")
+            appendLine("<div class=\"summary-box\"><div class=\"summary-label\">أيام الإجازة</div><div class=\"summary-val\">$offDays يوم</div></div>")
+            if (isFixedEmployment) {
+                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">ساعات الإضافي</div><div class=\"summary-val highlight\">${PayrollUtil.formatHours(totalOvertimeHours)}</div></div>")
+                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">مستحق الإضافي</div><div class=\"summary-val green\">${PayrollUtil.formatCurrency(totalSalariedOvertimePay)}</div></div>")
+            } else {
+                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">صافي الساعات</div><div class=\"summary-val highlight\">${PayrollUtil.formatHours(totalNetHours)}</div></div>")
+                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">إجمالي الراتب</div><div class=\"summary-val green\">${PayrollUtil.formatCurrency(totalHourlySalary)}</div></div>")
+            }
+            appendLine("</div>")
+            appendLine("</div>")
+
+            // Records Table Card
+            appendLine("<div class=\"card\">")
+            appendLine("<div class=\"header-title\" style=\"font-size: 16px; margin-bottom: 12px;\">سجل الورديات اليومية (${sortedRecords.size})</div>")
+            appendLine("<div style=\"overflow-x: auto;\">")
+            appendLine("<table>")
+            appendLine("<thead>")
+            appendLine("<tr>")
+            appendLine("<th>التاريخ</th>")
+            appendLine("<th>اليوم</th>")
+            appendLine("<th>الحضور</th>")
+            appendLine("<th>الانصراف</th>")
+            appendLine("<th>الساعات</th>")
+            appendLine("<th>الخصم</th>")
+            appendLine("<th>الصافي</th>")
+            appendLine("<th>المصدر</th>")
+            appendLine("<th>الملاحظات</th>")
+            appendLine("</tr>")
+            appendLine("</thead>")
+            appendLine("<tbody>")
+
+            sortedRecords.forEachIndexed { idx, rec ->
+                val cal = Calendar.getInstance().apply { timeInMillis = rec.checkInTime }
+                val dayName = arabicDayName(cal.time)
+                val isOff = (rec.source == "off_day")
+                val inTimeStr = if (isOff) "-" else sdfTime.format(Date(rec.checkInTime))
+                val outTimeStr = if (isOff) "-" else rec.checkOutTime?.let { sdfTime.format(Date(it)) } ?: "مفتوح"
+                val rawH = if (isOff) 0.0 else rec.hoursWorked
+                val breakH = breakHoursPerRecord[idx]
+                val netH = maxOf(0.0, rawH - breakH)
+
+                val (badgeClass, statusText) = when {
+                    isOff -> "badge-off" to "إجازة (OFF)"
+                    rec.checkOutTime == null -> "badge-missing" to "انصراف مفقود"
+                    rec.isFromServer -> "badge-ess" to "سيرفر ESS"
+                    else -> "badge-manual" to "يدوي / معدل"
+                }
+
+                val dayNotes = notesByDate[rec.workDate]?.map { it.noteText }?.filter { it.isNotBlank() } ?: emptyList()
+                val allNotes = (listOf(rec.note.trim()) + dayNotes).filter { it.isNotBlank() }.distinct().joinToString(" | ")
+
+                appendLine("<tr>")
+                appendLine("<td><b>${rec.workDate}</b></td>")
+                appendLine("<td>$dayName</td>")
+                appendLine("<td>$inTimeStr</td>")
+                appendLine("<td>$outTimeStr</td>")
+                appendLine("<td>${if (isOff) "-" else PayrollUtil.formatHours(rawH)}</td>")
+                appendLine("<td>${if (isOff || breakH == 0.0) "-" else "-${PayrollUtil.formatHours(breakH)}"}</td>")
+                appendLine("<td><b>${if (isOff) "-" else PayrollUtil.formatHours(netH)}</b></td>")
+                appendLine("<td><span class=\"badge $badgeClass\">$statusText</span></td>")
+                appendLine("<td style=\"color: #64748b;\">${allNotes.ifBlank { "-" }}</td>")
+                appendLine("</tr>")
+            }
+
+            appendLine("</tbody>")
+            appendLine("</table>")
+            appendLine("</div>")
+            appendLine("</div>")
+
+            appendLine("</body>")
+            appendLine("</html>")
+        }
+
+        FileOutputStream(file).use { fos ->
+            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
                 writer.write(html)
                 writer.flush()
             }
@@ -332,6 +301,21 @@ object ExportUtil {
 
         file.absolutePath
     }
+
+    /** Legacy helper forwarding to exportCsv for backward compatibility */
+    fun exportExcel(
+        context: Context,
+        records: List<AttendanceRecord>,
+        notes: List<DayNote>,
+        periodStart: String,
+        periodEnd: String,
+        hourlyRate: Double,
+        isFixedEmployment: Boolean = false,
+        standardShiftHours: Double = 9.0,
+        employeeName: String = ""
+    ): Result<String> = exportCsv(
+        context, records, notes, periodStart, periodEnd, hourlyRate, isFixedEmployment, standardShiftHours, employeeName
+    )
 
     private fun getExportDir(context: Context): File {
         // Preferred: Public Downloads folder
@@ -367,15 +351,22 @@ object ExportUtil {
                 file
             )
 
+            val mimeType = when {
+                filePath.endsWith(".csv", ignoreCase = true) -> "text/csv"
+                filePath.endsWith(".html", ignoreCase = true) -> "text/html"
+                filePath.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                else -> "*/*"
+            }
+
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "application/vnd.ms-excel"
+                type = mimeType
                 putExtra(Intent.EXTRA_STREAM, uri)
-                putExtra(Intent.EXTRA_SUBJECT, "سجل حضور شفتاتي")
+                putExtra(Intent.EXTRA_SUBJECT, "تقرير حضور وانصراف - شفتاتي")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            val chooser = Intent.createChooser(intent, "مشاركة أو فتح ملف الإكسل").apply {
+            val chooser = Intent.createChooser(intent, "مشاركة أو فتح التقرير").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)

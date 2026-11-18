@@ -17,8 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
@@ -47,6 +49,7 @@ fun AttendanceListScreen(
     var isReverting by remember { mutableStateOf(false) }
     var recordToSettle by remember { mutableStateOf<AttendanceRecord?>(null) }
     var showRangePicker by remember { mutableStateOf(false) }
+    var showExportDialog by remember { mutableStateOf(false) }
 
     var filterByPeriod by remember { mutableStateOf(true) }
     val hasActivePeriod = homeState.periodStart.isNotBlank() && homeState.periodEnd.isNotBlank()
@@ -71,20 +74,20 @@ fun AttendanceListScreen(
     Scaffold(
         topBar = {
             KSTopBar(
-                title = "سجل الحضور",
+                title = stringResource(R.string.nav_records),
                 onBack = null,
                 actions = {
                     IconButton(onClick = { viewModel.fillMissingDaysAsOff() }) {
                         Icon(
                             Icons.Filled.BeachAccess,
-                            contentDescription = "إكمال أيام الإجازات (OFF) المفقودة",
+                            contentDescription = stringResource(R.string.fill_off_days_hint),
                             tint = ColorOffDay
                         )
                     }
-                    IconButton(onClick = { viewModel.exportExcel(onlyCurrentPeriod = filterByPeriod) }) {
+                    IconButton(onClick = { showExportDialog = true }) {
                         Icon(
                             Icons.Filled.FileDownload,
-                            contentDescription = "تصدير كملف Excel (.xls)",
+                            contentDescription = stringResource(R.string.export_report_hint),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -98,7 +101,7 @@ fun AttendanceListScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Default.Add, contentDescription = "إضافة سجل")
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_record_title))
             }
         }
     ) { padding ->
@@ -131,7 +134,7 @@ fun AttendanceListScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = if (homeState.isFixedEmployment) "نظام التعيين" else "نظام الساعة",
+                                text = if (homeState.isFixedEmployment) stringResource(R.string.salary_mode_salaried) else stringResource(R.string.salary_mode_hourly),
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
@@ -148,13 +151,13 @@ fun AttendanceListScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.DateRange,
-                                            contentDescription = "تغيير الفترة",
+                                            contentDescription = stringResource(R.string.change_period),
                                             tint = MaterialTheme.colorScheme.primary,
                                             modifier = Modifier.size(13.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = "من ${homeState.periodStart} إلى ${homeState.periodEnd}",
+                                            text = stringResource(R.string.period_from_to, homeState.periodStart, homeState.periodEnd),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -182,7 +185,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "ساعات أساسية",
+                                        text = stringResource(R.string.base_hours_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -208,7 +211,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "ساعات إضافية",
+                                        text = stringResource(R.string.overtime_hours_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -235,7 +238,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "مستحق الإضافي",
+                                        text = stringResource(R.string.overtime_due_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -253,7 +256,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الساعات بالكامل",
+                                        text = stringResource(R.string.total_hours_full),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -279,7 +282,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.primary
                                     )
                                     Text(
-                                        text = "بعد الخصم (-0.5س)",
+                                        text = stringResource(R.string.after_break_deduction),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.primary
@@ -306,7 +309,7 @@ fun AttendanceListScreen(
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = "الراتب (${homeState.workedDays} يوم)",
+                                        text = stringResource(R.string.salary_with_days, homeState.workedDays),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -337,8 +340,8 @@ fun AttendanceListScreen(
                             ),
                             label = {
                                 Text(
-                                    if (filterByPeriod) "سجلات الفترة الحالية (${displayRecords.size})"
-                                    else "عرض جميع السجلات (${allRecords.size})",
+                                    if (filterByPeriod) stringResource(R.string.current_period_records, displayRecords.size)
+                                    else stringResource(R.string.show_all_records, allRecords.size),
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             },
@@ -352,7 +355,7 @@ fun AttendanceListScreen(
                         )
 
                         Text(
-                            text = if (filterByPeriod) "${homeState.periodStart} ~ ${homeState.periodEnd}" else "الكل",
+                            text = if (filterByPeriod) "${homeState.periodStart} ~ ${homeState.periodEnd}" else stringResource(R.string.filter_all),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -370,8 +373,8 @@ fun AttendanceListScreen(
                     ) {
                         EmptyState(
                             message = if (filterByPeriod && allRecords.isNotEmpty())
-                                "لا توجد سجلات في هذه الفترة المحددة\nاضغط على 'عرض جميع السجلات' أو +"
-                            else "لا توجد سجلات حضور بعد\nاضغط + لإضافة سجل يدوي",
+                                stringResource(R.string.no_records_in_period)
+                            else stringResource(R.string.empty_records_hint),
                             icon = Icons.Default.EventNote
                         )
                     }
@@ -433,7 +436,7 @@ fun AttendanceListScreen(
                 },
                 title = {
                     Text(
-                        text = "استعادة توقيت الوردية من ESS",
+                        text = stringResource(R.string.revert_ess_dialog_title),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -441,13 +444,8 @@ fun AttendanceListScreen(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "هل تريد استعادة مواعيد الحضور والانصراف الأصلية المسجلة على السيرفر ليوم ${record.workDate}؟",
+                            text = stringResource(R.string.revert_ess_dialog_msg, record.workDate),
                             style = MaterialTheme.typography.bodyMedium
-                        )
-                        Text(
-                            text = "• سيتم استرجاع الساعات وأوقات البصمة الحقيقية من السيرفر.\n• سيتم الاحتفاظ بملاحظاتك الحالية دون حذف.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
@@ -471,7 +469,7 @@ fun AttendanceListScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
-                        Text("استعادة")
+                        Text(stringResource(R.string.restore_action))
                     }
                 },
                 dismissButton = {
@@ -479,7 +477,7 @@ fun AttendanceListScreen(
                         onClick = { recordToRevert = null },
                         enabled = !isReverting
                     ) {
-                        Text("إلغاء")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -499,7 +497,7 @@ fun AttendanceListScreen(
                 },
                 title = {
                     Text(
-                        text = "تسوية الوردية (عطل بسيرفر ESS)",
+                        text = stringResource(R.string.settle_shift_dialog_title),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
@@ -507,11 +505,11 @@ fun AttendanceListScreen(
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "تم تسجيل الحضور يوم ${record.workDate} الساعة ${PayrollUtil.formatTime(record.checkInTime, settingsState.is24Hour)} بدون انصراف.",
+                            text = stringResource(R.string.settle_shift_dialog_msg, record.workDate, PayrollUtil.formatTime(record.checkInTime, settingsState.is24Hour)),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            text = "يمكنك تطبيق الشفت القياسي (%.0f ساعات) لاحتساب ساعاتها فوراً في الراتب، أو تعديل التوقيت يدوياً:".format(homeState.standardShiftHours),
+                            text = stringResource(R.string.settle_shift_dialog_hint, homeState.standardShiftHours),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -528,7 +526,7 @@ fun AttendanceListScreen(
                             contentColor = Color.Black
                         )
                     ) {
-                        Text("تسوية بـ %.0f ساعات ⚡".format(homeState.standardShiftHours), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.settle_with_hours_btn, homeState.standardShiftHours), fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -539,7 +537,7 @@ fun AttendanceListScreen(
                             onNavigate("record/$id")
                         }
                     ) {
-                        Text("تعديل الوقت يدوياً")
+                        Text(stringResource(R.string.edit_time_manually))
                     }
                 }
             )
@@ -549,8 +547,8 @@ fun AttendanceListScreen(
         dayToDelete?.let { date ->
             AlertDialog(
                 onDismissRequest = { dayToDelete = null },
-                title = { Text("حذف ورديات اليوم") },
-                text = { Text("حذف جميع ورديات يوم $date؟") },
+                title = { Text(stringResource(R.string.delete_day_title)) },
+                text = { Text(stringResource(R.string.delete_day_msg, date)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -561,12 +559,12 @@ fun AttendanceListScreen(
                             contentColor = ColorDelete
                         )
                     ) {
-                        Text("حذف", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.delete), fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { dayToDelete = null }) {
-                        Text("إلغاء")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -582,6 +580,111 @@ fun AttendanceListScreen(
                     viewModel.setCustomPeriodRange(start, end, autoSync = true)
                 },
                 onDismiss = { showRangePicker = false }
+            )
+        }
+
+        // ─── Export Format Choice Dialog ──────────────────────────────────────
+        if (showExportDialog) {
+            AlertDialog(
+                onDismissRequest = { showExportDialog = false },
+                icon = {
+                    Icon(
+                        Icons.Filled.FileDownload,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.export_dialog_title),
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        // Option 1: Universal CSV
+                        Surface(
+                            onClick = {
+                                showExportDialog = false
+                                viewModel.exportCsv(onlyCurrentPeriod = filterByPeriod)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.TableChart,
+                                    contentDescription = null,
+                                    tint = Color(0xFF107C41),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.export_csv_title),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.export_csv_desc),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        // Option 2: Responsive HTML Report
+                        Surface(
+                            onClick = {
+                                showExportDialog = false
+                                viewModel.exportHtml(onlyCurrentPeriod = filterByPeriod)
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Filled.Description,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.export_html_title),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.export_html_desc),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showExportDialog = false }) {
+                        Text(stringResource(R.string.cancel))
+                    }
+                }
             )
         }
     }
@@ -667,15 +770,15 @@ private fun RecordRow(
 ) {
     val isOffDay = (record.source == "off_day")
     val checkIn = PayrollUtil.formatTime(record.checkInTime, is24Hour)
-    val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: "مفتوح"
+    val checkOut = record.checkOutTime?.let { PayrollUtil.formatTime(it, is24Hour) } ?: stringResource(R.string.open_shift)
     val isOpen = !isOffDay && record.checkOutTime == null
     val isMissingCheckout = isOpen && (System.currentTimeMillis() - record.checkInTime >= 16 * 3600 * 1000L || record.workDate < DateUtil.today())
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceBadge = when {
-        isOffDay -> "يدوي"
-        isModified -> "معدل"
+        isOffDay -> stringResource(R.string.filter_manual)
+        isModified -> stringResource(R.string.badge_modified)
         record.source == "ess_online" -> "ESS"
-        else -> "يدوي"
+        else -> stringResource(R.string.filter_manual)
     }
 
     Surface(
@@ -710,12 +813,12 @@ private fun RecordRow(
                     ) {
                         Icon(
                             imageVector = Icons.Filled.BeachAccess,
-                            contentDescription = "إجازة",
+                            contentDescription = stringResource(R.string.off_day_badge),
                             tint = ColorOffDay,
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "يوم إجازة (OFF)",
+                            text = stringResource(R.string.off_day_badge),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -747,7 +850,7 @@ private fun RecordRow(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.Fingerprint,
-                                contentDescription = "حضور",
+                                contentDescription = stringResource(R.string.check_in_label),
                                 tint = ColorFingerprint,
                                 modifier = Modifier.size(17.dp)
                             )
@@ -775,13 +878,13 @@ private fun RecordRow(
                             Icon(
                                 imageVector = if (isMissingCheckout) Icons.Filled.WarningAmber
                                 else if (isOpen) Icons.Filled.HourglassTop else Icons.Filled.Logout,
-                                contentDescription = "انصراف",
+                                contentDescription = stringResource(R.string.check_out_label),
                                 tint = if (isMissingCheckout) Color(0xFFF59E0B)
                                 else if (isOpen) MaterialTheme.colorScheme.error else ColorLogout,
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = if (isMissingCheckout) "انصراف مفقود" else checkOut,
+                                text = if (isMissingCheckout) stringResource(R.string.missing_checkout_badge) else checkOut,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isMissingCheckout) Color(0xFFF59E0B)
@@ -847,7 +950,7 @@ private fun RecordRow(
                         ) {
                             Icon(
                                 Icons.Filled.Sync,
-                                contentDescription = "استعادة من ESS",
+                                contentDescription = stringResource(R.string.revert_ess_dialog_title),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -874,7 +977,7 @@ private fun RecordRow(
                                 )
                                 Spacer(modifier = Modifier.width(3.dp))
                                 Text(
-                                    text = "تسوية ⚡",
+                                    text = stringResource(R.string.settle_9h_btn),
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFD97706)
@@ -942,7 +1045,7 @@ private fun RecordRow(
                     ) {
                         Icon(
                             Icons.Default.Edit,
-                            contentDescription = "تعديل",
+                            contentDescription = stringResource(R.string.edit),
                             modifier = Modifier.size(15.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -953,7 +1056,7 @@ private fun RecordRow(
                     ) {
                         Icon(
                             Icons.Default.DeleteOutline,
-                            contentDescription = "حذف السجل",
+                            contentDescription = stringResource(R.string.delete),
                             modifier = Modifier.size(16.dp),
                             tint = ColorDelete
                         )

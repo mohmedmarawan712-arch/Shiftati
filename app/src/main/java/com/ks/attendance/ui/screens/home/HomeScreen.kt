@@ -66,20 +66,20 @@ fun HomeScreen(
     Scaffold(
         topBar = {
             KSTopBar(
-                title = "شفتاتي",
+                title = stringResource(R.string.app_name),
                 onBack = null,
                 actions = {
                     IconButton(onClick = { showCustomRangePicker = true }) {
                         Icon(
                             Icons.Default.DateRange,
-                            contentDescription = "الفترة المخصصة",
+                            contentDescription = stringResource(R.string.custom_period_title),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     IconButton(onClick = { viewModel.syncFromEss {} }) {
                         Icon(
                             Icons.Filled.Sync,
-                            contentDescription = "مزامنة سريعة",
+                            contentDescription = stringResource(R.string.action_sync),
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -93,7 +93,7 @@ fun HomeScreen(
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = "إضافة وردية يدوياً")
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.add_record_title))
             }
         }
     ) { padding ->
@@ -184,8 +184,8 @@ fun HomeScreen(
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Column {
                                         Text(
-                                            text = if (pendingList.size == 1) "وردية معلقة بدون انصراف ⚠️"
-                                                   else "${pendingList.size} ورديات معلقة بدون انصراف ⚠️",
+                                            text = if (pendingList.size == 1) stringResource(R.string.pending_missing_shift)
+                                                   else stringResource(R.string.pending_missing_shifts_count, pendingList.size),
                                             style = MaterialTheme.typography.titleSmall,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.onSurface
@@ -204,7 +204,7 @@ fun HomeScreen(
                                 ) {
                                     Icon(
                                         imageVector = Icons.Filled.Info,
-                                        contentDescription = "شرح الوردية بدون انصراف",
+                                        contentDescription = stringResource(R.string.missing_checkout_dialog_title),
                                         tint = Color(0xFFF59E0B),
                                         modifier = Modifier.size(22.dp)
                                     )
@@ -235,8 +235,8 @@ fun HomeScreen(
                                     Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = if (pendingList.size == 1) "تسوية (%.0f س) ⚡".format(homeState.standardShiftHours)
-                                               else "تسوية الكل (%.0f س) ⚡".format(homeState.standardShiftHours),
+                                        text = if (pendingList.size == 1) stringResource(R.string.settle_shift_btn, homeState.standardShiftHours)
+                                               else stringResource(R.string.settle_all_shifts_btn, homeState.standardShiftHours),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold
                                     )
@@ -251,7 +251,7 @@ fun HomeScreen(
                                     Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFF59E0B))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text(
-                                        text = "تعديل",
+                                        text = stringResource(R.string.edit),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -326,14 +326,14 @@ fun HomeScreen(
                                             )
                                             Spacer(modifier = Modifier.width(6.dp))
                                             Text(
-                                                text = "أنت مسجل حضور الآن 🟢",
+                                                text = stringResource(R.string.clocked_in_banner),
                                                 style = MaterialTheme.typography.titleMedium,
                                                 fontWeight = FontWeight.Bold,
                                                 color = MaterialTheme.colorScheme.onSurface
                                             )
                                         }
                                         Text(
-                                            text = if (openSession.isFromServer) "مصدر البصمة: جهاز ESS السيرفر" else "مصدر البصمة: تسجيل بالـ QR",
+                                            text = if (openSession.isFromServer) stringResource(R.string.source_ess_server) else stringResource(R.string.source_qr_scanner),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -345,7 +345,7 @@ fun HomeScreen(
                                     color = MaterialTheme.colorScheme.surface
                                 ) {
                                     Text(
-                                        text = "دوام جاري ⏳",
+                                        text = stringResource(R.string.shift_active),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = ColorWorked,
@@ -366,7 +366,7 @@ fun HomeScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "وقت تسجيل الحضور",
+                                        text = stringResource(R.string.clock_in_time_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -385,7 +385,7 @@ fun HomeScreen(
 
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text(
-                                        text = "المدة المستمرة حتى الآن",
+                                        text = stringResource(R.string.duration_so_far),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -417,7 +417,7 @@ fun HomeScreen(
                             ) {
                                 Icon(Icons.Filled.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("تسجيل الانصراف (QR)", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                                Text(stringResource(R.string.clock_out_qr_btn), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -432,7 +432,7 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "ورديات اليوم",
+                        text = stringResource(R.string.today_shifts),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onBackground
@@ -443,7 +443,7 @@ fun HomeScreen(
                             color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                         ) {
                             Text(
-                                text = "${homeState.todayRecords.size} وردية",
+                                text = "${homeState.todayRecords.size} ${stringResource(R.string.shift_suffix)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary,
@@ -458,7 +458,7 @@ fun HomeScreen(
             if (homeState.todayRecords.isEmpty()) {
                 item {
                     EmptyState(
-                        message = "لم تسجل أي وردية اليوم حتى الآن",
+                        message = stringResource(R.string.no_shifts_today),
                         icon = Icons.Filled.HistoryToggleOff
                     )
                 }
@@ -502,14 +502,14 @@ fun HomeScreen(
                 },
                 title = {
                     Text(
-                        text = "استعادة توقيت الوردية من ESS",
+                        text = stringResource(R.string.revert_ess_dialog_title),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
                 },
                 text = {
                     Text(
-                        text = "استعادة توقيت البصمة الأصلي من السيرفر ليوم ${record.workDate}؟",
+                        text = stringResource(R.string.revert_ess_dialog_msg, record.workDate),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
@@ -533,7 +533,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                         }
-                        Text("استعادة")
+                        Text(stringResource(R.string.restore_action))
                     }
                 },
                 dismissButton = {
@@ -541,7 +541,7 @@ fun HomeScreen(
                         onClick = { recordToRevert = null },
                         enabled = !isReverting
                     ) {
-                        Text("إلغاء")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             )
@@ -623,14 +623,14 @@ fun HomeScreen(
                 },
                 title = {
                     Text(
-                        text = "ما هي الوردية بدون انصراف؟",
+                        text = stringResource(R.string.missing_checkout_dialog_title),
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
                 },
                 text = {
                     Text(
-                        text = "تم تسجيل وقت الحضور عبر سيرفر ESS بنجاح، لكن حدث عطل بالسيرفر أو انقطاع ولم يُسجل وقت الانصراف.\n\nتعتبر ساعاتها حالياً 0 دقيقة في التقرير. يمكنك تسوية الوردية لاحتساب شفت قياسي تلقائياً في الراتب، أو تعديل الوقت يدوياً.",
+                        text = stringResource(R.string.missing_checkout_dialog_text),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         lineHeight = 22.sp
@@ -644,7 +644,7 @@ fun HomeScreen(
                             contentColor = Color.Black
                         )
                     ) {
-                        Text("حسناً، فهمت", fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.ok_understood), fontWeight = FontWeight.Bold)
                     }
                 }
             )
@@ -665,10 +665,10 @@ private fun CompactRecordCard(
     val isOffDay = (record.source == "off_day")
     val isModified = (record.source == "ess_online" && !record.isFromServer)
     val sourceLabel = when {
-        isOffDay -> "يدوي"
-        isModified -> "معدل"
+        isOffDay -> stringResource(R.string.filter_manual)
+        isModified -> stringResource(R.string.badge_modified)
         record.source == "ess_online" -> "ESS"
-        else -> "يدوي"
+        else -> stringResource(R.string.filter_manual)
     }
     val sourceColor = if (isModified) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     val isOpen = !isOffDay && record.checkOutTime == null
@@ -709,7 +709,7 @@ private fun CompactRecordCard(
                         imageVector = if (isOffDay) Icons.Filled.BeachAccess
                         else if (isMissingCheckout) Icons.Filled.WarningAmber
                         else Icons.Filled.Fingerprint,
-                        contentDescription = if (isOffDay) "إجازة" else "حضور",
+                        contentDescription = if (isOffDay) stringResource(R.string.off_day_badge) else stringResource(R.string.check_in_label),
                         tint = if (isOffDay) ColorOffDay
                         else if (isMissingCheckout) Color(0xFFF59E0B)
                         else ColorFingerprint,
@@ -723,7 +723,7 @@ private fun CompactRecordCard(
             Column(modifier = Modifier.weight(1f)) {
                 if (isOffDay) {
                     Text(
-                        text = "يوم إجازة (OFF)",
+                        text = stringResource(R.string.off_day_badge),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -751,7 +751,7 @@ private fun CompactRecordCard(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(
-                                    text = "انصراف مفقود",
+                                    text = stringResource(R.string.missing_checkout_badge),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFF59E0B)
@@ -767,7 +767,7 @@ private fun CompactRecordCard(
                                 )
                                 Spacer(modifier = Modifier.width(2.dp))
                                 Text(
-                                    text = "مفتوح",
+                                    text = stringResource(R.string.open_shift),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.error
@@ -811,7 +811,7 @@ private fun CompactRecordCard(
                         ) {
                             Icon(
                                 Icons.Filled.Sync,
-                                contentDescription = "استعادة من ESS",
+                                contentDescription = stringResource(R.string.revert_ess_dialog_title),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(15.dp)
                             )
@@ -898,7 +898,7 @@ private fun CompactRecordCard(
             ) {
                 Icon(
                     Icons.Default.DeleteOutline,
-                    contentDescription = "حذف هذا السجل",
+                    contentDescription = stringResource(R.string.delete),
                     modifier = Modifier.size(17.dp),
                     tint = ColorDelete
                 )

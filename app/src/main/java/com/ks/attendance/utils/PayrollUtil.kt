@@ -86,6 +86,28 @@ object PayrollUtil {
     }
 
     /**
+     * 16th of previous cycle through 15th of current cycle prior to the active 16-15 period.
+     * Exactly one cycle prior to getPayrollPeriod16to15.
+     */
+    fun getPreviousPayrollPeriod16to15(referenceDate: Date = Date()): Pair<String, String> {
+        val cal = Calendar.getInstance().apply { time = referenceDate }
+        val day = cal.get(Calendar.DAY_OF_MONTH)
+        if (day < 16) {
+            cal.add(Calendar.MONTH, -2)
+        } else {
+            cal.add(Calendar.MONTH, -1)
+        }
+        cal.set(Calendar.DAY_OF_MONTH, 16)
+        val start = sdf.format(cal.time)
+
+        cal.add(Calendar.MONTH, 1)
+        cal.set(Calendar.DAY_OF_MONTH, 15)
+        val end = sdf.format(cal.time)
+
+        return start to end
+    }
+
+    /**
      * Default automated cycle: Day 29 through Day 28 of following period,
      * fully respecting variable month lengths (31-day months, 28/29 in Feb).
      * Mirrors the Python payroll_period(reference, 29) behavior.

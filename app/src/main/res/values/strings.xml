@@ -157,4 +157,113 @@
     <string name="employment_salaried_title">Salaried System</string>
     <string name="employment_salaried_desc">Calculate overtime compensation after 9 hours</string>
     <string name="employment_confirm_choice">Confirm Choice</string>
+
+    <!-- Period Presets -->
+    <string name="custom_period_title">Custom Period</string>
+    <string name="apply_and_fetch">Apply &amp; Fetch ⚡</string>
+    <string name="preset_current_month">Current Month</string>
+    <string name="preset_previous_month">Previous Month</string>
+    <string name="preset_cycle_16_15_current">Cycle 16 - 15 (Current)</string>
+    <string name="preset_cycle_16_15_prev">Cycle 16 - 15 (Previous)</string>
+    <string name="selected_days_count">%d days</string>
+
+    <!-- Export Dialog & Reports -->
+    <string name="export_dialog_title">Export Report</string>
+    <string name="export_csv_title">Standard Spreadsheet (CSV)</string>
+    <string name="export_csv_desc">Universal spreadsheet file compatible with Excel and phones</string>
+    <string name="export_html_title">Printable Report (HTML)</string>
+    <string name="export_html_desc">Opens directly in phone browser as an official payslip</string>
+    <string name="export_success_msg">Report exported successfully ✓</string>
+    <string name="export_saved_in">Saved in: %s</string>
+    <string name="export_failed">Export failed: %s</string>
+    <string name="no_records_to_export">No records found in this period to export</string>
+    <string name="export_chooser_title">Share or Open Report</string>
+
+    <!-- Common Actions & Badges -->
+    <string name="confirm">Confirm</string>
+    <string name="restore_action">Restore</string>
+    <string name="ok_understood">Understood</string>
+    <string name="discard">Discard</string>
+    <string name="day_suffix">day</string>
+    <string name="shift_suffix">shift</string>
+    <string name="filter_all">All</string>
+    <string name="filter_ess">ESS Server</string>
+    <string name="filter_manual">Manual</string>
+    <string name="filter_off">OFF Days</string>
+
+    <!-- Home & Session -->
+    <string name="clocked_in_banner">Clocked in now 🟢</string>
+    <string name="source_ess_server">ESS Device</string>
+    <string name="source_qr_scanner">QR Scanner</string>
+    <string name="shift_active">Active Shift ⏳</string>
+    <string name="clock_in_time_label">Clock-in Time</string>
+    <string name="duration_so_far">Elapsed Time</string>
+    <string name="clock_out_qr_btn">Clock Out (QR)</string>
+    <string name="pending_missing_shift">Pending Shift (Missing Check-out) ⚠️</string>
+    <string name="pending_missing_shifts_count">%d Pending Shifts (Missing Check-out) ⚠️</string>
+    <string name="settle_shift_btn">Settle (%.0f hrs) ⚡</string>
+    <string name="settle_all_shifts_btn">Settle All (%.0f hrs) ⚡</string>
+    <string name="missing_checkout_dialog_title">What is a missing checkout shift?</string>
+    <string name="missing_checkout_dialog_text">Clock-in was recorded via ESS server, but check-out was missed due to a system outage.\n\nHours are currently 0. You can settle it to standard shift hours or edit the time manually.</string>
+    <string name="revert_ess_dialog_title">Restore Shift from ESS</string>
+    <string name="revert_ess_dialog_msg">Restore original clock times from the server for %s?</string>
+
+    <!-- Attendance List -->
+    <string name="fill_off_days_hint">Fill missing days as OFF</string>
+    <string name="export_report_hint">Export Report</string>
+    <string name="salary_mode_salaried">Salaried System</string>
+    <string name="salary_mode_hourly">Hourly System</string>
+    <string name="change_period">Change Period</string>
+    <string name="period_from_to">From %1$s to %2$s</string>
+    <string name="base_hours_label">Base Hours</string>
+    <string name="overtime_hours_label">Overtime Hours</string>
+    <string name="overtime_due_label">Overtime Pay</string>
+    <string name="total_hours_full">Total Hours</string>
+    <string name="after_break_deduction">After Break (-0.5h)</string>
+    <string name="salary_with_days">Salary (%d days)</string>
+    <string name="current_period_records">Current Period Records (%d)</string>
+    <string name="show_all_records">Show All Records (%d)</string>
+    <string name="no_records_in_period">No records found in this period</string>
+    <string name="settle_shift_dialog_title">Settle Shift (ESS Server Outage)</string>
+    <string name="settle_shift_dialog_msg">Clocked in on %1$s at %2$s without check-out.</string>
+    <string name="settle_shift_dialog_hint">Apply standard shift (%.0f hrs) to calculate salary immediately, or edit manually:</string>
+    <string name="settle_with_hours_btn">Settle with %.0f hrs ⚡</string>
+    <string name="edit_time_manually">Edit Time Manually</string>
+    <string name="delete_day_title">Delete Day Shifts</string>
+    <string name="delete_day_msg">Delete all shifts on %s?</string>
+    <string name="missing_checkout_badge">Missing Check-out</string>
+
+    <!-- Add / Edit Record -->
+    <string name="edit_record_title">Edit Shift</string>
+    <string name="add_record_title">New Shift</string>
+    <string name="date_label">Date</string>
+    <string name="off_day_badge">Day Off (OFF)</string>
+    <string name="off_day_desc">Mark this day as a day off without clock times</string>
+    <string name="check_in_label">Clock-in Time</string>
+    <string name="check_out_label">Clock-out Time</string>
+    <string name="optional_label">Optional</string>
+    <string name="computed_hours_prefix">Computed Hours: %s</string>
+    <string name="night_shift_badge">Night Shift (Ends Next Day)</string>
+    <string name="off_day_notice">Marked as day off (OFF). No clock times required.</string>
+    <string name="notes_optional_label">Note (Optional)</string>
+    <string name="notes_field_hint">Add a note for this day or shift...</string>
+    <string name="unsaved_changes_title">Unsaved Changes</string>
+    <string name="unsaved_changes_msg">Do you want to save changes before leaving?</string>
+    <string name="save_changes_btn">Save Changes</string>
+    <string name="err_same_time">Check-out time cannot be the same as check-in time</string>
+    <string name="err_out_before_in">Check-out time must be after check-in time</string>
+    <string name="settle_9h_btn">9h Shift</string>
+    <string name="missing_checkout_banner_title">Shift without check-out (Server Outage) ⚠️</string>
+    <string name="missing_checkout_banner_desc">Apply standard 9-hour shift to calculate payroll</string>
+    <string name="today_shifts">Today\'s Shifts</string>
+    <string name="no_shifts_today">No shifts recorded today</string>
+    <string name="empty_records_hint">No attendance records yet. Tap + to add a record</string>
+    <string name="select_time_title">Select Time</string>
+    <string name="offline_badge">Offline</string>
+    <string name="qr_clock_time">Clock Time</string>
+    <string name="confirm_clock_in">Confirm Clock-In</string>
+    <string name="confirm_clock_out">Confirm Clock-Out</string>
+    <string name="ess_imported_banner">Imported from ESS (your edits are saved locally)</string>
+    <string name="close">Close</string>
+    <string name="switch_account">Switch Account</string>
 </resources>

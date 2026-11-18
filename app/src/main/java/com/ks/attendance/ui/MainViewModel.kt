@@ -645,7 +645,19 @@ class MainViewModel(
         }
     }
 
+    fun exportCsv(onlyCurrentPeriod: Boolean = true) {
+        exportInternal(isHtml = false, onlyCurrentPeriod = onlyCurrentPeriod)
+    }
+
+    fun exportHtml(onlyCurrentPeriod: Boolean = true) {
+        exportInternal(isHtml = true, onlyCurrentPeriod = onlyCurrentPeriod)
+    }
+
     fun exportExcel(onlyCurrentPeriod: Boolean = true) {
+        exportCsv(onlyCurrentPeriod)
+    }
+
+    private fun exportInternal(isHtml: Boolean, onlyCurrentPeriod: Boolean = true) {
         viewModelScope.launch {
             try {
                 val accId = _homeState.value.activeAccount?.id ?: repo.getActiveAccountId()
@@ -681,34 +693,45 @@ class MainViewModel(
                 val empName = activeAcc?.let { it.staffShortName.ifBlank { it.staffName } }
                     ?: _homeState.value.employeeName.ifBlank { prefs.employeeName.first() }
 
-                val result = ExportUtil.exportExcel(
-                    context = context,
-                    records = records,
-                    notes = repo.getAllNotesDirect(),
-                    periodStart = ps,
-                    periodEnd = pe,
-                    hourlyRate = rate,
-                    isFixedEmployment = isFixed,
-                    standardShiftHours = stdShift,
-                    employeeName = empName
-                )
+                val result = if (isHtml) {
+                    ExportUtil.exportHtmlReport(
+                        context = context,
+                        records = records,
+                        notes = repo.getAllNotesDirect(),
+                        periodStart = ps,
+                        periodEnd = pe,
+                        hourlyRate = rate,
+                        isFixedEmployment = isFixed,
+                        standardShiftHours = stdShift,
+                        employeeName = empName
+                    )
+                } else {
+                    ExportUtil.exportCsv(
+                        context = context,
+                        records = records,
+                        notes = repo.getAllNotesDirect(),
+                        periodStart = ps,
+                        periodEnd = pe,
+                        hourlyRate = rate,
+                        isFixedEmployment = isFixed,
+                        standardShiftHours = stdShift,
+                        employeeName = empName
+                    )
+                }
                 _reportState.value = _reportState.value.copy(isExporting = false)
 
                 if (result.isSuccess) {
                     val path = result.getOrThrow()
-                    showHomeMessage("تم تصدير ملف الإكسل بنجاح ✓\nتم الحفظ في: $path")
+                    val msg = if (isHtml) "تم تصدير تقرير HTML بنجاح ✓" else "تم تصدير ملف CSV بنجاح ✓"
+                    showHomeMessage("$msg\nتم الحفظ في: $path")
                     ExportUtil.shareExportedFile(context, path)
                 } else {
-                    showHomeMessage("فشل تصدير الإكسل: ${result.exceptionOrNull()?.message}", isError = true)
+                    showHomeMessage("فشل التصدير: ${result.exceptionOrNull()?.message}", isError = true)
                 }
             } catch (e: Exception) {
                 showHomeMessage("خطأ أثناء التصدير: ${e.message}", isError = true)
             }
         }
-    }
-
-    fun exportCsv() {
-        exportExcel()
     }
 
     // ─── JSON Backup & Restore ────────────────────────────────────────────────

@@ -11,8 +11,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ks.attendance.R
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
 
@@ -65,7 +67,7 @@ fun DateRangePickerDialog(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("تطبيق وجلب البيانات ⚡", fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.apply_and_fetch), fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
@@ -73,7 +75,7 @@ fun DateRangePickerDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("إلغاء")
+                Text(stringResource(R.string.cancel))
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -100,7 +102,7 @@ fun DateRangePickerDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "اختر الفترة المخصصة",
+                        text = stringResource(R.string.custom_period_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -113,7 +115,7 @@ fun DateRangePickerDialog(
                         color = MaterialTheme.colorScheme.primaryContainer
                     ) {
                         Text(
-                            text = "$daysCount يوم",
+                            text = stringResource(R.string.selected_days_count, daysCount),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -125,20 +127,17 @@ fun DateRangePickerDialog(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Quick Presets Row
+            // Quick Presets Row (Streamlined to 4 essential cycles)
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val presets: List<Pair<String, () -> Pair<String, String>>> = listOf(
-                    "الشهر الحالي" to { PayrollUtil.getCurrentMonthPeriod() },
-                    "الشهر السابق" to { PayrollUtil.getPreviousMonthPeriod() },
-                    "دورة 16 - 15" to { PayrollUtil.getPayrollPeriod16to15() },
-                    "دورة 29 - 28" to { PayrollUtil.getPayrollPeriod29to28() },
-                    "آخر 30 يوم" to { DateUtil.getLast30DaysPeriod() },
-                    "آخر 14 يوم" to { DateUtil.getLast14DaysPeriod() },
-                    "آخر 7 أيام" to { DateUtil.getLast7DaysPeriod() }
+                    stringResource(R.string.preset_current_month) to { PayrollUtil.getCurrentMonthPeriod() },
+                    stringResource(R.string.preset_previous_month) to { PayrollUtil.getPreviousMonthPeriod() },
+                    stringResource(R.string.preset_cycle_16_15_current) to { PayrollUtil.getPayrollPeriod16to15() },
+                    stringResource(R.string.preset_cycle_16_15_prev) to { PayrollUtil.getPreviousPayrollPeriod16to15() }
                 )
                 items(presets) { (title, provider) ->
                     val (pStart, pEnd) = provider()

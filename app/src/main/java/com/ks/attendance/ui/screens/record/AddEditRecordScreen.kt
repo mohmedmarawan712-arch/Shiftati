@@ -12,9 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
+import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.KSTopBar
@@ -31,6 +34,7 @@ fun AddEditRecordScreen(
     initialDate: String? = null,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val isEdit = recordId != -1L
     val today = DateUtil.today()
     val settingsState by viewModel.settingsState.collectAsState()
@@ -203,11 +207,11 @@ fun AddEditRecordScreen(
         }
 
         if (outMillis != null && outMillis == inMillis) {
-            errorMsg = "وقت الانصراف لا يمكن أن يكون نفس وقت الدخول"
+            errorMsg = context.getString(R.string.err_same_time)
             return false
         }
         if (outMillis != null && outMillis < inMillis) {
-            errorMsg = "وقت الانصراف يجب أن يكون بعد وقت الدخول"
+            errorMsg = context.getString(R.string.err_out_before_in)
             return false
         }
         errorMsg = null
@@ -261,7 +265,7 @@ fun AddEditRecordScreen(
     Scaffold(
         topBar = {
             KSTopBar(
-                title = if (isEdit) "تعديل السجل" else "إضافة سجل",
+                title = if (isEdit) stringResource(R.string.edit_record_title) else stringResource(R.string.add_record_title),
                 onBack = handleBack,
                 actions = {
                     IconButton(
@@ -271,7 +275,7 @@ fun AddEditRecordScreen(
                     ) {
                         Icon(
                             Icons.Filled.Check,
-                            contentDescription = "حفظ",
+                            contentDescription = stringResource(R.string.save),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
@@ -309,7 +313,7 @@ fun AddEditRecordScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "وردية مستوردة من ESS (تعديلك يُحفظ محلياً)",
+                            text = stringResource(R.string.ess_imported_banner),
                             style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onTertiaryContainer
@@ -341,13 +345,13 @@ fun AddEditRecordScreen(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "وردية بدون انصراف (عطل بالسيرفر) ⚠️",
+                                    text = stringResource(R.string.missing_checkout_banner_title),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFFD97706)
                                 )
                                 Text(
-                                    text = "تطبيق شفت 9 ساعات قياسي تلقائياً لحساب الراتب",
+                                    text = stringResource(R.string.missing_checkout_banner_desc),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -367,14 +371,14 @@ fun AddEditRecordScreen(
                         ) {
                             Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("شفت 9س", fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.settle_9h_btn), fontWeight = FontWeight.Bold)
                         }
                     }
                 }
             }
 
             // ─── Date ─────────────────────────────────────────────────────────
-            SectionLabel("التاريخ")
+            SectionLabel(stringResource(R.string.date_label))
             OutlinedCard(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -427,20 +431,20 @@ fun AddEditRecordScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Filled.BeachAccess,
-                        contentDescription = "يوم إجازة",
+                        contentDescription = stringResource(R.string.off_day_badge),
                         tint = if (isOffDay) ColorOffDay else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "يوم إجازة (OFF)",
+                            text = stringResource(R.string.off_day_badge),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = if (isOffDay) ColorOffDay else MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = if (isOffDay) "عطلة رسمية / إجازة بدون ساعات عمل وتوقيت" else "تحديد هذا اليوم كإجازة بدون مواعيد حضور وانصراف",
+                            text = if (isOffDay) stringResource(R.string.off_day_notice) else stringResource(R.string.off_day_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -458,11 +462,11 @@ fun AddEditRecordScreen(
 
             if (!isOffDay) {
                 // ─── Check-in time ────────────────────────────────────────────────
-                SectionLabel("وقت الدخول")
+                SectionLabel(stringResource(R.string.check_in_label))
                 TimePickerRow(
                     hour = checkInHour,
                     minute = checkInMinute,
-                    label = "وقت الدخول",
+                    label = stringResource(R.string.check_in_label),
                     icon = Icons.Filled.Fingerprint,
                     iconTint = ColorFingerprint,
                     is24Hour = settingsState.is24Hour,
@@ -474,9 +478,9 @@ fun AddEditRecordScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    SectionLabel("وقت الانصراف", modifier = Modifier.weight(1f))
+                    SectionLabel(stringResource(R.string.check_out_label), modifier = Modifier.weight(1f))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("اختياري", style = MaterialTheme.typography.labelSmall,
+                        Text(stringResource(R.string.optional_label), style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(modifier = Modifier.width(8.dp))
                         Switch(checked = hasCheckOut, onCheckedChange = { hasCheckOut = it })
@@ -486,7 +490,7 @@ fun AddEditRecordScreen(
                     TimePickerRow(
                         hour = checkOutHour,
                         minute = checkOutMinute,
-                        label = "وقت الانصراف",
+                        label = stringResource(R.string.check_out_label),
                         icon = Icons.Filled.Logout,
                         iconTint = ColorLogout,
                         is24Hour = settingsState.is24Hour,
@@ -515,7 +519,7 @@ fun AddEditRecordScreen(
                                     tint = MaterialTheme.colorScheme.onPrimaryContainer)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "الساعات المحسوبة: ${PayrollUtil.formatHours(hours)}",
+                                    text = stringResource(R.string.computed_hours_prefix, PayrollUtil.formatHours(hours)),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     fontWeight = FontWeight.Medium
@@ -527,7 +531,7 @@ fun AddEditRecordScreen(
                                     color = MaterialTheme.colorScheme.secondaryContainer
                                 ) {
                                     Text(
-                                        text = "شفت ليلي (ينتهي غداً)",
+                                        text = stringResource(R.string.night_shift_badge),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -557,7 +561,7 @@ fun AddEditRecordScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "تم تسجيل اليوم كإجازة (OFF). لا يلزم إدخال مواعيد.",
+                            text = stringResource(R.string.off_day_notice),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onTertiaryContainer,
                             fontWeight = FontWeight.SemiBold
@@ -567,12 +571,12 @@ fun AddEditRecordScreen(
             }
 
             // ─── Note ─────────────────────────────────────────────────────────
-            SectionLabel("ملاحظة (اختياري)")
+            SectionLabel(stringResource(R.string.notes_optional_label))
             OutlinedTextField(
                 value = noteText,
                 onValueChange = { noteText = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("أضف ملاحظة عن هذا اليوم أو الوردية...") },
+                placeholder = { Text(stringResource(R.string.notes_field_hint)) },
                 minLines = 3,
                 maxLines = 5,
                 leadingIcon = { Icon(Icons.Filled.StickyNote2, contentDescription = null) }
@@ -611,14 +615,14 @@ fun AddEditRecordScreen(
             },
             title = {
                 Text(
-                    text = "تغييرات غير محفوظة",
+                    text = stringResource(R.string.unsaved_changes_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "هل تريد حفظ التعديلات قبل الخروج أم تجاهلها؟",
+                    text = stringResource(R.string.unsaved_changes_msg),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -629,7 +633,7 @@ fun AddEditRecordScreen(
                         if (performSave()) onBack()
                     }
                 ) {
-                    Text("حفظ التغييرات")
+                    Text(stringResource(R.string.save_changes_btn))
                 }
             },
             dismissButton = {
@@ -641,11 +645,11 @@ fun AddEditRecordScreen(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("تجاهل")
+                        Text(stringResource(R.string.discard))
                     }
                     Spacer(modifier = Modifier.width(4.dp))
                     TextButton(onClick = { showUnsavedDialog = false }) {
-                        Text("إلغاء")
+                        Text(stringResource(R.string.cancel))
                     }
                 }
             }
@@ -665,10 +669,10 @@ fun AddEditRecordScreen(
                         workDate = DateUtil.formatDate(it)
                     }
                     showDatePicker = false
-                }) { Text("تأكيد") }
+                }) { Text(stringResource(R.string.confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("إلغاء") }
+                TextButton(onClick = { showDatePicker = false }) { Text(stringResource(R.string.cancel)) }
             }
         ) { DatePicker(state = state) }
     }
@@ -755,17 +759,17 @@ private fun TimePickerDialog(
     val state = rememberTimePickerState(initialHour = initialHour, initialMinute = initialMinute)
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("اختر الوقت") },
+        title = { Text(stringResource(R.string.select_time_title)) },
         text = {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 TimePicker(state = state)
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text("تأكيد") }
+            TextButton(onClick = { onConfirm(state.hour, state.minute) }) { Text(stringResource(R.string.confirm)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("إلغاء") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
         }
     )
 }
