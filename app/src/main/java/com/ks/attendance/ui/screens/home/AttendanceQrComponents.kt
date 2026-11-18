@@ -947,7 +947,7 @@ fun AccountsManagerDialog(
 @Composable
 fun AddAccountDialog(
     onDismiss: () -> Unit,
-    onLogin: (String, String, (Result<Unit>) -> Unit) -> Unit
+    onLogin: (String, String, (Result<EssAccount>) -> Unit) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
