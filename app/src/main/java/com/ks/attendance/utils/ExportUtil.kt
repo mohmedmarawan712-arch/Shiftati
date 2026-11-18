@@ -285,8 +285,10 @@ object ExportUtil {
             appendLine("<div class=\"card\">")
             appendLine("<div class=\"header-title\">$pageTitle</div>")
             appendLine("<div class=\"header-sub\">الفترة: <b>من $periodStart إلى $periodEnd</b></div>")
+            val rateDisplay = "${if (hourlyRate % 1.0 == 0.0) hourlyRate.toLong().toString() else String.format(Locale.US, "%.2f", hourlyRate)} ج"
             appendLine("<div class=\"grid-summary\">")
             appendLine("<div class=\"summary-box\"><div class=\"summary-label\">نظام العمل</div><div class=\"summary-val\">${if (isFixedEmployment) "نظام التعيين" else "نظام الساعة"}</div></div>")
+            appendLine("<div class=\"summary-box\"><div class=\"summary-label\">سعر الساعة</div><div class=\"summary-val\">$rateDisplay</div></div>")
             appendLine("<div class=\"summary-box\"><div class=\"summary-label\">أيام العمل</div><div class=\"summary-val highlight\">$workedDays يوم</div></div>")
             appendLine("<div class=\"summary-box\"><div class=\"summary-label\">أيام الإجازة</div><div class=\"summary-val\">$offDays يوم</div></div>")
             if (isFixedEmployment) {
