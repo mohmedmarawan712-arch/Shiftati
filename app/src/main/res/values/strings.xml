@@ -203,10 +203,15 @@
     <string name="pending_missing_shifts_count">%d Shifts Missing Check-out ⚠️</string>
     <string name="settle_shift_btn">Complete (%.0f hrs) ⚡</string>
     <string name="settle_all_shifts_btn">Complete All (%.0f hrs) ⚡</string>
+    <string name="review_pending_shifts_btn">Review Shifts (%d) 📋</string>
+    <string name="review_pending_dialog_title">Pending Shifts</string>
+    <string name="review_pending_dialog_hint">Specify hours for each shift individually:</string>
+    <string name="hours_8_btn">8h</string>
+    <string name="hours_10_btn">10h</string>
     <string name="missing_checkout_dialog_title">Shift Missing Check-out</string>
-    <string name="missing_checkout_dialog_text">Clock-in was recorded without check-out.\n\nYou can complete the shift with standard hours to calculate salary, or edit the time manually.</string>
-    <string name="revert_ess_dialog_title">Restore from ESS Server</string>
-    <string name="revert_ess_dialog_msg">Restore official server clocking for %s and discard manual adjustments?</string>
+    <string name="missing_checkout_dialog_text">Clock-in recorded without check-out. Specify hours to calculate payroll.</string>
+    <string name="revert_ess_dialog_title">Restore from Server</string>
+    <string name="revert_ess_dialog_msg">Restore original server clocking for %s?</string>
 
     <!-- Attendance List -->
     <string name="fill_off_days_hint">Fill missing days as OFF</string>

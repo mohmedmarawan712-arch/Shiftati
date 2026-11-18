@@ -127,17 +127,13 @@ fun DateRangePickerDialog(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Quick Presets Row (Streamlined to 4 essential cycles)
-            val currentMonthTitle = stringResource(R.string.preset_current_month)
-            val prevMonthTitle = stringResource(R.string.preset_previous_month)
+            // Quick Presets Row: 16-15 Cycles (Current & Previous)
             val cycleCurrentTitle = stringResource(R.string.preset_cycle_16_15_current)
             val cyclePrevTitle = stringResource(R.string.preset_cycle_16_15_prev)
             val presets: List<Pair<String, () -> Pair<String, String>>> = remember(
-                currentMonthTitle, prevMonthTitle, cycleCurrentTitle, cyclePrevTitle
+                cycleCurrentTitle, cyclePrevTitle
             ) {
                 listOf(
-                    currentMonthTitle to { PayrollUtil.getCurrentMonthPeriod() },
-                    prevMonthTitle to { PayrollUtil.getPreviousMonthPeriod() },
                     cycleCurrentTitle to { PayrollUtil.getPayrollPeriod16to15() },
                     cyclePrevTitle to { PayrollUtil.getPreviousPayrollPeriod16to15() }
                 )

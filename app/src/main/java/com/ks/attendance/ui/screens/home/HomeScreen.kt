@@ -57,6 +57,7 @@ fun HomeScreen(
     var showAddAccountDialog by remember { mutableStateOf(false) }
     var showCustomRangePicker by remember { mutableStateOf(false) }
     var showMissingCheckoutInfoDialog by remember { mutableStateOf(false) }
+    var showReviewPendingDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -186,7 +187,11 @@ fun HomeScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = "يوم ${firstPending.workDate} • حضور ${PayrollUtil.formatTime(firstPending.checkInTime, homeState.is24Hour)}",
+                                            text = if (pendingList.size == 1) {
+                                                "${firstPending.workDate} • ${stringResource(R.string.check_in_label)}: ${PayrollUtil.formatTime(firstPending.checkInTime, homeState.is24Hour)}"
+                                            } else {
+                                                stringResource(R.string.review_pending_dialog_hint)
+                                            },
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -208,48 +213,61 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
+                            if (pendingList.size == 1) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { viewModel.settleMissingCheckout(firstPending) },
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFFF59E0B),
+                                            contentColor = Color.Black
+                                        )
+                                    ) {
+                                        Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = stringResource(R.string.settle_shift_btn, homeState.standardShiftHours),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+
+                                    OutlinedButton(
+                                        onClick = { onNavigate("record/${firstPending.id}") },
+                                        modifier = Modifier.weight(0.8f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
+                                    ) {
+                                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFF59E0B))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = stringResource(R.string.edit),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            } else {
                                 Button(
-                                    onClick = {
-                                        if (pendingList.size == 1) {
-                                            viewModel.settleMissingCheckout(firstPending)
-                                        } else {
-                                            viewModel.settleAllMissingCheckouts()
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1.2f),
+                                    onClick = { showReviewPendingDialog = true },
+                                    modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = Color(0xFFF59E0B),
                                         contentColor = Color.Black
                                     )
                                 ) {
-                                    Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(Icons.Filled.Assignment, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = if (pendingList.size == 1) stringResource(R.string.settle_shift_btn, homeState.standardShiftHours)
-                                               else stringResource(R.string.settle_all_shifts_btn, homeState.standardShiftHours),
+                                        text = stringResource(R.string.review_pending_shifts_btn, pendingList.size),
                                         style = MaterialTheme.typography.labelMedium,
                                         fontWeight = FontWeight.Bold
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = { onNavigate("record/${firstPending.id}") },
-                                    modifier = Modifier.weight(0.8f),
-                                    shape = RoundedCornerShape(10.dp),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f))
-                                ) {
-                                    Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(15.dp), tint = Color(0xFFF59E0B))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = stringResource(R.string.edit),
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
                             }
@@ -651,6 +669,22 @@ fun HomeScreen(
                     ) {
                         Text(stringResource(R.string.ok_understood), fontWeight = FontWeight.Bold)
                     }
+                }
+            )
+        }
+
+        // ─── Review Multiple Pending Shifts Dialog ────────────────────────────
+        if (showReviewPendingDialog && homeState.pendingMissingCheckouts.isNotEmpty()) {
+            ReviewPendingShiftsDialog(
+                pendingList = homeState.pendingMissingCheckouts,
+                is24Hour = homeState.is24Hour,
+                standardShiftHours = homeState.standardShiftHours,
+                onDismiss = { showReviewPendingDialog = false },
+                onSettleRecord = { rec, hours ->
+                    viewModel.settleMissingCheckout(rec, hours)
+                },
+                onEditRecord = { rec ->
+                    onNavigate("record/${rec.id}")
                 }
             )
         }
