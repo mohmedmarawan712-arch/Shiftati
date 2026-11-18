@@ -60,6 +60,7 @@ fun HomeScreen(
     var showQrDialog by remember { mutableStateOf(false) }
     var qrInitialEvent by remember { mutableStateOf(QrUtil.EVENT_CLOCK_IN) }
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
+    var showAddAccountDialog by remember { mutableStateOf(false) }
     var showCustomRangePicker by remember { mutableStateOf(false) }
     var showMissingCheckoutInfoDialog by remember { mutableStateOf(false) }
 
@@ -111,7 +112,7 @@ fun HomeScreen(
                     activeAccount = homeState.activeAccount,
                     accountsCount = homeState.allAccounts.size,
                     onOpenAccountManager = { showAccountsManagerDialog = true },
-                    onQuickAddAccount = { onNavigate("settings") }
+                    onQuickAddAccount = { showAddAccountDialog = true }
                 )
             }
 
@@ -591,7 +592,17 @@ fun HomeScreen(
                 onRefreshActive = { viewModel.refreshActiveAccount() },
                 onOpenAddAccount = {
                     showAccountsManagerDialog = false
-                    onNavigate("settings")
+                    showAddAccountDialog = true
+                }
+            )
+        }
+
+        // ─── Add Account Dialog ───────────────────────────────────────────────
+        if (showAddAccountDialog) {
+            AddAccountDialog(
+                onDismiss = { showAddAccountDialog = false },
+                onLogin = { email, password, onComplete ->
+                    viewModel.addNewAccount(email, password, onComplete)
                 }
             )
         }

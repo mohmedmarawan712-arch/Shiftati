@@ -30,6 +30,9 @@ import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.DatePickerDialog
 import com.ks.attendance.ui.components.DateRangePickerDialog
 import com.ks.attendance.ui.components.KSTopBar
+import com.ks.attendance.ui.screens.home.AccountCardHeaderBar
+import com.ks.attendance.ui.screens.home.AccountsManagerDialog
+import com.ks.attendance.ui.screens.home.AddAccountDialog
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
 import com.ks.attendance.utils.PayrollUtil
@@ -61,14 +64,9 @@ fun SettingsScreen(
     var showRangePicker by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
 
-    // ESS states
-    var essEmail by remember { mutableStateOf("") }
-    var essPassword by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
-    var isLoggingIn by remember { mutableStateOf(false) }
-    var isSyncing by remember { mutableStateOf(false) }
-    var showAddAccountForm by remember { mutableStateOf(false) }
-    var loginMessage by remember { mutableStateOf<String?>(null) }
+    // ESS Account Manager states
+    var showAccountsManagerDialog by remember { mutableStateOf(false) }
+    var showAddAccountDialog by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(homeState.message) {
@@ -100,240 +98,13 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // ─── 1. Unified ESS Accounts Card ─────────────────────────────────
-            SlateCard(
-                title = stringResource(R.string.section_ess_accounts),
-                icon = Icons.Filled.ManageAccounts
-            ) {
-                val accounts = homeState.allAccounts
-                val activeAccount = homeState.activeAccount
-
-                if (accounts.isNotEmpty()) {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        accounts.forEach { acc ->
-                            val isActive = (acc.id == activeAccount?.id)
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(14.dp))
-                                    .clickable {
-                                        if (!isActive) viewModel.switchAccount(acc)
-                                    },
-                                shape = RoundedCornerShape(14.dp),
-                                color = if (isActive)
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                                border = if (isActive)
-                                    androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
-                                else null
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = acc.staffName,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = FontWeight.Bold,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            if (isActive) {
-                                                Spacer(modifier = Modifier.width(6.dp))
-                                                Icon(
-                                                    imageVector = Icons.Filled.CheckCircle,
-                                                    contentDescription = stringResource(R.string.ess_active_badge),
-                                                    tint = ColorWorked,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
-                                        }
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = "كود الموظف: ${acc.staffId} • كود المطعم: ${acc.suId}",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = acc.email,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                        )
-                                    }
-
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(
-                                            onClick = { viewModel.deleteAccount(acc) },
-                                            modifier = Modifier.size(34.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Filled.DeleteOutline,
-                                                contentDescription = stringResource(R.string.ess_delete_account),
-                                                tint = ColorLogout,
-                                                modifier = Modifier.size(20.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Action buttons: Refresh active account & Toggle add form
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                isSyncing = true
-                                viewModel.refreshActiveAccount {
-                                    isSyncing = false
-                                }
-                            },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !isSyncing
-                        ) {
-                            if (isSyncing) {
-                                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                            } else {
-                                Icon(Icons.Filled.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(stringResource(R.string.ess_refresh_data), style = MaterialTheme.typography.labelMedium)
-                            }
-                        }
-
-                        Button(
-                            onClick = { showAddAccountForm = !showAddAccountForm },
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (showAddAccountForm) Icons.Filled.Close else Icons.Filled.Add,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (showAddAccountForm) stringResource(R.string.ess_close_form) else stringResource(R.string.ess_add_account_btn),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                // Add Account Form (Shown when no accounts or user toggles add)
-                AnimatedVisibility(
-                    visible = accounts.isEmpty() || showAddAccountForm,
-                    enter = fadeIn() + expandVertically(),
-                    exit = fadeOut() + shrinkVertically()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = if (accounts.isNotEmpty()) 14.dp else 0.dp)
-                    ) {
-                        if (accounts.isNotEmpty()) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(bottom = 12.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                text = stringResource(R.string.ess_add_new_account_title),
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
-                        }
-
-                        OutlinedTextField(
-                            value = essEmail,
-                            onValueChange = { essEmail = it },
-                            label = { Text(stringResource(R.string.ess_email)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
-                        )
-
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        OutlinedTextField(
-                            value = essPassword,
-                            onValueChange = { essPassword = it },
-                            label = { Text(stringResource(R.string.ess_password)) },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                            trailingIcon = {
-                                IconButton(onClick = { showPassword = !showPassword }) {
-                                    Icon(
-                                        imageVector = if (showPassword) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
-                            },
-                            singleLine = true
-                        )
-
-                        Spacer(modifier = Modifier.height(14.dp))
-
-                        Button(
-                            onClick = {
-                                if (essEmail.isNotBlank() && essPassword.isNotBlank()) {
-                                    isLoggingIn = true
-                                    loginMessage = null
-                                    viewModel.addNewAccount(essEmail.trim(), essPassword) { res ->
-                                        isLoggingIn = false
-                                        if (res.isSuccess) {
-                                            essEmail = ""
-                                            essPassword = ""
-                                            showAddAccountForm = false
-                                        } else {
-                                            loginMessage = "فشل: ${res.exceptionOrNull()?.message}"
-                                        }
-                                    }
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            enabled = !isLoggingIn && essEmail.isNotBlank() && essPassword.isNotBlank()
-                        ) {
-                            if (isLoggingIn) {
-                                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp, color = Color.White)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.ess_logging_in_loading))
-                            } else {
-                                Icon(Icons.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.ess_login_and_save), fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-
-                loginMessage?.let { msg ->
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = msg,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            // ─── 1. Unified ESS Account Card (Home Style) ─────────────────────
+            AccountCardHeaderBar(
+                activeAccount = homeState.activeAccount,
+                accountsCount = homeState.allAccounts.size,
+                onOpenAccountManager = { showAccountsManagerDialog = true },
+                onQuickAddAccount = { showAddAccountDialog = true }
+            )
 
             // ─── 2. Hourly Rate Card ──────────────────────────────────────────
             SlateCard(
@@ -732,6 +503,35 @@ fun SettingsScreen(
                     TextButton(onClick = { showThemeDialog = false }) {
                         Text("إلغاء", fontWeight = FontWeight.Bold)
                     }
+                }
+            )
+        }
+
+        // ─── Accounts Manager Dialog ──────────────────────────────────────────
+        if (showAccountsManagerDialog) {
+            AccountsManagerDialog(
+                accounts = homeState.allAccounts,
+                activeAccount = homeState.activeAccount,
+                onDismiss = { showAccountsManagerDialog = false },
+                onSelectAccount = { acc ->
+                    viewModel.switchAccount(acc)
+                    showAccountsManagerDialog = false
+                },
+                onDeleteAccount = { acc -> viewModel.deleteAccount(acc) },
+                onRefreshActive = { viewModel.refreshActiveAccount() },
+                onOpenAddAccount = {
+                    showAccountsManagerDialog = false
+                    showAddAccountDialog = true
+                }
+            )
+        }
+
+        // ─── Add Account Dialog ───────────────────────────────────────────────
+        if (showAddAccountDialog) {
+            AddAccountDialog(
+                onDismiss = { showAddAccountDialog = false },
+                onLogin = { email, password, onComplete ->
+                    viewModel.addNewAccount(email, password, onComplete)
                 }
             )
         }

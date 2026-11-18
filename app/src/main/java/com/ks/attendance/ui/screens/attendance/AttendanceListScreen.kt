@@ -49,7 +49,6 @@ fun AttendanceListScreen(
     var isReverting by remember { mutableStateOf(false) }
     var recordToSettle by remember { mutableStateOf<AttendanceRecord?>(null) }
     var showRangePicker by remember { mutableStateOf(false) }
-    var showExportDialog by remember { mutableStateOf(false) }
 
     var filterByPeriod by remember { mutableStateOf(true) }
     val hasActivePeriod = homeState.periodStart.isNotBlank() && homeState.periodEnd.isNotBlank()
@@ -77,14 +76,7 @@ fun AttendanceListScreen(
                 title = stringResource(R.string.nav_records),
                 onBack = null,
                 actions = {
-                    IconButton(onClick = { viewModel.fillMissingDaysAsOff() }) {
-                        Icon(
-                            Icons.Filled.BeachAccess,
-                            contentDescription = stringResource(R.string.fill_off_days_hint),
-                            tint = ColorOffDay
-                        )
-                    }
-                    IconButton(onClick = { showExportDialog = true }) {
+                    IconButton(onClick = { viewModel.exportHtml(onlyCurrentPeriod = filterByPeriod) }) {
                         Icon(
                             Icons.Filled.FileDownload,
                             contentDescription = stringResource(R.string.export_report_hint),
@@ -580,111 +572,6 @@ fun AttendanceListScreen(
                     viewModel.setCustomPeriodRange(start, end, autoSync = true)
                 },
                 onDismiss = { showRangePicker = false }
-            )
-        }
-
-        // ─── Export Format Choice Dialog ──────────────────────────────────────
-        if (showExportDialog) {
-            AlertDialog(
-                onDismissRequest = { showExportDialog = false },
-                icon = {
-                    Icon(
-                        Icons.Filled.FileDownload,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                },
-                title = {
-                    Text(
-                        text = stringResource(R.string.export_dialog_title),
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        // Option 1: Universal CSV
-                        Surface(
-                            onClick = {
-                                showExportDialog = false
-                                viewModel.exportCsv(onlyCurrentPeriod = filterByPeriod)
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Filled.TableChart,
-                                    contentDescription = null,
-                                    tint = Color(0xFF107C41),
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.export_csv_title),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.export_csv_desc),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-
-                        // Option 2: Responsive HTML Report
-                        Surface(
-                            onClick = {
-                                showExportDialog = false
-                                viewModel.exportHtml(onlyCurrentPeriod = filterByPeriod)
-                            },
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Filled.Description,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.export_html_title),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.export_html_desc),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-                        }
-                    }
-                },
-                confirmButton = {},
-                dismissButton = {
-                    TextButton(onClick = { showExportDialog = false }) {
-                        Text(stringResource(R.string.cancel))
-                    }
-                }
             )
         }
     }
