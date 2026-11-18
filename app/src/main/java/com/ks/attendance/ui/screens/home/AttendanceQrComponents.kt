@@ -41,6 +41,7 @@ import com.ks.attendance.R
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.EssAccount
 import com.ks.attendance.ui.theme.*
+import com.ks.attendance.utils.ErrorUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.qr.QrUtil
 import java.text.SimpleDateFormat
@@ -1105,7 +1106,7 @@ fun AddAccountDialog(
                                 if (res.isSuccess) {
                                     onDismiss()
                                 } else {
-                                    errorMessage = res.exceptionOrNull()?.message ?: "حدث خطأ أثناء تسجيل الدخول"
+                                    errorMessage = ErrorUtil.getUserFriendlyMessage(res.exceptionOrNull())
                                 }
                             }
                         }

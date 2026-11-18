@@ -8,6 +8,7 @@ import com.ks.attendance.data.local.entity.DayNote
 import com.ks.attendance.data.local.entity.EssAccount
 import com.ks.attendance.data.remote.EssInstance
 import com.ks.attendance.data.repository.AttendanceRepository
+import com.ks.attendance.utils.ErrorUtil
 import com.ks.attendance.utils.ExportUtil
 import com.ks.attendance.utils.PayrollUtil
 import com.ks.attendance.utils.PrefsUtil
@@ -1149,7 +1150,8 @@ class MainViewModel(
                     onDone?.invoke(true)
                 }
             } else {
-                showHomeMessage("تعذر تحديث البيانات، تم استخدام النسخة المحفوظة", isError = true)
+                val friendly = ErrorUtil.getUserFriendlyMessage(res.exceptionOrNull(), "تعذر تحديث البيانات")
+                showHomeMessage("$friendly (تم استخدام النسخة المحفوظة)", isError = true)
                 onDone?.invoke(false)
             }
         }
@@ -1223,10 +1225,12 @@ class MainViewModel(
                     }
                     onDone(true, msg)
                 } else {
-                    onDone(false, result.exceptionOrNull()?.message ?: "فشلت استعادة الوردية من السيرفر")
+                    val friendly = ErrorUtil.getUserFriendlyMessage(result.exceptionOrNull(), "تعذر استعادة الوردية")
+                    onDone(false, friendly)
                 }
             } catch (e: Exception) {
-                onDone(false, e.message ?: "حدث خطأ أثناء المزامنة")
+                val friendly = ErrorUtil.getUserFriendlyMessage(e, "تعذر استعادة الوردية")
+                onDone(false, friendly)
             }
         }
     }
@@ -1308,9 +1312,18 @@ class MainViewModel(
             }
             if (result.isSuccess) {
                 refreshHome()
-                onResult(result.getOrDefault(0))
+                val count = result.getOrDefault(0)
+                if (!silent) {
+                    if (count > 0) {
+                        showHomeMessage("تمت المزامنة بنجاح ($count وردية)")
+                    } else {
+                        showHomeMessage("البيانات محدثة بالفعل")
+                    }
+                }
+                onResult(count)
             } else if (!silent) {
-                showHomeMessage("فشل المزامنة: ${result.exceptionOrNull()?.message}", true)
+                val errorMsg = ErrorUtil.getUserFriendlyMessage(result.exceptionOrNull(), "تعذر المزامنة")
+                showHomeMessage(errorMsg, isError = true)
             }
         }
     }
