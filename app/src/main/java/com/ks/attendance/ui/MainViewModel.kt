@@ -412,10 +412,15 @@ class MainViewModel(
                 val hoursToApply = customHours ?: stdShift
                 val outTime = record.checkInTime + (hoursToApply * 3_600_000L).toLong()
 
-                val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
+                val cleanBaseNote = record.note
+                    .replace(Regex("""\s*\(إكمال:[^)]*\)"""), "")
+                    .replace(Regex("""\s*حضور ESS \+ إكمال انصراف\s*\([^)]*\)"""), "")
+                    .trim()
+
+                val updatedNote = if (cleanBaseNote.isBlank() || cleanBaseNote == "حضور بدون انصراف (سيرفر)") {
                     "حضور ESS + إكمال انصراف (${PayrollUtil.formatHours(hoursToApply)})"
                 } else {
-                    "${record.note} (إكمال: ${PayrollUtil.formatHours(hoursToApply)})"
+                    "$cleanBaseNote (إكمال: ${PayrollUtil.formatHours(hoursToApply)})"
                 }
 
                 val updated = record.copy(
@@ -455,10 +460,15 @@ class MainViewModel(
 
                 for (record in pending) {
                     val outTime = record.checkInTime + (stdShift * 3_600_000L).toLong()
-                    val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
+                    val cleanBaseNote = record.note
+                        .replace(Regex("""\s*\(إكمال:[^)]*\)"""), "")
+                        .replace(Regex("""\s*حضور ESS \+ إكمال انصراف\s*\([^)]*\)"""), "")
+                        .trim()
+
+                    val updatedNote = if (cleanBaseNote.isBlank() || cleanBaseNote == "حضور بدون انصراف (سيرفر)") {
                         "حضور ESS + إكمال انصراف (${PayrollUtil.formatHours(stdShift)})"
                     } else {
-                        "${record.note} (إكمال: ${PayrollUtil.formatHours(stdShift)})"
+                        "$cleanBaseNote (إكمال: ${PayrollUtil.formatHours(stdShift)})"
                     }
                     val updated = record.copy(
                         checkOutTime = outTime,
@@ -674,18 +684,22 @@ class MainViewModel(
                 val customEnd = prefs.getCustomEndDate(p, accId)
                 val isFixed = prefs.getFixedEmployment(p, accId)
                 val stdShift = prefs.getStandardShiftHours(p, accId)
-                val (ps, pe) = PayrollUtil.resolvePeriod(
+                val (resolvedPs, resolvedPe) = PayrollUtil.resolvePeriod(
                     cycleType = cycleType,
                     startDay = startDay,
                     customStart = customStart,
                     customEnd = customEnd,
                     referenceDate = Date()
                 )
+                val activePs = _homeState.value.periodStart
+                val activePe = _homeState.value.periodEnd
+                val ps = if (activePs.isNotBlank()) activePs else resolvedPs
+                val pe = if (activePe.isNotBlank()) activePe else resolvedPe
 
                 val records = if (onlyCurrentPeriod && ps.isNotBlank() && pe.isNotBlank()) {
-                    repo.getRecordsInRangeDirect(ps, pe)
+                    repo.getRecordsInRangeDirect(ps, pe, accId)
                 } else {
-                    repo.getAllRecordsDirect()
+                    repo.getAllRecordsDirect(accId)
                 }
 
                 if (records.isEmpty()) {
@@ -701,7 +715,7 @@ class MainViewModel(
                 val result = ExportUtil.exportHtmlReport(
                     context = context,
                     records = records,
-                    notes = repo.getAllNotesDirect(),
+                    notes = repo.getAllNotesDirect(accId),
                     periodStart = ps,
                     periodEnd = pe,
                     hourlyRate = rate,

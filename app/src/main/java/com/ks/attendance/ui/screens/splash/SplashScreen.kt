@@ -91,7 +91,7 @@ fun SplashScreen(
 
             // Subtitle
             Text(
-                text = "إدارة الورديات ومتابعة الراتب",
+                text = "إدارة الورديات ومتابعة المرتب",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = subtitleColor

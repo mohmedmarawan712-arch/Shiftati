@@ -259,7 +259,7 @@ fun SettingsScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("تحديد بالتقويم", fontWeight = FontWeight.Bold)
+                                        Text("التقويم", fontWeight = FontWeight.Bold)
                                     }
 
                                     OutlinedButton(
@@ -273,7 +273,7 @@ fun SettingsScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
-                                        Text("مزامنة الفترة")
+                                        Text("مزامنة")
                                     }
                                 }
                             }
@@ -386,11 +386,11 @@ fun SettingsScreen(
 
             // ─── 5. Data & Backup Card (JSON Full Backup & Restore) ───────────
             SlateCard(
-                title = "إدارة البيانات والنسخ الاحتياطي",
+                title = "النسخ الاحتياطي",
                 icon = Icons.Filled.Storage
             ) {
                 Text(
-                    text = "نسخ احتياطي شامل لجميع السجلات والورديات والملاحظات وبيانات تسجيل الدخول والإعدادات في ملف JSON آمن ومستقل.",
+                    text = "حفظ واستعادة بيانات التطبيق والحسابات.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -405,7 +405,7 @@ fun SettingsScreen(
                 ) {
                     Icon(Icons.Filled.Backup, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("إنشاء نسخة احتياطية كاملة (JSON)", fontWeight = FontWeight.Bold)
+                    Text("إنشاء نسخة احتياطية", fontWeight = FontWeight.Bold)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -418,7 +418,7 @@ fun SettingsScreen(
                 ) {
                     Icon(Icons.Filled.Restore, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("استعادة نسخة احتياطية (JSON)", fontWeight = FontWeight.Bold)
+                    Text("استعادة نسخة احتياطية", fontWeight = FontWeight.Bold)
                 }
             }
 

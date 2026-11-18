@@ -755,6 +755,8 @@ fun AccountsManagerDialog(
     onRefreshActive: () -> Unit,
     onOpenAddAccount: () -> Unit
 ) {
+    var accountToDelete by remember { mutableStateOf<EssAccount?>(null) }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -892,7 +894,7 @@ fun AccountsManagerDialog(
 
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(
-                                            onClick = { onDeleteAccount(acc) },
+                                            onClick = { accountToDelete = acc },
                                             modifier = Modifier.size(32.dp)
                                         ) {
                                             Icon(
@@ -940,6 +942,46 @@ fun AccountsManagerDialog(
                 }
             }
         }
+    }
+
+    accountToDelete?.let { acc ->
+        AlertDialog(
+            onDismissRequest = { accountToDelete = null },
+            title = {
+                Text(
+                    text = stringResource(R.string.delete_account_confirm_title),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(
+                        R.string.delete_account_confirm_msg,
+                        acc.staffName.ifBlank { acc.email }
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val toDel = acc
+                        accountToDelete = null
+                        onDeleteAccount(toDel)
+                    }
+                ) {
+                    Text(
+                        text = stringResource(R.string.delete),
+                        color = ColorLogout,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { accountToDelete = null }) {
+                    Text(text = stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 

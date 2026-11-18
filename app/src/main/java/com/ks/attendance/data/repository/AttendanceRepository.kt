@@ -408,7 +408,7 @@ class AttendanceRepository(
                     hoursWorked = 0.0,
                     isFromServer = true,
                     source = "ess_online",
-                    note = if (record.note.contains("حضور")) record.note else "حضور بدون انصراف (سيرفر)"
+                    note = "حضور بدون انصراف (سيرفر)"
                 )
                 attendanceDao.update(reverted)
                 return@runCatching reverted
@@ -424,13 +424,19 @@ class AttendanceRepository(
             matchingShifts.minByOrNull { kotlin.math.abs(it.start.time - record.checkInTime) } ?: matchingShifts.first()
         }
 
+        val cleanNote = record.note
+            .replace(Regex("""\s*\(إكمال:[^)]*\)"""), "")
+            .replace(Regex("""\s*حضور ESS \+ إكمال انصراف\s*\([^)]*\)"""), "")
+            .replace("حضور بدون انصراف (سيرفر)", "")
+            .trim()
+
         val reverted = record.copy(
             checkInTime = shift.start.time,
             checkOutTime = shift.end.time,
             hoursWorked = shift.hoursWorked,
             isFromServer = true,
-            source = "ess_online"
-            // Note and accountId are preserved
+            source = "ess_online",
+            note = cleanNote
         )
         attendanceDao.update(reverted)
         reverted

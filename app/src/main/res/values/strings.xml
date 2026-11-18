@@ -148,7 +148,7 @@
     <string name="attendance_copy_qr">Copy Code</string>
     <string name="attendance_qr_copied">QR code payload copied</string>
     <string name="attendance_require_account">Please sign in or add an account from Settings first</string>
-    <string name="attendance_update_current_time">Update to current time</string>
+    <string name="attendance_update_current_time">Current time</string>
 
     <!-- Employment Onboarding Dialog -->
     <string name="employment_dialog_title">Choose Salary Calculation Mode</string>
@@ -276,4 +276,6 @@
     <string name="close">Close</string>
     <string name="switch_account">Switch Account</string>
     <string name="action_sync">Quick Sync</string>
+    <string name="delete_account_confirm_title">Delete Account</string>
+    <string name="delete_account_confirm_msg">Delete account %s?</string>
 </resources>

@@ -17,7 +17,7 @@
     <string name="elapsed">المنقضي</string>
     <string name="today_hours">ساعات اليوم</string>
     <string name="month_hours">ساعات الشهر</string>
-    <string name="estimated_salary">الراتب التقديري</string>
+    <string name="estimated_salary">المرتب التقديري</string>
     <string name="period_label">الدورة المالية:</string>
     <string name="today_records">ورديات اليوم</string>
     <string name="no_records_today">لا توجد شفتات مسجلة لليوم</string>
@@ -61,7 +61,7 @@
     <string name="sync_ess">مزامنة ESS</string>
     <string name="total_hours">إجمالي الساعات</string>
     <string name="worked_days">أيام العمل</string>
-    <string name="salary_calculated">الراتب المحسوب</string>
+    <string name="salary_calculated">المرتب المحسوب</string>
     <string name="current_cycle">الدورة الحالية</string>
     <string name="daily_breakdown">التفصيل اليومي</string>
 
@@ -72,7 +72,7 @@
     <string name="employee_name_hint">الاسم الأول والثاني</string>
     <string name="hourly_rate">سعر الساعة</string>
 
-    <string name="section_payroll_cycle">دورة الراتب</string>
+    <string name="section_payroll_cycle">دورة المرتب</string>
     <string name="cycle_16_15">تلقائي (16 - 15)</string>
     <string name="cycle_29_28">تلقائي (29 - 28)</string>
     <string name="cycle_current_month">الشهر الحالي</string>
@@ -148,10 +148,10 @@
     <string name="attendance_copy_qr">نسخ النص</string>
     <string name="attendance_qr_copied">تم نسخ رمز الـ QR بنجاح</string>
     <string name="attendance_require_account">يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً</string>
-    <string name="attendance_update_current_time">تحديث للوقت الحالي</string>
+    <string name="attendance_update_current_time">الوقت الحالي</string>
 
     <!-- Employment Onboarding Dialog -->
-    <string name="employment_dialog_title">اختر طريقة حساب الراتب</string>
+    <string name="employment_dialog_title">اختر طريقة حساب المرتب</string>
     <string name="employment_hourly_title">نظام الساعة</string>
     <string name="employment_hourly_desc">حساب إجمالي ساعات العمل بالسعر المحدد</string>
     <string name="employment_salaried_title">نظام التعيين</string>
@@ -172,7 +172,7 @@
     <string name="export_csv_title">جدول بيانات قياسي (CSV)</string>
     <string name="export_csv_desc">ملف جداول قياسي متوافق مع كافة برامج الإكسل والهواتف</string>
     <string name="export_html_title">تقرير للعرض والطباعة (HTML)</string>
-    <string name="export_html_desc">يفتح مباشرة في متصفح الهاتف كمسير راتب رسمي</string>
+    <string name="export_html_desc">يفتح مباشرة في متصفح الهاتف كمسير مرتب رسمي</string>
     <string name="export_success_msg">تم تصدير التقرير بنجاح</string>
     <string name="export_saved_in">تم الحفظ في: %s</string>
     <string name="export_failed">فشل التصدير: %s</string>
@@ -213,7 +213,7 @@
     <string name="hours_8_btn">8س</string>
     <string name="hours_10_btn">10س</string>
     <string name="missing_checkout_dialog_title">وردية بدون انصراف</string>
-    <string name="missing_checkout_dialog_text">حضور بدون انصراف. حدد ساعات الانصراف لاحتسابها بالراتب.</string>
+    <string name="missing_checkout_dialog_text">حضور بدون انصراف. حدد ساعات الانصراف لاحتسابها بالمرتب.</string>
     <string name="revert_ess_dialog_title">استعادة من السيرفر</string>
     <string name="revert_ess_dialog_msg">استعادة تسجيل السيرفر الأصلي ليوم %s؟</string>
 
@@ -229,7 +229,7 @@
     <string name="overtime_due_label">مستحق الإضافي</string>
     <string name="total_hours_full">إجمالي الساعات</string>
     <string name="after_break_deduction">صافي الساعات</string>
-    <string name="salary_with_days">الراتب (%d يوم)</string>
+    <string name="salary_with_days">المرتب (%d يوم)</string>
     <string name="current_period_records">سجلات الفترة (%d)</string>
     <string name="show_all_records">عرض الكل (%d)</string>
     <string name="no_records_in_period">لا توجد سجلات بالفترة</string>
@@ -263,7 +263,7 @@
     <string name="err_out_before_in">الانصراف يجب أن يكون بعد الحضور</string>
     <string name="settle_9h_btn">إكمال 9س</string>
     <string name="missing_checkout_banner_title">وردية بدون انصراف</string>
-    <string name="missing_checkout_banner_desc">تحديد انصراف قياسي لاحتساب الراتب</string>
+    <string name="missing_checkout_banner_desc">تحديد انصراف قياسي لاحتساب المرتب</string>
     <string name="today_shifts">ورديات اليوم</string>
     <string name="no_shifts_today">لا توجد ورديات اليوم</string>
     <string name="empty_records_hint">لا توجد سجلات. اضغط + للإضافة</string>
@@ -276,4 +276,6 @@
     <string name="close">إغلاق</string>
     <string name="switch_account">تبديل الحساب</string>
     <string name="action_sync">مزامنة</string>
+    <string name="delete_account_confirm_title">حذف الحساب</string>
+    <string name="delete_account_confirm_msg">حذف حساب %s؟</string>
 </resources>

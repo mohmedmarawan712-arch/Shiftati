@@ -26,7 +26,8 @@ object ExportUtil {
             nameWords.isNotEmpty() -> nameWords[0]
             else -> "شفتاتي"
         }
-        return firstTwoNames.replace(Regex("[/\\\\:*?\"<>|]"), "")
+        val sanitized = firstTwoNames.replace(Regex("[^a-zA-Z0-9_\\-\\u0600-\\u06FF]"), "")
+        return sanitized.ifBlank { "شفتاتي" }
     }
 
     /**
@@ -88,7 +89,7 @@ object ExportUtil {
             } else {
                 appendLine("\"أيام العمل\",\"$workedDays\",\"أيام الإجازة\",\"$offDays\"")
                 appendLine("\"إجمالي الساعات\",\"${PayrollUtil.formatHours(totalRawHours)}\",\"خصم البريك\",\"-${PayrollUtil.formatHours(totalBreakHours)}\"")
-                appendLine("\"صافي الساعات\",\"${PayrollUtil.formatHours(totalNetHours)}\",\"إجمالي الراتب\",\"${PayrollUtil.formatCurrency(totalHourlySalary)}\"")
+                appendLine("\"صافي الساعات\",\"${PayrollUtil.formatHours(totalNetHours)}\",\"إجمالي المرتب\",\"${PayrollUtil.formatCurrency(totalHourlySalary)}\"")
             }
             appendLine()
 
@@ -186,33 +187,89 @@ object ExportUtil {
             appendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">")
             appendLine("<title>تقرير حضور وانصراف - $employeeName</title>")
             appendLine("<style>")
-            appendLine("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 16px; direction: rtl; }")
-            appendLine(".card { background: #ffffff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 16px; border: 1px solid #e2e8f0; }")
-            appendLine(".header-title { font-size: 20px; font-weight: bold; color: #0f172a; margin-bottom: 4px; }")
-            appendLine(".header-sub { font-size: 13px; color: #64748b; }")
+            appendLine(":root {")
+            appendLine("  --bg-page: #f8fafc;")
+            appendLine("  --text-primary: #0f172a;")
+            appendLine("  --text-secondary: #64748b;")
+            appendLine("  --card-bg: #ffffff;")
+            appendLine("  --card-border: #e2e8f0;")
+            appendLine("  --card-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);")
+            appendLine("  --box-bg: #f1f5f9;")
+            appendLine("  --table-header-bg: #f8fafc;")
+            appendLine("  --table-header-text: #475569;")
+            appendLine("  --table-row-even: #fafbfc;")
+            appendLine("  --table-border: #f1f5f9;")
+            appendLine("  --badge-ess-bg: #e0f2fe;")
+            appendLine("  --badge-ess-text: #0369a1;")
+            appendLine("  --badge-manual-bg: #fef3c7;")
+            appendLine("  --badge-manual-text: #b45309;")
+            appendLine("  --badge-off-bg: #f1f5f9;")
+            appendLine("  --badge-off-text: #64748b;")
+            appendLine("  --badge-missing-bg: #fee2e2;")
+            appendLine("  --badge-missing-text: #b91c1c;")
+            appendLine("  --accent: #0284c7;")
+            appendLine("  --green: #16a34a;")
+            appendLine("}")
+            appendLine("@media (prefers-color-scheme: dark) {")
+            appendLine("  :root {")
+            appendLine("    --bg-page: #0b0f17;")
+            appendLine("    --text-primary: #f1f5f9;")
+            appendLine("    --text-secondary: #94a3b8;")
+            appendLine("    --card-bg: #141c28;")
+            appendLine("    --card-border: #233145;")
+            appendLine("    --card-shadow: 0 4px 12px rgba(0,0,0,0.4);")
+            appendLine("    --box-bg: #1b2536;")
+            appendLine("    --table-header-bg: #182232;")
+            appendLine("    --table-header-text: #94a3b8;")
+            appendLine("    --table-row-even: #101722;")
+            appendLine("    --table-border: #1e293b;")
+            appendLine("    --badge-ess-bg: #0c4a6e;")
+            appendLine("    --badge-ess-text: #38bdf8;")
+            appendLine("    --badge-manual-bg: #451a03;")
+            appendLine("    --badge-manual-text: #fbbf24;")
+            appendLine("    --badge-off-bg: #1e293b;")
+            appendLine("    --badge-off-text: #94a3b8;")
+            appendLine("    --badge-missing-bg: #450a0a;")
+            appendLine("    --badge-missing-text: #f87171;")
+            appendLine("    --accent: #38bdf8;")
+            appendLine("    --green: #4ade80;")
+            appendLine("  }")
+            appendLine("}")
+            appendLine("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Cairo', 'Noto Sans Arabic', Arial, sans-serif; background: var(--bg-page); color: var(--text-primary); margin: 0; padding: 16px; direction: rtl; transition: background 0.3s, color 0.3s; }")
+            appendLine(".card { background: var(--card-bg); border-radius: 16px; padding: 20px; box-shadow: var(--card-shadow); margin-bottom: 16px; border: 1px solid var(--card-border); }")
+            appendLine(".header-title { font-size: 20px; font-weight: bold; color: var(--text-primary); margin-bottom: 4px; }")
+            appendLine(".header-sub { font-size: 13px; color: var(--text-secondary); }")
             appendLine(".grid-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-top: 14px; }")
-            appendLine(".summary-box { background: #f1f5f9; border-radius: 12px; padding: 12px; text-align: center; }")
-            appendLine(".summary-label { font-size: 11px; color: #64748b; margin-bottom: 4px; }")
-            appendLine(".summary-val { font-size: 16px; font-weight: bold; color: #0f172a; }")
-            appendLine(".summary-val.highlight { color: #0284c7; }")
-            appendLine(".summary-val.green { color: #16a34a; }")
+            appendLine(".summary-box { background: var(--box-bg); border-radius: 12px; padding: 12px; text-align: center; border: 1px solid var(--card-border); }")
+            appendLine(".summary-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }")
+            appendLine(".summary-val { font-size: 16px; font-weight: bold; color: var(--text-primary); }")
+            appendLine(".summary-val.highlight { color: var(--accent); }")
+            appendLine(".summary-val.green { color: var(--green); }")
             appendLine("table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }")
-            appendLine("th { background: #f8fafc; color: #475569; padding: 10px 8px; text-align: right; border-bottom: 2px solid #e2e8f0; font-weight: 600; }")
-            appendLine("td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; }")
-            appendLine("tr:nth-child(even) td { background: #fafbfc; }")
+            appendLine("th { background: var(--table-header-bg); color: var(--table-header-text); padding: 10px 8px; text-align: right; border-bottom: 2px solid var(--card-border); font-weight: 600; }")
+            appendLine("td { padding: 10px 8px; border-bottom: 1px solid var(--table-border); color: var(--text-primary); }")
+            appendLine("tr:nth-child(even) td { background: var(--table-row-even); }")
             appendLine(".badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }")
-            appendLine(".badge-ess { background: #e0f2fe; color: #0369a1; }")
-            appendLine(".badge-manual { background: #fef3c7; color: #b45309; }")
-            appendLine(".badge-off { background: #f1f5f9; color: #64748b; }")
-            appendLine(".badge-missing { background: #fee2e2; color: #b91c1c; }")
-            appendLine("@media print { .no-print { display: none !important; } body { background: #ffffff !important; padding: 0 !important; } .card { box-shadow: none !important; border: 1px solid #ccc !important; } }")
+            appendLine(".badge-ess { background: var(--badge-ess-bg); color: var(--badge-ess-text); }")
+            appendLine(".badge-manual { background: var(--badge-manual-bg); color: var(--badge-manual-text); }")
+            appendLine(".badge-off { background: var(--badge-off-bg); color: var(--badge-off-text); }")
+            appendLine(".badge-missing { background: var(--badge-missing-bg); color: var(--badge-missing-text); }")
+            appendLine("@media print {")
+            appendLine("  .no-print { display: none !important; }")
+            appendLine("  body { background: #ffffff !important; color: #000000 !important; padding: 0 !important; }")
+            appendLine("  .card { background: #ffffff !important; box-shadow: none !important; border: 1px solid #ccc !important; }")
+            appendLine("  .summary-box { background: #f9f9f9 !important; border: 1px solid #ddd !important; }")
+            appendLine("  th { background: #f0f0f0 !important; color: #000 !important; border-bottom: 2px solid #333 !important; }")
+            appendLine("  td { border-bottom: 1px solid #ddd !important; color: #000 !important; }")
+            appendLine("  tr:nth-child(even) td { background: #fafafa !important; }")
+            appendLine("}")
             appendLine("</style>")
             appendLine("</head>")
             appendLine("<body>")
 
             // Print / Save as PDF Button
             appendLine("<div class=\"no-print\" style=\"display: flex; justify-content: flex-end; margin-bottom: 12px;\">")
-            appendLine("<button onclick=\"window.print()\" style=\"background: #0284c7; color: #ffffff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; font-family: inherit; box-shadow: 0 2px 4px rgba(2,132,199,0.25);\">طباعة / حفظ PDF</button>")
+            appendLine("<button onclick=\"window.print()\" style=\"background: var(--accent); color: #ffffff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; font-family: inherit; box-shadow: 0 2px 4px rgba(0,0,0,0.2);\">طباعة / حفظ PDF</button>")
             appendLine("</div>")
 
             // Top Header Card
@@ -230,7 +287,7 @@ object ExportUtil {
                 appendLine("<div class=\"summary-box\"><div class=\"summary-label\">مستحق الإضافي</div><div class=\"summary-val green\">${PayrollUtil.formatCurrency(totalSalariedOvertimePay)}</div></div>")
             } else {
                 appendLine("<div class=\"summary-box\"><div class=\"summary-label\">صافي الساعات</div><div class=\"summary-val highlight\">${PayrollUtil.formatHours(totalNetHours)}</div></div>")
-                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">إجمالي الراتب</div><div class=\"summary-val green\">${PayrollUtil.formatCurrency(totalHourlySalary)}</div></div>")
+                appendLine("<div class=\"summary-box\"><div class=\"summary-label\">إجمالي المرتب</div><div class=\"summary-val green\">${PayrollUtil.formatCurrency(totalHourlySalary)}</div></div>")
             }
             appendLine("</div>")
             appendLine("</div>")
@@ -323,23 +380,25 @@ object ExportUtil {
     )
 
     private fun getExportDir(context: Context): File {
-        // Preferred: Public Downloads folder
-        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        if (downloads != null && downloads.exists()) {
-            val folder = File(downloads, "Shiftati")
-            if (!folder.exists()) folder.mkdirs()
-            if (folder.canWrite()) return folder
+        val candidates = listOfNotNull(
+            context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.let { File(it, "Shiftati") },
+            context.getExternalFilesDir(null)?.let { File(it, "Shiftati") },
+            File(context.filesDir, "exports")
+        )
+        for (dir in candidates) {
+            try {
+                if (!dir.exists()) dir.mkdirs()
+                val testFile = File(dir, ".test_write_${System.currentTimeMillis()}")
+                testFile.writeText("ok")
+                testFile.delete()
+                return dir
+            } catch (_: Exception) {
+                continue
+            }
         }
-        // Fallback: App External Documents
-        val extDocs = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-        if (extDocs != null) {
-            if (!extDocs.exists()) extDocs.mkdirs()
-            return extDocs
-        }
-        // Fallback: Internal files
-        val internal = File(context.filesDir, "exports")
-        if (!internal.exists()) internal.mkdirs()
-        return internal
+        val fallback = File(context.filesDir, "exports")
+        if (!fallback.exists()) fallback.mkdirs()
+        return fallback
     }
 
     /**
