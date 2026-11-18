@@ -199,14 +199,14 @@
     <string name="clock_in_time_label">وقت تسجيل الحضور</string>
     <string name="duration_so_far">المدة المنقضية</string>
     <string name="clock_out_qr_btn">تسجيل الانصراف (QR)</string>
-    <string name="pending_missing_shift">وردية معلقة بدون انصراف ⚠️</string>
-    <string name="pending_missing_shifts_count">%d ورديات معلقة بدون انصراف ⚠️</string>
-    <string name="settle_shift_btn">تسوية (%.0f س) ⚡</string>
-    <string name="settle_all_shifts_btn">تسوية الكل (%.0f س) ⚡</string>
-    <string name="missing_checkout_dialog_title">ما هي الوردية بدون انصراف؟</string>
-    <string name="missing_checkout_dialog_text">سُجل الحضور عبر سيرفر ESS ولم يُسجل الانصراف بسبب عطل بالسيرفر.\n\nساعاتها حالياً 0 دقيقة. يمكنك تسويتها لاحتساب شفت قياسي في الراتب أو تعديل التوقيت يدوياً.</string>
-    <string name="revert_ess_dialog_title">استعادة توقيت الوردية من ESS</string>
-    <string name="revert_ess_dialog_msg">استعادة مواعيد الحضور والانصراف الأصلية المسجلة على السيرفر ليوم %s؟</string>
+    <string name="pending_missing_shift">وردية بدون انصراف ⚠️</string>
+    <string name="pending_missing_shifts_count">%d ورديات بدون انصراف ⚠️</string>
+    <string name="settle_shift_btn">إكمال الانصراف (%.0f س) ⚡</string>
+    <string name="settle_all_shifts_btn">إكمال انصراف الكل (%.0f س) ⚡</string>
+    <string name="missing_checkout_dialog_title">وردية بدون انصراف</string>
+    <string name="missing_checkout_dialog_text">سُجل الحضور عبر سيرفر ESS ولم يُسجل الانصراف.\n\nيمكنك إكمال الانصراف لاحتساب ساعات الشفت في الراتب أو تعديل التوقيت يدوياً.</string>
+    <string name="revert_ess_dialog_title">استعادة من سيرفر ESS</string>
+    <string name="revert_ess_dialog_msg">استعادة تسجيل السيرفر الأصلي وإلغاء التعديل اليدوي ليوم %s؟</string>
 
     <!-- Attendance List -->
     <string name="fill_off_days_hint">إكمال أيام الإجازات (OFF) المفقودة</string>
@@ -224,10 +224,10 @@
     <string name="current_period_records">سجلات الفترة الحالية (%d)</string>
     <string name="show_all_records">عرض جميع السجلات (%d)</string>
     <string name="no_records_in_period">لا توجد سجلات في الفترة المحددة</string>
-    <string name="settle_shift_dialog_title">تسوية الوردية (عطل بسيرفر ESS)</string>
-    <string name="settle_shift_dialog_msg">تم تسجيل الحضور يوم %1$s الساعة %2$s بدون انصراف.</string>
-    <string name="settle_shift_dialog_hint">يمكنك تطبيق الشفت القياسي (%.0f ساعات) لاحتساب ساعاتها فوراً في الراتب، أو تعديل التوقيت يدوياً:</string>
-    <string name="settle_with_hours_btn">تسوية بـ %.0f ساعات ⚡</string>
+    <string name="settle_shift_dialog_title">إكمال انصراف الوردية</string>
+    <string name="settle_shift_dialog_msg">سُجل الحضور يوم %1$s الساعة %2$s بدون انصراف.</string>
+    <string name="settle_shift_dialog_hint">تطبيق الشفت القياسي (%.0f ساعات) لاحتساب الوردية في الراتب، أو تعديل الوقت يدوياً:</string>
+    <string name="settle_with_hours_btn">إكمال بـ %.0f ساعات ⚡</string>
     <string name="edit_time_manually">تعديل الوقت يدوياً</string>
     <string name="delete_day_title">حذف ورديات اليوم</string>
     <string name="delete_day_msg">حذف جميع ورديات يوم %s؟</string>
@@ -252,9 +252,9 @@
     <string name="save_changes_btn">حفظ التغييرات</string>
     <string name="err_same_time">وقت الانصراف لا يمكن أن يكون نفس وقت الدخول</string>
     <string name="err_out_before_in">وقت الانصراف يجب أن يكون بعد وقت الدخول</string>
-    <string name="settle_9h_btn">شفت 9س</string>
-    <string name="missing_checkout_banner_title">وردية بدون انصراف (عطل بالسيرفر) ⚠️</string>
-    <string name="missing_checkout_banner_desc">تطبيق شفت 9 ساعات قياسي تلقائياً لحساب الراتب</string>
+    <string name="settle_9h_btn">إكمال 9س</string>
+    <string name="missing_checkout_banner_title">وردية بدون انصراف ⚠️</string>
+    <string name="missing_checkout_banner_desc">تحديد انصراف قياسي (9 ساعات) لحساب الراتب</string>
     <string name="today_shifts">ورديات اليوم</string>
     <string name="no_shifts_today">لم تسجل أي وردية اليوم حتى الآن</string>
     <string name="empty_records_hint">لا توجد سجلات حضور بعد. اضغط + لإضافة سجل</string>

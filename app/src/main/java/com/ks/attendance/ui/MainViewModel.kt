@@ -281,7 +281,12 @@ class MainViewModel(
             )
 
             val openSession = repo.getOpenSession()
-            val pendingMissing = repo.getPendingMissingCheckouts()
+            val allPendingMissing = repo.getPendingMissingCheckouts()
+            val pendingMissing = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) {
+                allPendingMissing.filter { it.workDate in periodStart..periodEnd }
+            } else {
+                allPendingMissing
+            }
             val todayRaw = repo.getTotalHoursInRange(today, today)
             val todayHours = if (isFixed) todayRaw else (if (todayRaw > 0.5) todayRaw - 0.5 else 0.0)
             val recordsInRange = repo.getRecordsInRangeDirect(periodStart, periodEnd)
@@ -408,9 +413,9 @@ class MainViewModel(
                 val outTime = record.checkInTime + (hoursToApply * 3_600_000L).toLong()
 
                 val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
-                    "حضور ESS + تسوية انصراف (${PayrollUtil.formatHours(hoursToApply)})"
+                    "حضور ESS + إكمال انصراف (${PayrollUtil.formatHours(hoursToApply)})"
                 } else {
-                    "${record.note} (تسوية: ${PayrollUtil.formatHours(hoursToApply)})"
+                    "${record.note} (إكمال: ${PayrollUtil.formatHours(hoursToApply)})"
                 }
 
                 val updated = record.copy(
@@ -422,9 +427,9 @@ class MainViewModel(
                 )
                 repo.updateRecord(updated)
                 refreshHome()
-                showHomeMessage("تمت تسوية الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)} ✓")
+                showHomeMessage("تم إكمال الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)} ✓")
             } catch (e: Exception) {
-                showHomeMessage("فشل تسوية الوردية: ${e.message}", true)
+                showHomeMessage("فشل إكمال الوردية: ${e.message}", true)
                 refreshHome()
             }
         }
@@ -451,9 +456,9 @@ class MainViewModel(
                 for (record in pending) {
                     val outTime = record.checkInTime + (stdShift * 3_600_000L).toLong()
                     val updatedNote = if (record.note.isBlank() || record.note == "حضور بدون انصراف (سيرفر)") {
-                        "حضور ESS + تسوية انصراف (${PayrollUtil.formatHours(stdShift)})"
+                        "حضور ESS + إكمال انصراف (${PayrollUtil.formatHours(stdShift)})"
                     } else {
-                        "${record.note} (تسوية: ${PayrollUtil.formatHours(stdShift)})"
+                        "${record.note} (إكمال: ${PayrollUtil.formatHours(stdShift)})"
                     }
                     val updated = record.copy(
                         checkOutTime = outTime,
@@ -465,9 +470,9 @@ class MainViewModel(
                     repo.updateRecord(updated)
                 }
                 refreshHome()
-                showHomeMessage("تمت تسوية ${pending.size} ورديات بنجاح واحتساب الساعات في الراتب ✓")
+                showHomeMessage("تم إكمال ${pending.size} ورديات بنجاح واحتساب ساعاتها ✓")
             } catch (e: Exception) {
-                showHomeMessage("فشل تسوية الورديات: ${e.message}", true)
+                showHomeMessage("فشل إكمال الورديات: ${e.message}", true)
                 refreshHome()
             }
         }
@@ -1190,9 +1195,15 @@ class MainViewModel(
 
                 val result = repo.revertRecordToEss(record)
                 if (result.isSuccess) {
+                    val rev = result.getOrThrow()
                     refreshHome()
                     loadReport()
-                    onDone(true, "تمت استعادة توقيت الوردية من ESS بنجاح ✓")
+                    val msg = if (rev.checkOutTime == null) {
+                        "تمت استعادة تسجيل الحضور من السيرفر (لا يوجد انصراف مسجل على السيرفر)"
+                    } else {
+                        "تمت استعادة توقيت الوردية من ESS بنجاح ✓"
+                    }
+                    onDone(true, msg)
                 } else {
                     onDone(false, result.exceptionOrNull()?.message ?: "فشلت استعادة الوردية من السيرفر")
                 }

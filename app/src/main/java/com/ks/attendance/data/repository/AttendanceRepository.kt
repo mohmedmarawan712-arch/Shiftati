@@ -382,16 +382,39 @@ class AttendanceRepository(
         cal.set(parts[0], parts[1] - 1, parts[2], 0, 0, 0)
         cal.set(Calendar.MILLISECOND, 0)
         val dayStart = cal.time
-        cal.set(parts[0], parts[1] - 1, parts[2], 23, 59, 59)
+
+        // Extend end window to next day evening to capture overnight shifts
+        cal.add(Calendar.DAY_OF_YEAR, 1)
+        cal.set(Calendar.HOUR_OF_DAY, 23)
+        cal.set(Calendar.MINUTE, 59)
+        cal.set(Calendar.SECOND, 59)
         cal.set(Calendar.MILLISECOND, 999)
         val dayEnd = cal.time
 
         val clockings = essClient.fetchClockings(dayStart, dayEnd).getOrThrow()
-        val (shifts, _) = ClockingParser.pairShifts(clockings)
+        val (shifts, unmatched) = ClockingParser.pairShifts(clockings)
 
         val matchingShifts = shifts.filter { it.workDate == record.workDate }
         if (matchingShifts.isEmpty()) {
-            throw IllegalStateException("لم يتم العثور على وردية مسجلة على السيرفر في تاريخ ${record.workDate}")
+            // Check if server has an unclosed ClockIn on that day
+            val clockIns = unmatched.filter { it.type.startsWith("ClockIn") }
+            val matchingClockIn = clockIns.firstOrNull { 
+                sdfDate.format(it.time) == record.workDate 
+            }
+            if (matchingClockIn != null) {
+                val reverted = record.copy(
+                    checkInTime = matchingClockIn.time.time,
+                    checkOutTime = null,
+                    hoursWorked = 0.0,
+                    isFromServer = true,
+                    source = "ess_online",
+                    note = if (record.note.contains("حضور")) record.note else "حضور بدون انصراف (سيرفر)"
+                )
+                attendanceDao.update(reverted)
+                return@runCatching reverted
+            }
+
+            throw IllegalStateException("لا توجد تسجيلات حضور أو انصراف على السيرفر في تاريخ ${record.workDate}")
         }
 
         // Pick shift closest to the record's check-in time

@@ -199,14 +199,14 @@
     <string name="clock_in_time_label">Clock-in Time</string>
     <string name="duration_so_far">Elapsed Time</string>
     <string name="clock_out_qr_btn">Clock Out (QR)</string>
-    <string name="pending_missing_shift">Pending Shift (Missing Check-out) ⚠️</string>
-    <string name="pending_missing_shifts_count">%d Pending Shifts (Missing Check-out) ⚠️</string>
-    <string name="settle_shift_btn">Settle (%.0f hrs) ⚡</string>
-    <string name="settle_all_shifts_btn">Settle All (%.0f hrs) ⚡</string>
-    <string name="missing_checkout_dialog_title">What is a missing checkout shift?</string>
-    <string name="missing_checkout_dialog_text">Clock-in was recorded via ESS server, but check-out was missed due to a system outage.\n\nHours are currently 0. You can settle it to standard shift hours or edit the time manually.</string>
-    <string name="revert_ess_dialog_title">Restore Shift from ESS</string>
-    <string name="revert_ess_dialog_msg">Restore original clock times from the server for %s?</string>
+    <string name="pending_missing_shift">Shift Missing Check-out ⚠️</string>
+    <string name="pending_missing_shifts_count">%d Shifts Missing Check-out ⚠️</string>
+    <string name="settle_shift_btn">Complete (%.0f hrs) ⚡</string>
+    <string name="settle_all_shifts_btn">Complete All (%.0f hrs) ⚡</string>
+    <string name="missing_checkout_dialog_title">Shift Missing Check-out</string>
+    <string name="missing_checkout_dialog_text">Clock-in was recorded without check-out.\n\nYou can complete the shift with standard hours to calculate salary, or edit the time manually.</string>
+    <string name="revert_ess_dialog_title">Restore from ESS Server</string>
+    <string name="revert_ess_dialog_msg">Restore official server clocking for %s and discard manual adjustments?</string>
 
     <!-- Attendance List -->
     <string name="fill_off_days_hint">Fill missing days as OFF</string>
@@ -224,10 +224,10 @@
     <string name="current_period_records">Current Period Records (%d)</string>
     <string name="show_all_records">Show All Records (%d)</string>
     <string name="no_records_in_period">No records found in this period</string>
-    <string name="settle_shift_dialog_title">Settle Shift (ESS Server Outage)</string>
+    <string name="settle_shift_dialog_title">Complete Shift</string>
     <string name="settle_shift_dialog_msg">Clocked in on %1$s at %2$s without check-out.</string>
-    <string name="settle_shift_dialog_hint">Apply standard shift (%.0f hrs) to calculate salary immediately, or edit manually:</string>
-    <string name="settle_with_hours_btn">Settle with %.0f hrs ⚡</string>
+    <string name="settle_shift_dialog_hint">Apply standard shift (%.0f hrs) to calculate salary, or edit manually:</string>
+    <string name="settle_with_hours_btn">Complete (%.0f hrs) ⚡</string>
     <string name="edit_time_manually">Edit Time Manually</string>
     <string name="delete_day_title">Delete Day Shifts</string>
     <string name="delete_day_msg">Delete all shifts on %s?</string>
@@ -252,8 +252,8 @@
     <string name="save_changes_btn">Save Changes</string>
     <string name="err_same_time">Check-out time cannot be the same as check-in time</string>
     <string name="err_out_before_in">Check-out time must be after check-in time</string>
-    <string name="settle_9h_btn">9h Shift</string>
-    <string name="missing_checkout_banner_title">Shift without check-out (Server Outage) ⚠️</string>
+    <string name="settle_9h_btn">Complete 9h</string>
+    <string name="missing_checkout_banner_title">Shift without check-out ⚠️</string>
     <string name="missing_checkout_banner_desc">Apply standard 9-hour shift to calculate payroll</string>
     <string name="today_shifts">Today\'s Shifts</string>
     <string name="no_shifts_today">No shifts recorded today</string>

@@ -49,12 +49,6 @@ fun HomeScreen(
     var isReverting by remember { mutableStateOf(false) }
 
     val context = androidx.compose.ui.platform.LocalContext.current
-    LaunchedEffect(homeState.message) {
-        homeState.message?.let { msg ->
-            android.widget.Toast.makeText(context, msg.text, android.widget.Toast.LENGTH_SHORT).show()
-            viewModel.clearMessage()
-        }
-    }
 
     // Attendance QR & Account Manager states
     var showQrDialog by remember { mutableStateOf(false) }

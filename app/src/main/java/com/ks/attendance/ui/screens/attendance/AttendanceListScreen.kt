@@ -420,7 +420,7 @@ fun AttendanceListScreen(
                 onDismissRequest = { if (!isReverting) recordToRevert = null },
                 icon = {
                     Icon(
-                        Icons.Filled.Sync,
+                        Icons.Filled.Restore,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
@@ -829,14 +829,14 @@ private fun RecordRow(
                         )
                     }
 
-                    // Show sync icon button right next to the "معدل" badge
+                    // Show restore icon button right next to the "معدل" badge
                     if (isModified && onRevert != null) {
                         IconButton(
                             onClick = onRevert,
                             modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
-                                Icons.Filled.Sync,
+                                Icons.Filled.Restore,
                                 contentDescription = stringResource(R.string.revert_ess_dialog_title),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(16.dp)

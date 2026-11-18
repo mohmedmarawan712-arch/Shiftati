@@ -68,14 +68,6 @@ fun SettingsScreen(
     var showAccountsManagerDialog by remember { mutableStateOf(false) }
     var showAddAccountDialog by remember { mutableStateOf(false) }
 
-    val context = androidx.compose.ui.platform.LocalContext.current
-    LaunchedEffect(homeState.message) {
-        homeState.message?.let { msg ->
-            android.widget.Toast.makeText(context, msg.text, android.widget.Toast.LENGTH_SHORT).show()
-            viewModel.clearMessage()
-        }
-    }
-
     val restoreLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->

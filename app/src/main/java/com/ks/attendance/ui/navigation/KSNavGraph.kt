@@ -42,6 +42,16 @@ fun KSNavGraph(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Global message & toast handling across all screens
+    val homeState by viewModel.homeState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(homeState.message) {
+        homeState.message?.let { msg ->
+            android.widget.Toast.makeText(context, msg.text, android.widget.Toast.LENGTH_SHORT).show()
+            viewModel.clearMessage()
+        }
+    }
+
     // Show bottom bar only on main screens
     val showBottomBar = bottomNavScreens.any { it.route == currentRoute }
 

@@ -363,7 +363,7 @@ fun AddEditRecordScreen(
                                 checkOutHour = (checkInHour + 9) % 24
                                 checkOutMinute = checkInMinute
                                 if (noteText.isBlank() || noteText == "حضور بدون انصراف (سيرفر)") {
-                                    noteText = "حضور ESS + تسوية انصراف (9.0 س)"
+                                    noteText = "حضور ESS + إكمال انصراف (9.0 س)"
                                 }
                             },
                             shape = RoundedCornerShape(10.dp),
