@@ -266,4 +266,5 @@
     <string name="ess_imported_banner">Imported from ESS (your edits are saved locally)</string>
     <string name="close">Close</string>
     <string name="switch_account">Switch Account</string>
+    <string name="action_sync">Quick Sync</string>
 </resources>

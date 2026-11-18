@@ -128,17 +128,26 @@ fun DateRangePickerDialog(
             Spacer(modifier = Modifier.height(10.dp))
 
             // Quick Presets Row (Streamlined to 4 essential cycles)
+            val currentMonthTitle = stringResource(R.string.preset_current_month)
+            val prevMonthTitle = stringResource(R.string.preset_previous_month)
+            val cycleCurrentTitle = stringResource(R.string.preset_cycle_16_15_current)
+            val cyclePrevTitle = stringResource(R.string.preset_cycle_16_15_prev)
+            val presets: List<Pair<String, () -> Pair<String, String>>> = remember(
+                currentMonthTitle, prevMonthTitle, cycleCurrentTitle, cyclePrevTitle
+            ) {
+                listOf(
+                    currentMonthTitle to { PayrollUtil.getCurrentMonthPeriod() },
+                    prevMonthTitle to { PayrollUtil.getPreviousMonthPeriod() },
+                    cycleCurrentTitle to { PayrollUtil.getPayrollPeriod16to15() },
+                    cyclePrevTitle to { PayrollUtil.getPreviousPayrollPeriod16to15() }
+                )
+            }
+
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(horizontal = 16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val presets: List<Pair<String, () -> Pair<String, String>>> = listOf(
-                    stringResource(R.string.preset_current_month) to { PayrollUtil.getCurrentMonthPeriod() },
-                    stringResource(R.string.preset_previous_month) to { PayrollUtil.getPreviousMonthPeriod() },
-                    stringResource(R.string.preset_cycle_16_15_current) to { PayrollUtil.getPayrollPeriod16to15() },
-                    stringResource(R.string.preset_cycle_16_15_prev) to { PayrollUtil.getPreviousPayrollPeriod16to15() }
-                )
                 items(presets) { (title, provider) ->
                     val (pStart, pEnd) = provider()
                     val isSelected = selectedStartStr == pStart && selectedEndStr == pEnd

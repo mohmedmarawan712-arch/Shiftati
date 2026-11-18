@@ -253,6 +253,9 @@ object PayrollUtil {
         }
     }
 
+    fun formatCurrency(amount: Double): String =
+        "${java.text.NumberFormat.getNumberInstance(Locale.US).format(amount.toLong())} ج"
+
     /**
      * Converts "yyyy-MM-dd" + hour + minute to epoch millis.
      */
