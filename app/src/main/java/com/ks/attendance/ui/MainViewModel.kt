@@ -373,7 +373,7 @@ class MainViewModel(
                 }
                 repo.clockIn(customTime)
                 refreshHome()
-                showHomeMessage("تم تسجيل الحضور الساعة ${PayrollUtil.formatTime(customTime)} ✓")
+                showHomeMessage("تم تسجيل الحضور الساعة ${PayrollUtil.formatTime(customTime)}")
             } catch (e: Exception) {
                 showHomeMessage("خطأ: ${e.message}", true)
             }
@@ -387,7 +387,7 @@ class MainViewModel(
                     ?: run { showHomeMessage("لا توجد جلسة حضور مفتوحة لتسجيل انصرافها", true); return@launch }
                 val updated = repo.clockOut(open, customTime)
                 refreshHome()
-                showHomeMessage("تم تسجيل الانصراف الساعة ${PayrollUtil.formatTime(updated.checkOutTime ?: customTime)} ✓ (${PayrollUtil.formatHours(updated.hoursWorked)})")
+                showHomeMessage("تم تسجيل الانصراف الساعة ${PayrollUtil.formatTime(updated.checkOutTime ?: customTime)} (${PayrollUtil.formatHours(updated.hoursWorked)})")
             } catch (e: Exception) {
                 showHomeMessage("خطأ: ${e.message}", true)
             }
@@ -427,7 +427,7 @@ class MainViewModel(
                 )
                 repo.updateRecord(updated)
                 refreshHome()
-                showHomeMessage("تم إكمال الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)} ✓")
+                showHomeMessage("تم إكمال الوردية بنجاح واحتساب ${PayrollUtil.formatHours(hoursToApply)}")
             } catch (e: Exception) {
                 showHomeMessage("فشل إكمال الوردية: ${e.message}", true)
                 refreshHome()
@@ -470,7 +470,7 @@ class MainViewModel(
                     repo.updateRecord(updated)
                 }
                 refreshHome()
-                showHomeMessage("تم إكمال ${pending.size} ورديات بنجاح واحتساب ساعاتها ✓")
+                showHomeMessage("تم إكمال ${pending.size} ورديات بنجاح واحتساب ساعاتها")
             } catch (e: Exception) {
                 showHomeMessage("فشل إكمال الورديات: ${e.message}", true)
                 refreshHome()
@@ -713,8 +713,8 @@ class MainViewModel(
 
                 if (result.isSuccess) {
                     val path = result.getOrThrow()
-                    showHomeMessage("تم تصدير تقرير HTML بنجاح ✓\nتم الحفظ في: $path")
-                    ExportUtil.shareExportedFile(context, path)
+                    _reportState.value = _reportState.value.copy(exportedPath = path)
+                    showHomeMessage("تم تصدير التقرير بنجاح")
                 } else {
                     showHomeMessage("فشل التصدير: ${result.exceptionOrNull()?.message}", isError = true)
                 }
@@ -722,6 +722,10 @@ class MainViewModel(
                 showHomeMessage("خطأ أثناء التصدير: ${e.message}", isError = true)
             }
         }
+    }
+
+    fun dismissExportDialog() {
+        _reportState.value = _reportState.value.copy(exportedPath = null)
     }
 
     // ─── JSON Backup & Restore ────────────────────────────────────────────────
@@ -738,7 +742,7 @@ class MainViewModel(
                 val saveRes = BackupUtil.saveBackupToFile(context, json)
                 if (saveRes.isSuccess) {
                     val path = saveRes.getOrThrow()
-                    showHomeMessage("تم حفظ النسخة الاحتياطية بنجاح ✓\nالمسار: $path")
+                    showHomeMessage("تم حفظ النسخة الاحتياطية بنجاح\nالمسار: $path")
                 } else {
                     showHomeMessage("فشل حفظ النسخة الاحتياطية: ${saveRes.exceptionOrNull()?.message}", isError = true)
                 }
@@ -775,7 +779,7 @@ class MainViewModel(
                 }
                 refreshHome()
                 val accMsg = if (backup.accounts.isNotEmpty()) " و ${backup.accounts.size} حساب" else ""
-                showHomeMessage("تمت استعادة النسخة الاحتياطية بنجاح ✓\nتم استرجاع ${backup.records.size} وردية$accMsg")
+                showHomeMessage("تمت استعادة النسخة الاحتياطية بنجاح\nتم استرجاع ${backup.records.size} وردية$accMsg")
             } catch (e: Exception) {
                 showHomeMessage("خطأ أثناء الاستعادة: ${e.message}", isError = true)
             }
@@ -891,7 +895,7 @@ class MainViewModel(
                 if (instances.size == 1) {
                     repo.essSelectInstance(instances.first())
                     syncFromEss { count ->
-                        if (count > 0) showHomeMessage("تم تسجيل الدخول ومزامنة $count وردية بنجاح ✓")
+                        if (count > 0) showHomeMessage("تم تسجيل الدخول ومزامنة $count وردية بنجاح")
                     }
                 }
             }
@@ -913,7 +917,7 @@ class MainViewModel(
             }
             // Auto-sync immediately upon selecting instance
             syncFromEss { count ->
-                if (count > 0) showHomeMessage("تم اختيار الفرع ومزامنة $count وردية بنجاح ✓")
+                if (count > 0) showHomeMessage("تم اختيار الفرع ومزامنة $count وردية بنجاح")
             }
         }
     }
@@ -993,7 +997,7 @@ class MainViewModel(
                 )
                 refreshHome()
                 syncFromEss(silent = false) { _ ->
-                    showHomeMessage("تم تسجيل الدخول وإضافة حساب ${name} بنجاح ✓")
+                    showHomeMessage("تم تسجيل الدخول وإضافة حساب ${name} بنجاح")
                 }
             }
             onResult(result)
@@ -1043,7 +1047,7 @@ class MainViewModel(
             )
             refreshHome()
             loadReport()
-            showHomeMessage("تم التبديل إلى حساب ${name} بنجاح ✓")
+            showHomeMessage("تم التبديل إلى حساب ${name} بنجاح")
             // Silently sync shifts for switched account with debounce to prevent duplicate network calls on rapid clicks
             accountSyncJob = viewModelScope.launch {
                 delay(300L)
@@ -1127,7 +1131,7 @@ class MainViewModel(
                 prefs.setEmployeeName(name)
                 refreshHome()
                 syncFromEss {
-                    showHomeMessage("تم تحديث بيانات الحساب بنجاح ✓")
+                    showHomeMessage("تم تحديث بيانات الحساب بنجاح")
                     onDone?.invoke(true)
                 }
             } else {
@@ -1201,7 +1205,7 @@ class MainViewModel(
                     val msg = if (rev.checkOutTime == null) {
                         "تمت استعادة تسجيل الحضور من السيرفر (لا يوجد انصراف مسجل على السيرفر)"
                     } else {
-                        "تمت استعادة توقيت الوردية من ESS بنجاح ✓"
+                        "تمت استعادة توقيت الوردية من ESS بنجاح"
                     }
                     onDone(true, msg)
                 } else {
@@ -1308,7 +1312,7 @@ class MainViewModel(
                 val count = repo.fillMissingDaysAsOff(start, end)
                 refreshHome()
                 if (count > 0) {
-                    showHomeMessage("تم تسجيل $count يوم إجازة (OFF) مفقود بنجاح ✓")
+                    showHomeMessage("تم تسجيل $count يوم إجازة (OFF) مفقود بنجاح")
                 } else {
                     showHomeMessage("جميع الأيام مسجلة بالفعل ولا توجد أيام مفقودة")
                 }

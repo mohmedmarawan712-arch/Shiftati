@@ -1202,39 +1202,27 @@ fun ReviewPendingShiftsDialog(
                                             color = Color(0xFFD97706)
                                         )
                                     }
-
-                                    OutlinedButton(
-                                        onClick = {
-                                            onDismiss()
-                                            onEditRecord(record)
-                                        },
-                                        shape = RoundedCornerShape(8.dp),
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                        modifier = Modifier.height(32.dp)
-                                    ) {
-                                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(13.dp))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(stringResource(R.string.edit), style = MaterialTheme.typography.labelSmall)
-                                    }
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
 
-                                // Quick options: 8h, Standard (9h), 10h
+                                // Actions: Settle Standard Shift (9h) or Edit manually
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Button(
                                         onClick = { onSettleRecord(record, standardShiftHours) },
-                                        modifier = Modifier.weight(1.3f),
-                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1.2f),
+                                        shape = RoundedCornerShape(10.dp),
                                         colors = ButtonDefaults.buttonColors(
                                             containerColor = Color(0xFFF59E0B),
                                             contentColor = Color.Black
                                         ),
-                                        contentPadding = PaddingValues(vertical = 4.dp)
+                                        contentPadding = PaddingValues(vertical = 8.dp)
                                     ) {
+                                        Icon(Icons.Filled.Bolt, contentDescription = null, modifier = Modifier.size(15.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
                                         Text(
                                             text = stringResource(R.string.settle_shift_btn, standardShiftHours),
                                             style = MaterialTheme.typography.labelMedium,
@@ -1243,21 +1231,23 @@ fun ReviewPendingShiftsDialog(
                                     }
 
                                     OutlinedButton(
-                                        onClick = { onSettleRecord(record, 8.0) },
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.weight(0.85f),
-                                        contentPadding = PaddingValues(vertical = 4.dp)
+                                        onClick = {
+                                            onDismiss()
+                                            onEditRecord(record)
+                                        },
+                                        modifier = Modifier.weight(0.8f),
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.6f)),
+                                        contentPadding = PaddingValues(vertical = 8.dp)
                                     ) {
-                                        Text(stringResource(R.string.hours_8_btn), style = MaterialTheme.typography.labelMedium)
-                                    }
-
-                                    OutlinedButton(
-                                        onClick = { onSettleRecord(record, 10.0) },
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.weight(0.85f),
-                                        contentPadding = PaddingValues(vertical = 4.dp)
-                                    ) {
-                                        Text(stringResource(R.string.hours_10_btn), style = MaterialTheme.typography.labelMedium)
+                                        Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color(0xFFF59E0B))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = stringResource(R.string.edit),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
                                 }
                             }

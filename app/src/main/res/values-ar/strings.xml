@@ -114,8 +114,8 @@
     <string name="day_fri">الجمعة</string>
 
     <!-- Messages -->
-    <string name="clock_in_success">تم تسجيل الحضور بنجاح ✓</string>
-    <string name="clock_out_success">تم تسجيل الانصراف بنجاح ✓</string>
+    <string name="clock_in_success">تم تسجيل الحضور بنجاح</string>
+    <string name="clock_out_success">تم تسجيل الانصراف بنجاح</string>
     <string name="sync_success">تمت المزامنة بنجاح: %d وردية</string>
     <string name="export_success">تم إنشاء ملف Excel بنجاح</string>
 
@@ -144,9 +144,9 @@
     <string name="attendance_qr_in_title">حضور</string>
     <string name="attendance_qr_out_title">انصراف</string>
     <string name="attendance_qr_subtitle">وجّه رمز الـ QR أمام جهاز البصمة</string>
-    <string name="attendance_time_updated">تم التحديث بالوقت الحالي ✓</string>
+    <string name="attendance_time_updated">تم التحديث بالوقت الحالي</string>
     <string name="attendance_copy_qr">نسخ النص</string>
-    <string name="attendance_qr_copied">تم نسخ رمز الـ QR بنجاح ✓</string>
+    <string name="attendance_qr_copied">تم نسخ رمز الـ QR بنجاح</string>
     <string name="attendance_require_account">يرجى تسجيل الدخول أو إضافة حساب من الإعدادات أولاً</string>
     <string name="attendance_update_current_time">تحديث للوقت الحالي</string>
 
@@ -160,7 +160,7 @@
 
     <!-- Period Presets -->
     <string name="custom_period_title">الفترة المخصصة</string>
-    <string name="apply_and_fetch">تطبيق وجلب البيانات ⚡</string>
+    <string name="apply_and_fetch">تطبيق</string>
     <string name="preset_current_month">الشهر الحالي</string>
     <string name="preset_previous_month">الشهر السابق</string>
     <string name="preset_cycle_16_15_current">دورة 16 - 15 (الحالية)</string>
@@ -173,11 +173,15 @@
     <string name="export_csv_desc">ملف جداول قياسي متوافق مع كافة برامج الإكسل والهواتف</string>
     <string name="export_html_title">تقرير للعرض والطباعة (HTML)</string>
     <string name="export_html_desc">يفتح مباشرة في متصفح الهاتف كمسير راتب رسمي</string>
-    <string name="export_success_msg">تم تصدير التقرير بنجاح ✓</string>
+    <string name="export_success_msg">تم تصدير التقرير بنجاح</string>
     <string name="export_saved_in">تم الحفظ في: %s</string>
     <string name="export_failed">فشل التصدير: %s</string>
     <string name="no_records_to_export">لا توجد سجلات في هذه الفترة لتصديرها</string>
     <string name="export_chooser_title">مشاركة أو فتح التقرير</string>
+    <string name="export_success_title">تم تصدير التقرير</string>
+    <string name="export_open_or_share_msg">تم تصدير تقرير HTML بنجاح. يمكنك فتح التقرير في المتصفح أو مشاركته:</string>
+    <string name="export_open_browser">فتح في المتصفح</string>
+    <string name="share">مشاركة</string>
 
     <!-- Common Actions & Badges -->
     <string name="confirm">تأكيد</string>
@@ -192,18 +196,18 @@
     <string name="filter_off">إجازات OFF</string>
 
     <!-- Home & Session -->
-    <string name="clocked_in_banner">مسجل حضور 🟢</string>
+    <string name="clocked_in_banner">مسجل حضور</string>
     <string name="source_ess_server">سيرفر ESS</string>
     <string name="source_qr_scanner">بصمة QR</string>
-    <string name="shift_active">دوام جاري ⏳</string>
+    <string name="shift_active">دوام جاري</string>
     <string name="clock_in_time_label">وقت الحضور</string>
     <string name="duration_so_far">المدة</string>
     <string name="clock_out_qr_btn">انصراف (QR)</string>
-    <string name="pending_missing_shift">وردية بدون انصراف ⚠️</string>
-    <string name="pending_missing_shifts_count">%d ورديات بدون انصراف ⚠️</string>
-    <string name="settle_shift_btn">إكمال (%.0f س) ⚡</string>
-    <string name="settle_all_shifts_btn">إكمال الكل (%.0f س) ⚡</string>
-    <string name="review_pending_shifts_btn">مراجعة الورديات (%d) 📋</string>
+    <string name="pending_missing_shift">وردية بدون انصراف</string>
+    <string name="pending_missing_shifts_count">%d ورديات بدون انصراف</string>
+    <string name="settle_shift_btn">إكمال (%.0f س)</string>
+    <string name="settle_all_shifts_btn">إكمال الكل (%.0f س)</string>
+    <string name="review_pending_shifts_btn">مراجعة الورديات (%d)</string>
     <string name="review_pending_dialog_title">الورديات المعلقة</string>
     <string name="review_pending_dialog_hint">حدد ساعات كل وردية بدقة:</string>
     <string name="hours_8_btn">8س</string>
@@ -224,7 +228,7 @@
     <string name="overtime_hours_label">إضافي</string>
     <string name="overtime_due_label">مستحق الإضافي</string>
     <string name="total_hours_full">إجمالي الساعات</string>
-    <string name="after_break_deduction">صافي الساعات (-0.5س)</string>
+    <string name="after_break_deduction">صافي الساعات</string>
     <string name="salary_with_days">الراتب (%d يوم)</string>
     <string name="current_period_records">سجلات الفترة (%d)</string>
     <string name="show_all_records">عرض الكل (%d)</string>
@@ -232,7 +236,7 @@
     <string name="settle_shift_dialog_title">إكمال الانصراف</string>
     <string name="settle_shift_dialog_msg">حضور %1$s الساعة %2$s.</string>
     <string name="settle_shift_dialog_hint">حدد ساعات الانصراف:</string>
-    <string name="settle_with_hours_btn">إكمال (%.0f س) ⚡</string>
+    <string name="settle_with_hours_btn">إكمال (%.0f س)</string>
     <string name="edit_time_manually">تعديل الوقت</string>
     <string name="delete_day_title">حذف ورديات اليوم</string>
     <string name="delete_day_msg">حذف ورديات يوم %s؟</string>
@@ -258,7 +262,7 @@
     <string name="err_same_time">الانصراف لا يمكن أن يطابق الحضور</string>
     <string name="err_out_before_in">الانصراف يجب أن يكون بعد الحضور</string>
     <string name="settle_9h_btn">إكمال 9س</string>
-    <string name="missing_checkout_banner_title">وردية بدون انصراف ⚠️</string>
+    <string name="missing_checkout_banner_title">وردية بدون انصراف</string>
     <string name="missing_checkout_banner_desc">تحديد انصراف قياسي لاحتساب الراتب</string>
     <string name="today_shifts">ورديات اليوم</string>
     <string name="no_shifts_today">لا توجد ورديات اليوم</string>

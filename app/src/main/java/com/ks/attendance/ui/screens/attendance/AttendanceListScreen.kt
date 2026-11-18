@@ -26,10 +26,12 @@ import com.ks.attendance.ui.MainViewModel
 import com.ks.attendance.ui.components.ConfirmDeleteDialog
 import com.ks.attendance.ui.components.DateRangePickerDialog
 import com.ks.attendance.ui.components.EmptyState
-import com.ks.attendance.ui.components.KSTopBar
 import com.ks.attendance.ui.theme.*
 import com.ks.attendance.utils.DateUtil
+import com.ks.attendance.utils.ExportUtil
 import com.ks.attendance.utils.PayrollUtil
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextAlign
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
@@ -40,9 +42,11 @@ fun AttendanceListScreen(
     viewModel: MainViewModel,
     onNavigate: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val allRecords by viewModel.allRecords.collectAsState()
     val homeState by viewModel.homeState.collectAsState()
     val settingsState by viewModel.settingsState.collectAsState()
+    val reportState by viewModel.reportState.collectAsState()
     var recordToDelete by remember { mutableStateOf<AttendanceRecord?>(null) }
     var dayToDelete by remember { mutableStateOf<String?>(null) }
     var recordToRevert by remember { mutableStateOf<AttendanceRecord?>(null) }
@@ -174,12 +178,16 @@ fun AttendanceListScreen(
                                         text = "%.0f س".format(homeState.regularHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.base_hours_label),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -200,13 +208,17 @@ fun AttendanceListScreen(
                                         text = "+%.1f س".format(homeState.overtimeHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.overtime_hours_label),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -227,12 +239,16 @@ fun AttendanceListScreen(
                                         text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.overtimeSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.overtime_due_label),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             } else {
@@ -245,12 +261,16 @@ fun AttendanceListScreen(
                                         text = "%.1f س".format(homeState.rawMonthHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.total_hours_full),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -271,13 +291,17 @@ fun AttendanceListScreen(
                                         text = "%.1f س".format(homeState.netMonthHours),
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.after_break_deduction),
                                         style = MaterialTheme.typography.labelSmall,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = MaterialTheme.colorScheme.primary,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
 
@@ -298,12 +322,16 @@ fun AttendanceListScreen(
                                         text = "${NumberFormat.getNumberInstance(Locale.US).format(homeState.monthSalary.toLong())} ج",
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
                                         text = stringResource(R.string.salary_with_days, homeState.workedDays),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
                             }
@@ -574,6 +602,75 @@ fun AttendanceListScreen(
                 onDismiss = { showRangePicker = false }
             )
         }
+
+        // ─── Export Success Dialog (Open in Browser or Share) ─────────────────
+        reportState.exportedPath?.let { path ->
+            AlertDialog(
+                onDismissRequest = { viewModel.dismissExportDialog() },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Description,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                },
+                title = {
+                    Text(
+                        text = stringResource(R.string.export_success_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.export_open_or_share_msg),
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            ExportUtil.openExportedFile(context, path)
+                            viewModel.dismissExportDialog()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.OpenInBrowser, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(stringResource(R.string.export_open_browser), fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                ExportUtil.shareExportedFile(context, path)
+                            },
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.share))
+                        }
+                        TextButton(
+                            onClick = { viewModel.dismissExportDialog() }
+                        ) {
+                            Text(stringResource(R.string.close))
+                        }
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -620,7 +717,7 @@ private fun DateGroupHeader(
                             else MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = if (hasMissingCheckout) "0 دقيقة (⚠️ معلق)" else PayrollUtil.formatHours(totalHours),
+                        text = if (hasMissingCheckout) "0 دقيقة (معلق)" else PayrollUtil.formatHours(totalHours),
                         style = MaterialTheme.typography.labelMedium,
                         color = if (hasMissingCheckout) Color(0xFFD97706) else MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.Bold,

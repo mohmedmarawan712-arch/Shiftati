@@ -205,10 +205,15 @@ object ExportUtil {
             appendLine(".badge-manual { background: #fef3c7; color: #b45309; }")
             appendLine(".badge-off { background: #f1f5f9; color: #64748b; }")
             appendLine(".badge-missing { background: #fee2e2; color: #b91c1c; }")
-            appendLine("@media print { body { background: #ffffff; padding: 0; } .card { box-shadow: none; border: 1px solid #ccc; } }")
+            appendLine("@media print { .no-print { display: none !important; } body { background: #ffffff !important; padding: 0 !important; } .card { box-shadow: none !important; border: 1px solid #ccc !important; } }")
             appendLine("</style>")
             appendLine("</head>")
             appendLine("<body>")
+
+            // Print / Save as PDF Button
+            appendLine("<div class=\"no-print\" style=\"display: flex; justify-content: flex-end; margin-bottom: 12px;\">")
+            appendLine("<button onclick=\"window.print()\" style=\"background: #0284c7; color: #ffffff; border: none; padding: 10px 18px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 13px; font-family: inherit; box-shadow: 0 2px 4px rgba(2,132,199,0.25);\">طباعة / حفظ PDF</button>")
+            appendLine("</div>")
 
             // Top Header Card
             appendLine("<div class=\"card\">")
@@ -338,7 +343,43 @@ object ExportUtil {
     }
 
     /**
-     * Share or open the exported file using Android system intent with FileProvider
+     * Open exported file in browser or default viewer app using ACTION_VIEW intent
+     */
+    fun openExportedFile(context: Context, filePath: String) {
+        try {
+            val file = File(filePath)
+            if (!file.exists()) return
+
+            val uri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val mimeType = when {
+                filePath.endsWith(".html", ignoreCase = true) -> "text/html"
+                filePath.endsWith(".csv", ignoreCase = true) -> "text/csv"
+                filePath.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                else -> "*/*"
+            }
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val chooser = Intent.createChooser(intent, "فتح التقرير").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            context.startActivity(chooser)
+        } catch (_: Exception) {
+            // Silently ignore if no app is available
+        }
+    }
+
+    /**
+     * Share exported file using Android system intent with FileProvider
      */
     fun shareExportedFile(context: Context, filePath: String) {
         try {
@@ -366,7 +407,7 @@ object ExportUtil {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            val chooser = Intent.createChooser(intent, "مشاركة أو فتح التقرير").apply {
+            val chooser = Intent.createChooser(intent, "مشاركة التقرير").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(chooser)
