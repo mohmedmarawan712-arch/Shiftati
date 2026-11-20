@@ -2,6 +2,7 @@ package com.ks.attendance.utils
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Environment
 import androidx.core.content.FileProvider
@@ -112,21 +113,12 @@ object BackupUtil {
     }
 
     /**
-     * Saves JSON content to a backup file and returns its path.
+     * Saves JSON content to a backup file in public Downloads/Shiftati and returns its path.
      */
     fun saveBackupToFile(context: Context, jsonContent: String): Result<String> = runCatching {
-        val dir = getBackupDir(context)
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val fileName = "Shiftati_Backup_$timeStamp.json"
-        val file = File(dir, fileName)
-
-        FileOutputStream(file).use { fos ->
-            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                writer.write(jsonContent)
-                writer.flush()
-            }
-        }
-        file.absolutePath
+        ExportUtil.saveToPublicDownloads(context, fileName, jsonContent, "application/json").getOrThrow()
     }
 
     /**
@@ -234,14 +226,23 @@ object BackupUtil {
      */
     fun shareBackupFile(context: Context, filePath: String) {
         try {
-            val file = File(filePath)
-            if (!file.exists()) return
+            val uri: Uri
+            if (filePath.startsWith("content://")) {
+                uri = Uri.parse(filePath)
+            } else {
+                val file = File(filePath)
+                if (!file.exists()) return
 
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
+                uri = try {
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
+                }
+            }
 
             val intent = Intent(Intent.ACTION_SEND).apply {
                 type = "application/json"
@@ -251,6 +252,14 @@ object BackupUtil {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
+            try {
+                val resInfoList = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    context.grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (_: Exception) {}
+
             val chooser = Intent.createChooser(intent, "مشاركة أو حفظ النسخة الاحتياطية").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -258,20 +267,5 @@ object BackupUtil {
         } catch (_: Exception) {}
     }
 
-    private fun getBackupDir(context: Context): File {
-        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        if (downloads != null && downloads.exists()) {
-            val folder = File(downloads, "Shiftati")
-            if (!folder.exists()) folder.mkdirs()
-            if (folder.canWrite()) return folder
-        }
-        val extDocs = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
-        if (extDocs != null) {
-            if (!extDocs.exists()) extDocs.mkdirs()
-            return extDocs
-        }
-        val internal = File(context.filesDir, "backups")
-        if (!internal.exists()) internal.mkdirs()
-        return internal
-    }
+    fun getBackupDir(context: Context): File = ExportUtil.getExportDir(context)
 }

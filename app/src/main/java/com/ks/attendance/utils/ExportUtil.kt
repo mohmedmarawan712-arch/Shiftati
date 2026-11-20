@@ -1,9 +1,14 @@
 package com.ks.attendance.utils
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.media.MediaScannerConnection
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
+import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import com.ks.attendance.data.local.entity.AttendanceRecord
 import com.ks.attendance.data.local.entity.DayNote
@@ -45,10 +50,9 @@ object ExportUtil {
         standardShiftHours: Double = 9.0,
         employeeName: String = ""
     ): Result<String> = runCatching {
-        val dir = getExportDir(context)
         val safeName = getSafeFileName(employeeName)
         val datePart = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) "${periodStart}_${periodEnd}" else sdfDate.format(Date())
-        val file = File(dir, "${safeName}_${datePart}.csv")
+        val fileName = "${safeName}_${datePart}.csv"
 
         val sortedRecords = records.sortedWith(compareBy<AttendanceRecord> { it.workDate }.thenBy { it.checkInTime })
         val workedRecords = sortedRecords.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
@@ -122,15 +126,7 @@ object ExportUtil {
             }
         }
 
-        FileOutputStream(file).use { fos ->
-            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                writer.write("\uFEFF") // UTF-8 BOM
-                writer.write(csv)
-                writer.flush()
-            }
-        }
-
-        file.absolutePath
+        saveToPublicDownloads(context, fileName, "\uFEFF" + csv, "text/csv").getOrThrow()
     }
 
     /**
@@ -148,10 +144,9 @@ object ExportUtil {
         standardShiftHours: Double = 9.0,
         employeeName: String = ""
     ): Result<String> = runCatching {
-        val dir = getExportDir(context)
         val safeName = getSafeFileName(employeeName)
         val datePart = if (periodStart.isNotBlank() && periodEnd.isNotBlank()) "${periodStart}_${periodEnd}" else sdfDate.format(Date())
-        val file = File(dir, "${safeName}_${datePart}.html")
+        val fileName = "${safeName}_${datePart}.html"
 
         val sortedRecords = records.sortedWith(compareBy<AttendanceRecord> { it.workDate }.thenBy { it.checkInTime })
         val workedRecords = sortedRecords.filter { it.hoursWorked > 0.0 && it.source != "off_day" }
@@ -364,14 +359,7 @@ object ExportUtil {
             appendLine("</html>")
         }
 
-        FileOutputStream(file).use { fos ->
-            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
-                writer.write(html)
-                writer.flush()
-            }
-        }
-
-        file.absolutePath
+        saveToPublicDownloads(context, fileName, html, "text/html").getOrThrow()
     }
 
     /** Legacy helper forwarding to exportCsv for backward compatibility */
@@ -389,26 +377,103 @@ object ExportUtil {
         context, records, notes, periodStart, periodEnd, hourlyRate, isFixedEmployment, standardShiftHours, employeeName
     )
 
-    private fun getExportDir(context: Context): File {
-        val candidates = listOfNotNull(
-            context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)?.let { File(it, "Shiftati") },
-            context.getExternalFilesDir(null)?.let { File(it, "Shiftati") },
-            File(context.filesDir, "exports")
-        )
-        for (dir in candidates) {
+    fun getExportDir(context: Context): File {
+        val publicDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val shiftatiFolder = File(publicDownloads, "Shiftati")
+        if (!shiftatiFolder.exists()) {
+            shiftatiFolder.mkdirs()
+        }
+        return shiftatiFolder
+    }
+
+    /**
+     * Saves content to the public Downloads/Shiftati folder.
+     * Uses direct File writing + MediaScanner, falling back to MediaStore.Downloads (API 29+),
+     * and finally app external/internal storage if completely blocked.
+     */
+    fun saveToPublicDownloads(
+        context: Context,
+        fileName: String,
+        content: String,
+        mimeType: String,
+        subFolder: String = "Shiftati"
+    ): Result<String> = runCatching {
+        val publicDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val targetDir = File(publicDownloads, subFolder)
+
+        // 1. Direct POSIX File writing to public Downloads/Shiftati
+        try {
+            if (!targetDir.exists()) {
+                targetDir.mkdirs()
+            }
+            val targetFile = File(targetDir, fileName)
+            FileOutputStream(targetFile).use { fos ->
+                OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
+                    writer.write(content)
+                    writer.flush()
+                }
+            }
+            // Index file into Android system media & download manager
             try {
-                if (!dir.exists()) dir.mkdirs()
-                val testFile = File(dir, ".test_write_${System.currentTimeMillis()}")
-                testFile.writeText("ok")
-                testFile.delete()
-                return dir
+                MediaScannerConnection.scanFile(
+                    context,
+                    arrayOf(targetFile.absolutePath),
+                    arrayOf(mimeType),
+                    null
+                )
+            } catch (_: Exception) {}
+
+            return@runCatching targetFile.absolutePath
+        } catch (_: Exception) {
+            // Direct write failed, fallback to MediaStore on Android 10+
+        }
+
+        // 2. MediaStore.Downloads (Android 10+ / API 29+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                val resolver = context.contentResolver
+                val contentValues = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$subFolder")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+                val uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, contentValues)
+                if (uri != null) {
+                    resolver.openOutputStream(uri)?.use { os ->
+                        OutputStreamWriter(os, Charsets.UTF_8).use { writer ->
+                            writer.write(content)
+                            writer.flush()
+                        }
+                    }
+                    contentValues.clear()
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+
+                    val targetFile = File(targetDir, fileName)
+                    if (targetFile.exists()) {
+                        return@runCatching targetFile.absolutePath
+                    }
+                    return@runCatching uri.toString()
+                }
             } catch (_: Exception) {
-                continue
+                // MediaStore failed, proceed to fallback
             }
         }
-        val fallback = File(context.filesDir, "exports")
-        if (!fallback.exists()) fallback.mkdirs()
-        return fallback
+
+        // 3. Fallback to app external files dir or internal files
+        val fallbackDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            ?: context.getExternalFilesDir(null)
+            ?: File(context.filesDir, "Shiftati")
+        if (!fallbackDir.exists()) fallbackDir.mkdirs()
+        val fallbackFile = File(fallbackDir, fileName)
+        FileOutputStream(fallbackFile).use { fos ->
+            OutputStreamWriter(fos, Charsets.UTF_8).use { writer ->
+                writer.write(content)
+                writer.flush()
+            }
+        }
+        fallbackFile.absolutePath
     }
 
     /**
@@ -416,20 +481,30 @@ object ExportUtil {
      */
     fun openExportedFile(context: Context, filePath: String) {
         try {
-            val file = File(filePath)
-            if (!file.exists()) return
-
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
+            val uri: Uri
             val mimeType = when {
                 filePath.endsWith(".html", ignoreCase = true) -> "text/html"
                 filePath.endsWith(".csv", ignoreCase = true) -> "text/csv"
                 filePath.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                filePath.endsWith(".json", ignoreCase = true) -> "application/json"
                 else -> "*/*"
+            }
+
+            if (filePath.startsWith("content://")) {
+                uri = Uri.parse(filePath)
+            } else {
+                val file = File(filePath)
+                if (!file.exists()) return
+
+                uri = try {
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
+                }
             }
 
             val intent = Intent(Intent.ACTION_VIEW).apply {
@@ -437,6 +512,14 @@ object ExportUtil {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+
+            try {
+                val resInfoList = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    context.grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (_: Exception) {}
 
             val chooser = Intent.createChooser(intent, "فتح التقرير").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -452,20 +535,30 @@ object ExportUtil {
      */
     fun shareExportedFile(context: Context, filePath: String) {
         try {
-            val file = File(filePath)
-            if (!file.exists()) return
-
-            val uri: Uri = FileProvider.getUriForFile(
-                context,
-                "${context.packageName}.fileprovider",
-                file
-            )
-
+            val uri: Uri
             val mimeType = when {
                 filePath.endsWith(".csv", ignoreCase = true) -> "text/csv"
                 filePath.endsWith(".html", ignoreCase = true) -> "text/html"
                 filePath.endsWith(".pdf", ignoreCase = true) -> "application/pdf"
+                filePath.endsWith(".json", ignoreCase = true) -> "application/json"
                 else -> "*/*"
+            }
+
+            if (filePath.startsWith("content://")) {
+                uri = Uri.parse(filePath)
+            } else {
+                val file = File(filePath)
+                if (!file.exists()) return
+
+                uri = try {
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
+                }
             }
 
             val intent = Intent(Intent.ACTION_SEND).apply {
@@ -475,6 +568,14 @@ object ExportUtil {
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
+
+            try {
+                val resInfoList = context.packageManager.queryIntentActivities(intent, PackageManager.MATCH_DEFAULT_ONLY)
+                for (resolveInfo in resInfoList) {
+                    val packageName = resolveInfo.activityInfo.packageName
+                    context.grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+            } catch (_: Exception) {}
 
             val chooser = Intent.createChooser(intent, "مشاركة التقرير").apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
